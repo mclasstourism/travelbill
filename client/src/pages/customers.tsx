@@ -36,9 +36,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertCustomerSchema, type Customer, type InsertCustomer } from "@shared/schema";
 
 function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("en-AE", {
     style: "currency",
-    currency: "USD",
+    currency: "AED",
     minimumFractionDigits: 2,
   }).format(amount);
 }
@@ -56,9 +56,10 @@ export default function CustomersPage() {
     resolver: zodResolver(insertCustomerSchema),
     defaultValues: {
       name: "",
-      email: "",
       phone: "",
+      company: "",
       address: "",
+      email: "",
       depositBalance: 0,
     },
   });
@@ -144,8 +145,8 @@ export default function CustomersPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
                     <TableHead>Phone</TableHead>
+                    <TableHead>Company</TableHead>
                     <TableHead className="text-right">Deposit Balance</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -154,10 +155,10 @@ export default function CustomersPage() {
                     <TableRow key={customer.id} data-testid={`row-customer-${customer.id}`}>
                       <TableCell className="font-medium">{customer.name}</TableCell>
                       <TableCell className="text-muted-foreground">
-                        {customer.email || "-"}
+                        {customer.phone || "-"}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {customer.phone || "-"}
+                        {customer.company || "-"}
                       </TableCell>
                       <TableCell className="text-right font-mono font-semibold">
                         <span className={customer.depositBalance >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
@@ -204,16 +205,15 @@ export default function CustomersPage() {
 
               <FormField
                 control={form.control}
-                name="email"
+                name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>Phone *</FormLabel>
                     <FormControl>
                       <Input
-                        type="email"
-                        placeholder="email@example.com"
+                        placeholder="+971 50 123 4567"
                         {...field}
-                        data-testid="input-customer-email"
+                        data-testid="input-customer-phone"
                       />
                     </FormControl>
                     <FormMessage />
@@ -223,15 +223,15 @@ export default function CustomersPage() {
 
               <FormField
                 control={form.control}
-                name="phone"
+                name="company"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Phone</FormLabel>
+                    <FormLabel>Company</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="+1 (555) 123-4567"
+                        placeholder="Company name"
                         {...field}
-                        data-testid="input-customer-phone"
+                        data-testid="input-customer-company"
                       />
                     </FormControl>
                     <FormMessage />
@@ -250,6 +250,25 @@ export default function CustomersPage() {
                         placeholder="Street address"
                         {...field}
                         data-testid="input-customer-address"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="email@example.com"
+                        {...field}
+                        data-testid="input-customer-email"
                       />
                     </FormControl>
                     <FormMessage />

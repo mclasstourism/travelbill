@@ -35,6 +35,7 @@ export interface IStorage {
   // Customers
   getCustomers(): Promise<Customer[]>;
   getCustomer(id: string): Promise<Customer | undefined>;
+  findDuplicateCustomer(name: string, phone: string): Promise<Customer | undefined>;
   createCustomer(customer: InsertCustomer): Promise<Customer>;
   updateCustomer(id: string, updates: Partial<Customer>): Promise<Customer | undefined>;
 
@@ -99,7 +100,7 @@ export class MemStorage implements IStorage {
     this.billCreators.set(defaultCreatorId, {
       id: defaultCreatorId,
       name: "Admin",
-      pin: "1234",
+      pin: "12345678",
       active: true,
     });
   }
@@ -169,14 +170,23 @@ export class MemStorage implements IStorage {
     return this.customers.get(id);
   }
 
+  async findDuplicateCustomer(name: string, phone: string): Promise<Customer | undefined> {
+    const customers = Array.from(this.customers.values());
+    return customers.find(c => 
+      c.name.toLowerCase() === name.toLowerCase() || 
+      (phone && c.phone === phone)
+    );
+  }
+
   async createCustomer(customer: InsertCustomer): Promise<Customer> {
     const id = randomUUID();
     const newCustomer: Customer = {
       id,
       name: customer.name,
-      email: customer.email || "",
       phone: customer.phone || "",
+      company: customer.company || "",
       address: customer.address || "",
+      email: customer.email || "",
       depositBalance: customer.depositBalance || 0,
     };
     this.customers.set(id, newCustomer);
@@ -262,6 +272,31 @@ export class MemStorage implements IStorage {
           type: "debit",
           amount: invoice.depositUsed,
           description: `Invoice ${invoiceNumber} - Deposit applied`,
+          referenceId: id,
+          referenceType: "invoice",
+        });
+      }
+    }
+
+    // If vendor balance is used, deduct from vendor
+    if (invoice.useVendorBalance && invoice.useVendorBalance !== "none" && invoice.vendorBalanceDeducted > 0) {
+      const vendor = await this.getVendor(invoice.vendorId);
+      if (vendor) {
+        const balanceField = invoice.useVendorBalance === "credit" ? "creditBalance" : "depositBalance";
+        const currentBalance = vendor[balanceField];
+        
+        await this.updateVendor(invoice.vendorId, {
+          [balanceField]: currentBalance - invoice.vendorBalanceDeducted,
+        });
+        
+        // Create vendor transaction
+        await this.createVendorTransaction({
+          vendorId: invoice.vendorId,
+          type: "debit",
+          transactionType: invoice.useVendorBalance,
+          amount: invoice.vendorBalanceDeducted,
+          description: `Invoice ${invoiceNumber} - Balance deducted`,
+          paymentMethod: "cash",
           referenceId: id,
           referenceType: "invoice",
         });

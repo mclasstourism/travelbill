@@ -67,7 +67,7 @@ export function PinModal({ open, onOpenChange, onSuccess }: PinModalProps) {
   });
 
   useEffect(() => {
-    if (pin.length === 4 && selectedCreatorId) {
+    if (pin.length === 8 && selectedCreatorId) {
       verifyMutation.mutate({ creatorId: selectedCreatorId, pin });
     }
   }, [pin, selectedCreatorId]);
@@ -91,7 +91,7 @@ export function PinModal({ open, onOpenChange, onSuccess }: PinModalProps) {
             PIN Authentication
           </DialogTitle>
           <DialogDescription>
-            Select your account and enter your 4-digit PIN to authenticate.
+            Select your account and enter your 8-digit PIN to authenticate.
           </DialogDescription>
         </DialogHeader>
 
@@ -134,7 +134,7 @@ export function PinModal({ open, onOpenChange, onSuccess }: PinModalProps) {
             <div className="flex flex-col items-center gap-4">
               <Label>Enter PIN</Label>
               <InputOTP
-                maxLength={4}
+                maxLength={8}
                 value={pin}
                 onChange={setPin}
                 disabled={verifyMutation.isPending}
@@ -145,6 +145,10 @@ export function PinModal({ open, onOpenChange, onSuccess }: PinModalProps) {
                   <InputOTPSlot index={1} />
                   <InputOTPSlot index={2} />
                   <InputOTPSlot index={3} />
+                  <InputOTPSlot index={4} />
+                  <InputOTPSlot index={5} />
+                  <InputOTPSlot index={6} />
+                  <InputOTPSlot index={7} />
                 </InputOTPGroup>
               </InputOTP>
 

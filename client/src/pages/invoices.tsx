@@ -52,7 +52,10 @@ import {
   CreditCard,
   Wallet,
   Lock,
+  Printer,
+  Eye,
 } from "lucide-react";
+import { numberToWords } from "@/lib/number-to-words";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
@@ -67,9 +70,9 @@ import {
 } from "@shared/schema";
 
 function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("en-AE", {
     style: "currency",
-    currency: "USD",
+    currency: "AED",
     minimumFractionDigits: 2,
   }).format(amount);
 }
@@ -103,8 +106,10 @@ const createInvoiceFormSchema = z.object({
     unitPrice: z.coerce.number().min(0, "Price must be positive"),
   })).min(1, "At least one item is required"),
   discountPercent: z.coerce.number().min(0).max(100).default(0),
+  vendorCost: z.coerce.number().min(0, "Vendor cost must be positive").default(0),
   paymentMethod: z.enum(paymentMethods),
   useCustomerDeposit: z.boolean().default(false),
+  useVendorBalance: z.enum(["none", "credit", "deposit"]).default("none"),
   notes: z.string().optional(),
 });
 
@@ -114,8 +119,13 @@ export default function InvoicesPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
   const { toast } = useToast();
   const { isAuthenticated, session } = usePin();
+
+  const getCustomerName = (id: string) => customers.find(c => c.id === id)?.name || "Unknown";
+  const getVendorName = (id: string) => vendors.find(v => v.id === id)?.name || "Unknown";
+  const getCustomer = (id: string) => customers.find(c => c.id === id);
 
   const { data: invoices = [], isLoading } = useQuery<Invoice[]>({
     queryKey: ["/api/invoices"],
@@ -136,8 +146,10 @@ export default function InvoicesPage() {
       vendorId: "",
       items: [{ description: "", quantity: 1, unitPrice: 0 }],
       discountPercent: 0,
+      vendorCost: 0,
       paymentMethod: "cash",
       useCustomerDeposit: false,
+      useVendorBalance: "none",
       notes: "",
     },
   });
@@ -151,8 +163,12 @@ export default function InvoicesPage() {
   const watchDiscountPercent = form.watch("discountPercent");
   const watchUseDeposit = form.watch("useCustomerDeposit");
   const watchCustomerId = form.watch("customerId");
+  const watchVendorId = form.watch("vendorId");
+  const watchUseVendorBalance = form.watch("useVendorBalance");
+  const watchVendorCost = form.watch("vendorCost");
 
   const selectedCustomer = customers.find((c) => c.id === watchCustomerId);
+  const selectedVendor = vendors.find((v) => v.id === watchVendorId);
 
   const calculations = useMemo(() => {
     const subtotal = watchItems.reduce((sum, item) => {
@@ -164,9 +180,21 @@ export default function InvoicesPage() {
     if (watchUseDeposit && selectedCustomer) {
       depositUsed = Math.min(selectedCustomer.depositBalance, afterDiscount);
     }
-    const total = afterDiscount - depositUsed;
-    return { subtotal, discountAmount, afterDiscount, depositUsed, total };
-  }, [watchItems, watchDiscountPercent, watchUseDeposit, selectedCustomer]);
+    let afterCustomerDeposit = afterDiscount - depositUsed;
+    
+    // Vendor balance deduction is based on vendor cost, not invoice total
+    const vendorCostAmount = Number(watchVendorCost) || 0;
+    let vendorBalanceDeducted = 0;
+    if (watchUseVendorBalance && watchUseVendorBalance !== "none" && selectedVendor && vendorCostAmount > 0) {
+      const vendorBalance = watchUseVendorBalance === "credit" 
+        ? selectedVendor.creditBalance 
+        : selectedVendor.depositBalance;
+      vendorBalanceDeducted = Math.min(vendorBalance, vendorCostAmount);
+    }
+    
+    const total = afterCustomerDeposit;
+    return { subtotal, discountAmount, afterDiscount, depositUsed, vendorBalanceDeducted, vendorCost: vendorCostAmount, total };
+  }, [watchItems, watchDiscountPercent, watchUseDeposit, selectedCustomer, watchUseVendorBalance, selectedVendor, watchVendorCost]);
 
   const createMutation = useMutation({
     mutationFn: async (data: InsertInvoice) => {
@@ -176,6 +204,8 @@ export default function InvoicesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendor-transactions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
       setIsCreateOpen(false);
       form.reset();
@@ -228,6 +258,16 @@ export default function InvoicesPage() {
     }
     const total = afterDiscount - depositUsed;
 
+    // Calculate vendor balance deduction based on vendor cost
+    const vendorCostAmount = Number(data.vendorCost) || 0;
+    let vendorBalanceDeducted = 0;
+    if (data.useVendorBalance && data.useVendorBalance !== "none" && selectedVendor && vendorCostAmount > 0) {
+      const vendorBalance = data.useVendorBalance === "credit" 
+        ? selectedVendor.creditBalance 
+        : selectedVendor.depositBalance;
+      vendorBalanceDeducted = Math.min(vendorBalance, vendorCostAmount);
+    }
+
     const invoiceData: InsertInvoice = {
       customerId: data.customerId,
       vendorId: data.vendorId,
@@ -236,9 +276,12 @@ export default function InvoicesPage() {
       discountPercent: data.discountPercent,
       discountAmount,
       total,
+      vendorCost: vendorCostAmount,
       paymentMethod: data.paymentMethod,
       useCustomerDeposit: data.useCustomerDeposit,
       depositUsed,
+      useVendorBalance: data.useVendorBalance,
+      vendorBalanceDeducted,
       notes: data.notes || "",
       issuedBy: session.billCreatorId,
     };
@@ -298,6 +341,7 @@ export default function InvoicesPage() {
                     <TableHead>Payment</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -324,6 +368,29 @@ export default function InvoicesPage() {
                           <Badge variant={getStatusBadgeVariant(invoice.status)} size="sm">
                             {invoice.status}
                           </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => setViewInvoice(invoice)}
+                              data-testid={`button-view-invoice-${invoice.id}`}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => {
+                                setViewInvoice(invoice);
+                                setTimeout(() => window.print(), 100);
+                              }}
+                              data-testid={`button-print-invoice-${invoice.id}`}
+                            >
+                              <Printer className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -403,6 +470,48 @@ export default function InvoicesPage() {
                   )}
                 />
               </div>
+
+              {selectedCustomer && (
+                <div className="p-4 rounded-md bg-muted/50 space-y-2">
+                  <h4 className="font-medium text-sm">Customer Details</h4>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                    <div className="text-muted-foreground">Name:</div>
+                    <div data-testid="text-customer-name">{selectedCustomer.name}</div>
+                    <div className="text-muted-foreground">Phone:</div>
+                    <div data-testid="text-customer-phone">{selectedCustomer.phone || "-"}</div>
+                    <div className="text-muted-foreground">Company:</div>
+                    <div data-testid="text-customer-company">{selectedCustomer.company || "-"}</div>
+                    <div className="text-muted-foreground">Address:</div>
+                    <div data-testid="text-customer-address">{selectedCustomer.address || "-"}</div>
+                    <div className="text-muted-foreground">Email:</div>
+                    <div data-testid="text-customer-email">{selectedCustomer.email || "-"}</div>
+                    <div className="text-muted-foreground">Deposit Balance:</div>
+                    <div className="font-semibold text-green-600 dark:text-green-400" data-testid="text-customer-deposit">
+                      {formatCurrency(selectedCustomer.depositBalance)}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedVendor && (
+                <div className="p-4 rounded-md bg-muted/50 space-y-2">
+                  <h4 className="font-medium text-sm">Vendor Details</h4>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                    <div className="text-muted-foreground">Name:</div>
+                    <div data-testid="text-vendor-name">{selectedVendor.name}</div>
+                    <div className="text-muted-foreground">Phone:</div>
+                    <div data-testid="text-vendor-phone">{selectedVendor.phone || "-"}</div>
+                    <div className="text-muted-foreground">Credit Balance:</div>
+                    <div className="font-semibold text-blue-600 dark:text-blue-400" data-testid="text-vendor-credit">
+                      {formatCurrency(selectedVendor.creditBalance)}
+                    </div>
+                    <div className="text-muted-foreground">Deposit Balance:</div>
+                    <div className="font-semibold text-green-600 dark:text-green-400" data-testid="text-vendor-deposit">
+                      {formatCurrency(selectedVendor.depositBalance)}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -561,6 +670,27 @@ export default function InvoicesPage() {
                 />
               </div>
 
+              <FormField
+                control={form.control}
+                name="vendorCost"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Vendor Cost (Actual Cost) *</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        placeholder="Enter actual cost from vendor"
+                        {...field}
+                        data-testid="input-vendor-cost"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               {selectedCustomer && selectedCustomer.depositBalance > 0 && (
                 <FormField
                   control={form.control}
@@ -580,6 +710,39 @@ export default function InvoicesPage() {
                           data-testid="switch-use-deposit"
                         />
                       </FormControl>
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {selectedVendor && (selectedVendor.creditBalance > 0 || selectedVendor.depositBalance > 0) && (
+                <FormField
+                  control={form.control}
+                  name="useVendorBalance"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Deduct from Vendor Balance</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-vendor-balance">
+                            <SelectValue placeholder="Select balance type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">No Deduction</SelectItem>
+                          {selectedVendor.creditBalance > 0 && (
+                            <SelectItem value="credit">
+                              Credit Balance ({formatCurrency(selectedVendor.creditBalance)})
+                            </SelectItem>
+                          )}
+                          {selectedVendor.depositBalance > 0 && (
+                            <SelectItem value="deposit">
+                              Deposit Balance ({formatCurrency(selectedVendor.depositBalance)})
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -619,14 +782,32 @@ export default function InvoicesPage() {
                     )}
                     {calculations.depositUsed > 0 && (
                       <div className="flex justify-between text-sm text-blue-600 dark:text-blue-400">
-                        <span>Deposit Applied</span>
+                        <span>Customer Deposit Applied</span>
                         <span className="font-mono">-{formatCurrency(calculations.depositUsed)}</span>
                       </div>
                     )}
+                    {calculations.vendorCost > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span>Vendor Cost</span>
+                        <span className="font-mono">{formatCurrency(calculations.vendorCost)}</span>
+                      </div>
+                    )}
+                    {calculations.vendorBalanceDeducted > 0 && (
+                      <div className="flex justify-between text-sm text-purple-600 dark:text-purple-400">
+                        <span>Vendor Balance Deducted</span>
+                        <span className="font-mono">-{formatCurrency(calculations.vendorBalanceDeducted)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-lg font-semibold border-t pt-2">
-                      <span>Total Due</span>
+                      <span>Total Due (Customer)</span>
                       <span className="font-mono">{formatCurrency(calculations.total)}</span>
                     </div>
+                    {calculations.vendorCost > 0 && (
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>Profit Margin</span>
+                        <span className="font-mono">{formatCurrency(calculations.total - calculations.vendorCost)}</span>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

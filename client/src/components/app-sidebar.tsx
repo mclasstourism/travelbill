@@ -10,6 +10,7 @@ import {
   Settings,
   Lock,
   LogOut,
+  BarChart3,
 } from "lucide-react";
 import {
   Sidebar,
@@ -31,6 +32,7 @@ const mainNavItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Invoices", url: "/invoices", icon: FileText },
   { title: "Tickets", url: "/tickets", icon: Ticket },
+  { title: "Reports", url: "/reports", icon: BarChart3 },
 ];
 
 const partyItems = [

@@ -17,6 +17,7 @@ import TicketsPage from "@/pages/tickets";
 import DepositsPage from "@/pages/deposits";
 import VendorCreditsPage from "@/pages/vendor-credits";
 import BillCreatorsPage from "@/pages/bill-creators";
+import ReportsPage from "@/pages/reports";
 
 function Router() {
   return (
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/tickets" component={TicketsPage} />
       <Route path="/deposits" component={DepositsPage} />
       <Route path="/vendor-credits" component={VendorCreditsPage} />
+      <Route path="/reports" component={ReportsPage} />
       <Route path="/settings/bill-creators" component={BillCreatorsPage} />
       <Route component={NotFound} />
     </Switch>

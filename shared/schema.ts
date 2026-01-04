@@ -10,7 +10,7 @@ export const billCreators = {
 
 export const insertBillCreatorSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  pin: z.string().length(4, "PIN must be 4 digits").regex(/^\d{4}$/, "PIN must be numeric"),
+  pin: z.string().length(8, "PIN must be 8 digits").regex(/^\d{8}$/, "PIN must be 8 numeric digits"),
 });
 
 export type InsertBillCreator = z.infer<typeof insertBillCreatorSchema>;
@@ -24,9 +24,10 @@ export type BillCreator = {
 // Customers
 export const insertCustomerSchema = z.object({
   name: z.string().min(1, "Customer name is required"),
-  email: z.string().email("Invalid email").optional().or(z.literal("")),
-  phone: z.string().optional().or(z.literal("")),
+  phone: z.string().min(1, "Phone number is required"),
+  company: z.string().optional().or(z.literal("")),
   address: z.string().optional().or(z.literal("")),
+  email: z.string().email("Invalid email").optional().or(z.literal("")),
   depositBalance: z.number().default(0),
 });
 
@@ -34,9 +35,10 @@ export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
 export type Customer = {
   id: string;
   name: string;
-  email: string;
   phone: string;
+  company: string;
   address: string;
+  email: string;
   depositBalance: number;
 };
 
@@ -79,6 +81,10 @@ export const insertInvoiceItemSchema = z.object({
 export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;
 export type InvoiceItem = InsertInvoiceItem & { id: string };
 
+// Vendor balance source for invoice deduction
+export const vendorBalanceSources = ["none", "credit", "deposit"] as const;
+export type VendorBalanceSource = typeof vendorBalanceSources[number];
+
 // Invoices
 export const insertInvoiceSchema = z.object({
   customerId: z.string().min(1, "Customer is required"),
@@ -88,9 +94,12 @@ export const insertInvoiceSchema = z.object({
   discountPercent: z.number().min(0).max(100).default(0),
   discountAmount: z.number().min(0).default(0),
   total: z.number().min(0),
+  vendorCost: z.number().min(0).default(0), // Actual cost from vendor
   paymentMethod: z.enum(paymentMethods),
   useCustomerDeposit: z.boolean().default(false),
   depositUsed: z.number().min(0).default(0),
+  useVendorBalance: z.enum(vendorBalanceSources).default("none"),
+  vendorBalanceDeducted: z.number().min(0).default(0),
   notes: z.string().optional().or(z.literal("")),
   issuedBy: z.string().min(1, "Bill creator is required"),
 });
@@ -150,6 +159,10 @@ export type DepositTransaction = InsertDepositTransaction & {
   createdAt: string;
 };
 
+// Vendor transaction payment methods
+export const vendorPaymentMethods = ["cash", "cheque", "bank_transfer"] as const;
+export type VendorPaymentMethod = typeof vendorPaymentMethods[number];
+
 // Vendor credit transactions
 export const insertVendorTransactionSchema = z.object({
   vendorId: z.string().min(1, "Vendor is required"),
@@ -157,6 +170,7 @@ export const insertVendorTransactionSchema = z.object({
   transactionType: z.enum(["credit", "deposit"] as const), // credit from vendor or deposit to vendor
   amount: z.number().min(0.01, "Amount must be positive"),
   description: z.string().min(1, "Description is required"),
+  paymentMethod: z.enum(vendorPaymentMethods).optional(),
   referenceId: z.string().optional(),
   referenceType: z.string().optional(),
 });
@@ -165,6 +179,7 @@ export type InsertVendorTransaction = z.infer<typeof insertVendorTransactionSche
 export type VendorTransaction = InsertVendorTransaction & {
   id: string;
   balanceAfter: number;
+  paymentMethod: VendorPaymentMethod;
   createdAt: string;
 };
 

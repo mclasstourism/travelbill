@@ -18,6 +18,14 @@ import type { DashboardMetrics, Invoice, Ticket as TicketType } from "@shared/sc
 import { format } from "date-fns";
 import { Link } from "wouter";
 
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat("en-AE", {
+    style: "currency",
+    currency: "AED",
+    minimumFractionDigits: 2,
+  }).format(amount);
+}
+
 function MetricCard({
   title,
   value,
@@ -76,14 +84,6 @@ function MetricCardSkeleton() {
       </CardContent>
     </Card>
   );
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-  }).format(amount);
 }
 
 function getStatusBadgeVariant(status: string): "default" | "secondary" | "destructive" | "outline" {

@@ -106,6 +106,16 @@ export async function registerRoutes(
   app.post("/api/customers", async (req, res) => {
     try {
       const data = insertCustomerSchema.parse(req.body);
+      
+      // Check for duplicate customer by name or phone
+      const duplicate = await storage.findDuplicateCustomer(data.name, data.phone);
+      if (duplicate) {
+        res.status(409).json({ 
+          error: `Customer already exists with matching ${duplicate.name.toLowerCase() === data.name.toLowerCase() ? 'name' : 'phone number'}` 
+        });
+        return;
+      }
+      
       const customer = await storage.createCustomer(data);
       res.status(201).json(customer);
     } catch (error) {

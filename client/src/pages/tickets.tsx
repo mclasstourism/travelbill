@@ -48,9 +48,9 @@ import { z } from "zod";
 import type { Ticket, Customer, Vendor } from "@shared/schema";
 
 function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("en-AE", {
     style: "currency",
-    currency: "USD",
+    currency: "AED",
     minimumFractionDigits: 2,
   }).format(amount);
 }

@@ -37,7 +37,7 @@ import type { BillCreator } from "@shared/schema";
 
 const createBillCreatorSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  pin: z.string().length(4, "PIN must be 4 digits").regex(/^\d{4}$/, "PIN must be numeric"),
+  pin: z.string().length(8, "PIN must be 8 digits").regex(/^\d{8}$/, "PIN must be 8 numeric digits"),
 });
 
 type CreateBillCreatorForm = z.infer<typeof createBillCreatorSchema>;
@@ -197,7 +197,7 @@ export default function BillCreatorsPage() {
           <DialogHeader>
             <DialogTitle>Add Bill Creator</DialogTitle>
             <DialogDescription>
-              Create a new bill creator with a 4-digit PIN for authentication.
+              Create a new bill creator with an 8-digit PIN for authentication.
             </DialogDescription>
           </DialogHeader>
 
@@ -226,11 +226,11 @@ export default function BillCreatorsPage() {
                 name="pin"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>4-Digit PIN *</FormLabel>
+                    <FormLabel>8-Digit PIN *</FormLabel>
                     <FormControl>
                       <div className="flex justify-center">
                         <InputOTP
-                          maxLength={4}
+                          maxLength={8}
                           value={field.value}
                           onChange={field.onChange}
                           data-testid="input-creator-pin"
@@ -240,6 +240,10 @@ export default function BillCreatorsPage() {
                             <InputOTPSlot index={1} />
                             <InputOTPSlot index={2} />
                             <InputOTPSlot index={3} />
+                            <InputOTPSlot index={4} />
+                            <InputOTPSlot index={5} />
+                            <InputOTPSlot index={6} />
+                            <InputOTPSlot index={7} />
                           </InputOTPGroup>
                         </InputOTP>
                       </div>

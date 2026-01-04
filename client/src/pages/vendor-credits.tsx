@@ -37,7 +37,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, CreditCard, Search, Loader2, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
+import { Plus, CreditCard, Search, Loader2, ArrowUpCircle, ArrowDownCircle, Banknote, Building, FileCheck } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
@@ -45,9 +45,9 @@ import { z } from "zod";
 import type { Vendor, VendorTransaction } from "@shared/schema";
 
 function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("en-AE", {
     style: "currency",
-    currency: "USD",
+    currency: "AED",
     minimumFractionDigits: 2,
   }).format(amount);
 }
@@ -57,6 +57,7 @@ const addTransactionFormSchema = z.object({
   transactionType: z.enum(["credit", "deposit"]),
   amount: z.coerce.number().min(0.01, "Amount must be positive"),
   description: z.string().min(1, "Description is required"),
+  paymentMethod: z.enum(["cash", "cheque", "bank_transfer"]),
 });
 
 type AddTransactionForm = z.infer<typeof addTransactionFormSchema>;
@@ -78,9 +79,10 @@ export default function VendorCreditsPage() {
     resolver: zodResolver(addTransactionFormSchema),
     defaultValues: {
       vendorId: "",
-      transactionType: "credit",
+      transactionType: "deposit",
       amount: 0,
       description: "",
+      paymentMethod: "cash",
     },
   });
 
@@ -352,6 +354,29 @@ export default function VendorCreditsPage() {
                         data-testid="input-vendor-description"
                       />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="paymentMethod"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Payment Method *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-payment-method">
+                          <SelectValue placeholder="Select payment method" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="cash">Cash</SelectItem>
+                        <SelectItem value="cheque">Cheque</SelectItem>
+                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
