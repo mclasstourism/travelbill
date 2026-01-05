@@ -365,7 +365,7 @@ export default function InvoicesPage() {
                           {formatCurrency(invoice.total)}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={getStatusBadgeVariant(invoice.status)} size="sm">
+                          <Badge variant={getStatusBadgeVariant(invoice.status)}>
                             {invoice.status}
                           </Badge>
                         </TableCell>

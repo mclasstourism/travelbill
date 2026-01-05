@@ -29,10 +29,11 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Building2, Search, Loader2 } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { Plus, Building2, Search, Loader2, Trash2, Plane } from "lucide-react";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertVendorSchema, type Vendor, type InsertVendor } from "@shared/schema";
+import { Badge } from "@/components/ui/badge";
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("en-AE", {
@@ -60,7 +61,13 @@ export default function VendorsPage() {
       address: "",
       creditBalance: 0,
       depositBalance: 0,
+      airlines: [],
     },
+  });
+
+  const { fields: airlineFields, append: appendAirline, remove: removeAirline } = useFieldArray({
+    control: form.control,
+    name: "airlines",
   });
 
   const createMutation = useMutation({
@@ -144,8 +151,8 @@ export default function VendorsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
                     <TableHead>Phone</TableHead>
+                    <TableHead>Airlines</TableHead>
                     <TableHead className="text-right">Credit Balance</TableHead>
                     <TableHead className="text-right">Deposit Balance</TableHead>
                   </TableRow>
@@ -155,10 +162,21 @@ export default function VendorsPage() {
                     <TableRow key={vendor.id} data-testid={`row-vendor-${vendor.id}`}>
                       <TableCell className="font-medium">{vendor.name}</TableCell>
                       <TableCell className="text-muted-foreground">
-                        {vendor.email || "-"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
                         {vendor.phone || "-"}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {vendor.airlines && vendor.airlines.length > 0 ? (
+                            vendor.airlines.map((airline, idx) => (
+                              <Badge key={idx} variant="secondary">
+                                <Plane className="w-3 h-3 mr-1" />
+                                {airline.code ? `${airline.name} (${airline.code})` : airline.name}
+                              </Badge>
+                            ))
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right font-mono font-semibold">
                         <span className="text-blue-600 dark:text-blue-400">
@@ -262,6 +280,52 @@ export default function VendorsPage() {
                   </FormItem>
                 )}
               />
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <FormLabel>Airlines</FormLabel>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => appendAirline({ name: "", code: "" })}
+                    data-testid="button-add-airline"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add Airline
+                  </Button>
+                </div>
+                {airlineFields.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No airlines registered. Click "Add Airline" to add one.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {airlineFields.map((field, index) => (
+                      <div key={field.id} className="flex items-center gap-2">
+                        <Input
+                          placeholder="Airline name (e.g., Emirates)"
+                          {...form.register(`airlines.${index}.name`)}
+                          data-testid={`input-airline-name-${index}`}
+                        />
+                        <Input
+                          placeholder="Code (e.g., EK)"
+                          className="w-24"
+                          {...form.register(`airlines.${index}.code`)}
+                          data-testid={`input-airline-code-${index}`}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeAirline(index)}
+                          data-testid={`button-remove-airline-${index}`}
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               <div className="flex justify-end gap-2 pt-4">
                 <Button

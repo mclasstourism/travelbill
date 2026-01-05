@@ -153,6 +153,16 @@ export async function registerRoutes(
   app.post("/api/vendors", async (req, res) => {
     try {
       const data = insertVendorSchema.parse(req.body);
+      
+      // Check for duplicate vendor by name or phone
+      const duplicate = await storage.findDuplicateVendor(data.name, data.phone);
+      if (duplicate) {
+        res.status(409).json({ 
+          error: `Vendor already exists with matching ${duplicate.name.toLowerCase() === data.name.toLowerCase() ? 'name' : 'phone number'}` 
+        });
+        return;
+      }
+      
       const vendor = await storage.createVendor(data);
       res.status(201).json(vendor);
     } catch (error) {

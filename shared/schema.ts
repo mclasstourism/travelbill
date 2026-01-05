@@ -42,14 +42,24 @@ export type Customer = {
   depositBalance: number;
 };
 
+// Vendor Airlines
+export const insertVendorAirlineSchema = z.object({
+  name: z.string().min(1, "Airline name is required"),
+  code: z.string().optional().or(z.literal("")), // e.g., EK for Emirates
+});
+
+export type InsertVendorAirline = z.infer<typeof insertVendorAirlineSchema>;
+export type VendorAirline = InsertVendorAirline & { id: string };
+
 // Vendors/Suppliers
 export const insertVendorSchema = z.object({
   name: z.string().min(1, "Vendor name is required"),
   email: z.string().email("Invalid email").optional().or(z.literal("")),
-  phone: z.string().optional().or(z.literal("")),
+  phone: z.string().min(1, "Phone number is required"),
   address: z.string().optional().or(z.literal("")),
   creditBalance: z.number().default(0), // Credit given by vendor
   depositBalance: z.number().default(0), // Deposit made to vendor
+  airlines: z.array(insertVendorAirlineSchema).default([]), // Airlines registered with this vendor
 });
 
 export type InsertVendor = z.infer<typeof insertVendorSchema>;
@@ -61,6 +71,7 @@ export type Vendor = {
   address: string;
   creditBalance: number;
   depositBalance: number;
+  airlines: VendorAirline[];
 };
 
 // Payment methods
@@ -117,13 +128,21 @@ export type Invoice = InsertInvoice & {
 export const ticketStatuses = ["issued", "used", "cancelled", "refunded"] as const;
 export type TicketStatus = typeof ticketStatuses[number];
 
+export const tripTypes = ["one_way", "round_trip"] as const;
+export type TripType = typeof tripTypes[number];
+
 export const insertTicketSchema = z.object({
   customerId: z.string().min(1, "Customer is required"),
   vendorId: z.string().min(1, "Vendor is required"),
   invoiceId: z.string().optional(),
+  tripType: z.enum(tripTypes).default("one_way"),
   ticketType: z.string().min(1, "Ticket type is required"),
   route: z.string().min(1, "Route is required"),
+  airlines: z.string().min(1, "Airlines is required"),
+  flightNumber: z.string().min(1, "Flight number is required"),
+  flightTime: z.string().min(1, "Flight time is required"), // 24hr format HH:MM
   travelDate: z.string().min(1, "Travel date is required"),
+  returnDate: z.string().optional(), // Only for round trip
   passengerName: z.string().min(1, "Passenger name is required"),
   faceValue: z.number().min(0, "Face value must be positive"),
   deductFromDeposit: z.boolean().default(false),

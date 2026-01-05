@@ -72,9 +72,14 @@ function getStatusBadgeVariant(status: string): "default" | "secondary" | "destr
 const createTicketFormSchema = z.object({
   customerId: z.string().min(1, "Customer is required"),
   vendorId: z.string().min(1, "Vendor is required"),
+  tripType: z.enum(["one_way", "round_trip"]).default("one_way"),
   ticketType: z.string().min(1, "Ticket type is required"),
   route: z.string().min(1, "Route is required"),
+  airlines: z.string().min(1, "Airlines is required"),
+  flightNumber: z.string().min(1, "Flight number is required"),
+  flightTime: z.string().min(1, "Flight time is required"),
   travelDate: z.string().min(1, "Travel date is required"),
+  returnDate: z.string().optional(),
   passengerName: z.string().min(1, "Passenger name is required"),
   faceValue: z.coerce.number().min(0, "Face value must be positive"),
   deductFromDeposit: z.boolean().default(false),
@@ -106,20 +111,30 @@ export default function TicketsPage() {
     defaultValues: {
       customerId: "",
       vendorId: "",
+      tripType: "one_way",
       ticketType: "",
       route: "",
+      airlines: "",
+      flightNumber: "",
+      flightTime: "",
       travelDate: "",
+      returnDate: "",
       passengerName: "",
       faceValue: 0,
       deductFromDeposit: false,
     },
   });
 
+  const watchTripType = form.watch("tripType");
+  const watchVendorId = form.watch("vendorId");
+
   const watchCustomerId = form.watch("customerId");
   const watchDeductFromDeposit = form.watch("deductFromDeposit");
   const watchFaceValue = form.watch("faceValue");
 
   const selectedCustomer = customers.find((c) => c.id === watchCustomerId);
+  const selectedVendor = vendors.find((v) => v.id === watchVendorId);
+  const vendorAirlines = selectedVendor?.airlines || [];
 
   const calculations = useMemo(() => {
     const faceValue = Number(watchFaceValue) || 0;
@@ -272,7 +287,7 @@ export default function TicketsPage() {
                         {formatCurrency(ticket.faceValue)}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={getStatusBadgeVariant(ticket.status)} size="sm">
+                        <Badge variant={getStatusBadgeVariant(ticket.status)}>
                           {ticket.status}
                         </Badge>
                       </TableCell>
@@ -375,6 +390,28 @@ export default function TicketsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
+                  name="tripType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Trip Type *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-trip-type">
+                            <SelectValue placeholder="Select trip type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="one_way">One Way</SelectItem>
+                          <SelectItem value="round_trip">Round Trip</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="ticketType"
                   render={({ field }) => (
                     <FormItem>
@@ -397,7 +434,82 @@ export default function TicketsPage() {
                     </FormItem>
                   )}
                 />
+              </div>
 
+              <FormField
+                control={form.control}
+                name="route"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Route *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g., DXB - LHR"
+                        {...field}
+                        data-testid="input-route"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="airlines"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Airlines *</FormLabel>
+                      {vendorAirlines.length > 0 ? (
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-airlines">
+                              <SelectValue placeholder="Select airline" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {vendorAirlines.map((airline) => (
+                              <SelectItem key={airline.id || airline.name} value={airline.name}>
+                                {airline.code ? `${airline.name} (${airline.code})` : airline.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <FormControl>
+                          <Input
+                            placeholder="e.g., Emirates"
+                            {...field}
+                            data-testid="input-airlines"
+                          />
+                        </FormControl>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="flightNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Flight Number *</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g., EK 203"
+                          {...field}
+                          data-testid="input-flight-number"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="travelDate"
@@ -419,25 +531,49 @@ export default function TicketsPage() {
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="flightTime"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Flight Time (24hr) *</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="time"
+                          {...field}
+                          data-testid="input-flight-time"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
-              <FormField
-                control={form.control}
-                name="route"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Route *</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="e.g., NYC - LAX"
-                        {...field}
-                        data-testid="input-route"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {watchTripType === "round_trip" && (
+                <FormField
+                  control={form.control}
+                  name="returnDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Return Date *</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            type="date"
+                            className="pl-9"
+                            {...field}
+                            data-testid="input-return-date"
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <FormField
                 control={form.control}

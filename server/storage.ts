@@ -42,6 +42,7 @@ export interface IStorage {
   // Vendors
   getVendors(): Promise<Vendor[]>;
   getVendor(id: string): Promise<Vendor | undefined>;
+  findDuplicateVendor(name: string, phone: string): Promise<Vendor | undefined>;
   createVendor(vendor: InsertVendor): Promise<Vendor>;
   updateVendor(id: string, updates: Partial<Vendor>): Promise<Vendor | undefined>;
 
@@ -210,16 +211,30 @@ export class MemStorage implements IStorage {
     return this.vendors.get(id);
   }
 
+  async findDuplicateVendor(name: string, phone: string): Promise<Vendor | undefined> {
+    const vendors = Array.from(this.vendors.values());
+    return vendors.find(v => 
+      v.name.toLowerCase() === name.toLowerCase() || 
+      (phone && v.phone === phone)
+    );
+  }
+
   async createVendor(vendor: InsertVendor): Promise<Vendor> {
     const id = randomUUID();
+    const airlines = (vendor.airlines || []).map(a => ({
+      ...a,
+      id: randomUUID(),
+      code: a.code || "",
+    }));
     const newVendor: Vendor = {
       id,
       name: vendor.name,
       email: vendor.email || "",
-      phone: vendor.phone || "",
+      phone: vendor.phone,
       address: vendor.address || "",
       creditBalance: vendor.creditBalance || 0,
       depositBalance: vendor.depositBalance || 0,
+      airlines,
     };
     this.vendors.set(id, newVendor);
     return newVendor;
@@ -456,6 +471,7 @@ export class MemStorage implements IStorage {
       ...tx,
       id,
       balanceAfter,
+      paymentMethod: tx.paymentMethod || "cash",
       createdAt: new Date().toISOString(),
     };
     this.vendorTransactions.set(id, newTx);
