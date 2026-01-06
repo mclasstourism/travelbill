@@ -50,9 +50,9 @@ MVP fully implemented with:
 ## Features
 
 ### PIN Authentication
-- Bill creators must authenticate with 4-digit PIN before creating invoices or issuing tickets
+- Bill creators must authenticate with 8-digit PIN before creating invoices or issuing tickets
 - Session persists for 30 minutes in localStorage
-- Default test account: "Admin" with PIN "1234"
+- Default test account: "Admin" with PIN "12345678"
 
 ### Invoice Creation
 - Select customer and vendor/supplier for each invoice
