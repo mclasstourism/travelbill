@@ -69,8 +69,8 @@ export async function registerRoutes(
         res.status(400).json({ success: false, error: "Username and password are required" });
         return;
       }
-      const user = await storage.getUserByUsername(username);
-      if (!user || user.password !== password) {
+      const user = await storage.verifyUserPassword(username, password);
+      if (!user) {
         res.status(401).json({ success: false, error: "Invalid credentials" });
         return;
       }
@@ -78,6 +78,26 @@ export async function registerRoutes(
       res.json({ success: true, user: safeUser });
     } catch (error) {
       res.status(500).json({ success: false, error: "Login failed" });
+    }
+  });
+
+  // Validate user session
+  app.post("/api/auth/validate", async (req, res) => {
+    try {
+      const { userId } = req.body;
+      if (!userId) {
+        res.status(400).json({ valid: false });
+        return;
+      }
+      const user = await storage.getUser(userId);
+      if (!user) {
+        res.status(401).json({ valid: false });
+        return;
+      }
+      const { password: _, ...safeUser } = user;
+      res.json({ valid: true, user: safeUser });
+    } catch (error) {
+      res.status(500).json({ valid: false });
     }
   });
 

@@ -20,12 +20,14 @@ import {
   type DashboardMetrics,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
+import bcrypt from "bcryptjs";
 
 export interface IStorage {
   // Users
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  verifyUserPassword(username: string, password: string): Promise<User | null>;
 
   // Bill Creators
   getBillCreators(): Promise<BillCreator[]>;
@@ -116,12 +118,13 @@ export class MemStorage implements IStorage {
       active: true,
     });
 
-    // Seed with a default staff user
+    // Seed with a default staff user (password: admin123)
     const defaultUserId = randomUUID();
+    const hashedPassword = bcrypt.hashSync("admin123", 10);
     this.users.set(defaultUserId, {
       id: defaultUserId,
       username: "admin",
-      password: "admin123",
+      password: hashedPassword,
     });
   }
 
@@ -138,8 +141,17 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id };
+    const hashedPassword = bcrypt.hashSync(insertUser.password, 10);
+    const user: User = { ...insertUser, password: hashedPassword, id };
     this.users.set(id, user);
+    return user;
+  }
+
+  async verifyUserPassword(username: string, password: string): Promise<User | null> {
+    const user = await this.getUserByUsername(username);
+    if (!user) return null;
+    const isValid = bcrypt.compareSync(password, user.password);
+    if (!isValid) return null;
     return user;
   }
 

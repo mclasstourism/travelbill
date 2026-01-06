@@ -22,18 +22,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (stored) {
+    const validateSession = async () => {
+      const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+      if (!stored) {
+        setIsLoading(false);
+        return;
+      }
+      
       try {
         const parsed = JSON.parse(stored);
-        if (parsed && parsed.id && parsed.username) {
-          setUser(parsed);
+        if (!parsed || !parsed.id) {
+          localStorage.removeItem(AUTH_STORAGE_KEY);
+          setIsLoading(false);
+          return;
+        }
+        
+        const res = await apiRequest("POST", "/api/auth/validate", { userId: parsed.id });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.valid && data.user) {
+            setUser({ id: data.user.id, username: data.user.username });
+          } else {
+            localStorage.removeItem(AUTH_STORAGE_KEY);
+          }
+        } else {
+          localStorage.removeItem(AUTH_STORAGE_KEY);
         }
       } catch {
         localStorage.removeItem(AUTH_STORAGE_KEY);
       }
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    };
+    
+    validateSession();
   }, []);
 
   const login = async (username: string, password: string): Promise<boolean> => {
