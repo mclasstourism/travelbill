@@ -1,18 +1,20 @@
 # TravelBill - Travel Agency Billing Application
 
 ## Overview
-A comprehensive billing application for travel agencies featuring invoice management, payment tracking, customer deposits, vendor credits, ticket issuance, and PIN-based authentication for bill creators.
+A comprehensive billing application for travel agencies featuring invoice management, payment tracking, customer deposits, vendor credits, ticket issuance, and PIN-based authentication for bill creators. Supports three party types: Vendors, Agents (bulk buyers), and Individual Customers.
 
 ## Current State
 MVP fully implemented with:
 - Dashboard with key metrics and recent activity
 - Customer management with deposit balances
+- Agent management (bulk ticket buyers) with credit and deposit balances
 - Vendor/Supplier management with credit and deposit tracking
-- Invoice creation with discount, multiple payment methods (cash/card/credit), and deposit usage
+- Invoice creation with party type selection (Customer or Agent), discount, multiple payment methods (cash/card/credit), and deposit usage
 - Ticket issuance with deposit deduction
-- PIN authentication for bill creators
+- PIN authentication for bill creators (8-digit PIN)
 - Customer deposit management with transaction history
 - Vendor credit/deposit transaction tracking
+- All currency displays in AED
 
 ## Architecture
 
@@ -39,10 +41,11 @@ MVP fully implemented with:
 - `client/src/lib/theme-provider.tsx` - Theme context
 
 ## Data Models
-- **BillCreator**: Staff members with 4-digit PIN for authentication
-- **Customer**: Clients with deposit balance tracking
-- **Vendor**: Suppliers with credit and deposit balances
-- **Invoice**: Billing records with line items, discounts, payment method
+- **BillCreator**: Staff members with 8-digit PIN for authentication
+- **Customer**: Individual clients with deposit balance tracking
+- **Agent**: Bulk ticket buyers with credit and deposit balances
+- **Vendor**: Suppliers with credit and deposit balances, registered airlines
+- **Invoice**: Billing records with line items, discounts, payment method, customer type (customer or agent)
 - **Ticket**: Travel tickets with face value and deposit deduction
 - **DepositTransaction**: Customer deposit ledger entries
 - **VendorTransaction**: Vendor credit/deposit ledger entries
@@ -55,11 +58,12 @@ MVP fully implemented with:
 - Default test account: "Admin" with PIN "12345678"
 
 ### Invoice Creation
-- Select customer and vendor/supplier for each invoice
+- Select party type: Individual Customer or Agent
+- Select customer/agent and vendor/supplier for each invoice
 - Add multiple line items with quantity and price
 - Apply percentage discount
 - Choose payment method: cash, card, or credit
-- Option to use customer deposit balance
+- Option to use customer/agent deposit balance
 - Automatic total calculation
 
 ### Ticket Issuance

@@ -64,6 +64,7 @@ import {
   insertInvoiceSchema,
   type Invoice,
   type Customer,
+  type Agent,
   type Vendor,
   type InsertInvoice,
   paymentMethods,
@@ -98,7 +99,8 @@ const paymentMethodIcons = {
 };
 
 const createInvoiceFormSchema = z.object({
-  customerId: z.string().min(1, "Customer is required"),
+  customerType: z.enum(["customer", "agent"]).default("customer"),
+  customerId: z.string().min(1, "Customer/Agent is required"),
   vendorId: z.string().min(1, "Vendor is required"),
   items: z.array(z.object({
     description: z.string().min(1, "Description is required"),
@@ -123,10 +125,6 @@ export default function InvoicesPage() {
   const { toast } = useToast();
   const { isAuthenticated, session } = usePin();
 
-  const getCustomerName = (id: string) => customers.find(c => c.id === id)?.name || "Unknown";
-  const getVendorName = (id: string) => vendors.find(v => v.id === id)?.name || "Unknown";
-  const getCustomer = (id: string) => customers.find(c => c.id === id);
-
   const { data: invoices = [], isLoading } = useQuery<Invoice[]>({
     queryKey: ["/api/invoices"],
   });
@@ -135,13 +133,26 @@ export default function InvoicesPage() {
     queryKey: ["/api/customers"],
   });
 
+  const { data: agents = [] } = useQuery<Agent[]>({
+    queryKey: ["/api/agents"],
+  });
+
   const { data: vendors = [] } = useQuery<Vendor[]>({
     queryKey: ["/api/vendors"],
   });
 
+  const getPartyName = (invoice: Invoice) => {
+    if (invoice.customerType === "agent") {
+      return agents.find(a => a.id === invoice.customerId)?.name || "Unknown Agent";
+    }
+    return customers.find(c => c.id === invoice.customerId)?.name || "Unknown Customer";
+  };
+  const getVendorName = (id: string) => vendors.find(v => v.id === id)?.name || "Unknown";
+
   const form = useForm<CreateInvoiceForm>({
     resolver: zodResolver(createInvoiceFormSchema),
     defaultValues: {
+      customerType: "customer",
       customerId: "",
       vendorId: "",
       items: [{ description: "", quantity: 1, unitPrice: 0 }],
@@ -162,12 +173,19 @@ export default function InvoicesPage() {
   const watchItems = form.watch("items");
   const watchDiscountPercent = form.watch("discountPercent");
   const watchUseDeposit = form.watch("useCustomerDeposit");
+  const watchCustomerType = form.watch("customerType");
   const watchCustomerId = form.watch("customerId");
   const watchVendorId = form.watch("vendorId");
   const watchUseVendorBalance = form.watch("useVendorBalance");
   const watchVendorCost = form.watch("vendorCost");
 
-  const selectedCustomer = customers.find((c) => c.id === watchCustomerId);
+  const selectedCustomer = watchCustomerType === "customer" 
+    ? customers.find((c) => c.id === watchCustomerId)
+    : null;
+  const selectedAgent = watchCustomerType === "agent"
+    ? agents.find((a) => a.id === watchCustomerId)
+    : null;
+  const selectedParty = selectedCustomer || selectedAgent;
   const selectedVendor = vendors.find((v) => v.id === watchVendorId);
 
   const calculations = useMemo(() => {
@@ -177,8 +195,8 @@ export default function InvoicesPage() {
     const discountAmount = subtotal * ((Number(watchDiscountPercent) || 0) / 100);
     const afterDiscount = subtotal - discountAmount;
     let depositUsed = 0;
-    if (watchUseDeposit && selectedCustomer) {
-      depositUsed = Math.min(selectedCustomer.depositBalance, afterDiscount);
+    if (watchUseDeposit && selectedParty) {
+      depositUsed = Math.min(selectedParty.depositBalance, afterDiscount);
     }
     let afterCustomerDeposit = afterDiscount - depositUsed;
     
@@ -194,7 +212,7 @@ export default function InvoicesPage() {
     
     const total = afterCustomerDeposit;
     return { subtotal, discountAmount, afterDiscount, depositUsed, vendorBalanceDeducted, vendorCost: vendorCostAmount, total };
-  }, [watchItems, watchDiscountPercent, watchUseDeposit, selectedCustomer, watchUseVendorBalance, selectedVendor, watchVendorCost]);
+  }, [watchItems, watchDiscountPercent, watchUseDeposit, selectedParty, watchUseVendorBalance, selectedVendor, watchVendorCost]);
 
   const createMutation = useMutation({
     mutationFn: async (data: InsertInvoice) => {
@@ -204,6 +222,7 @@ export default function InvoicesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
       queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
       queryClient.invalidateQueries({ queryKey: ["/api/vendor-transactions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
@@ -253,8 +272,8 @@ export default function InvoicesPage() {
     const afterDiscount = subtotal - discountAmount;
     
     let depositUsed = 0;
-    if (data.useCustomerDeposit && selectedCustomer) {
-      depositUsed = Math.min(selectedCustomer.depositBalance, afterDiscount);
+    if (data.useCustomerDeposit && selectedParty) {
+      depositUsed = Math.min(selectedParty.depositBalance, afterDiscount);
     }
     const total = afterDiscount - depositUsed;
 
@@ -269,6 +288,7 @@ export default function InvoicesPage() {
     }
 
     const invoiceData: InsertInvoice = {
+      customerType: data.customerType,
       customerId: data.customerId,
       vendorId: data.vendorId,
       items: data.items,
@@ -419,25 +439,60 @@ export default function InvoicesPage() {
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="customerType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Party Type *</FormLabel>
+                      <Select 
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          form.setValue("customerId", "");
+                        }} 
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger data-testid="select-customer-type">
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="customer">Individual Customer</SelectItem>
+                          <SelectItem value="agent">Agent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <FormField
                   control={form.control}
                   name="customerId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Customer *</FormLabel>
+                      <FormLabel>{watchCustomerType === "agent" ? "Agent" : "Customer"} *</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger data-testid="select-invoice-customer">
-                            <SelectValue placeholder="Select customer" />
+                            <SelectValue placeholder={`Select ${watchCustomerType === "agent" ? "agent" : "customer"}`} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {customers.map((customer) => (
-                            <SelectItem key={customer.id} value={customer.id}>
-                              {customer.name}
-                            </SelectItem>
-                          ))}
+                          {watchCustomerType === "agent" 
+                            ? agents.map((agent) => (
+                                <SelectItem key={agent.id} value={agent.id}>
+                                  {agent.name} {agent.company ? `(${agent.company})` : ""}
+                                </SelectItem>
+                              ))
+                            : customers.map((customer) => (
+                                <SelectItem key={customer.id} value={customer.id}>
+                                  {customer.name}
+                                </SelectItem>
+                              ))
+                          }
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -471,23 +526,23 @@ export default function InvoicesPage() {
                 />
               </div>
 
-              {selectedCustomer && (
+              {selectedParty && (
                 <div className="p-4 rounded-md bg-muted/50 space-y-2">
-                  <h4 className="font-medium text-sm">Customer Details</h4>
+                  <h4 className="font-medium text-sm">{watchCustomerType === "agent" ? "Agent" : "Customer"} Details</h4>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                     <div className="text-muted-foreground">Name:</div>
-                    <div data-testid="text-customer-name">{selectedCustomer.name}</div>
+                    <div data-testid="text-party-name">{selectedParty.name}</div>
                     <div className="text-muted-foreground">Phone:</div>
-                    <div data-testid="text-customer-phone">{selectedCustomer.phone || "-"}</div>
+                    <div data-testid="text-party-phone">{selectedParty.phone || "-"}</div>
                     <div className="text-muted-foreground">Company:</div>
-                    <div data-testid="text-customer-company">{selectedCustomer.company || "-"}</div>
+                    <div data-testid="text-party-company">{selectedParty.company || "-"}</div>
                     <div className="text-muted-foreground">Address:</div>
-                    <div data-testid="text-customer-address">{selectedCustomer.address || "-"}</div>
+                    <div data-testid="text-party-address">{selectedParty.address || "-"}</div>
                     <div className="text-muted-foreground">Email:</div>
-                    <div data-testid="text-customer-email">{selectedCustomer.email || "-"}</div>
+                    <div data-testid="text-party-email">{selectedParty.email || "-"}</div>
                     <div className="text-muted-foreground">Deposit Balance:</div>
-                    <div className="font-semibold text-green-600 dark:text-green-400" data-testid="text-customer-deposit">
-                      {formatCurrency(selectedCustomer.depositBalance)}
+                    <div className="font-semibold text-green-600 dark:text-green-400" data-testid="text-party-deposit">
+                      {formatCurrency(selectedParty.depositBalance)}
                     </div>
                   </div>
                 </div>

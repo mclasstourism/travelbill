@@ -11,6 +11,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import CustomersPage from "@/pages/customers";
+import AgentsPage from "@/pages/agents";
 import VendorsPage from "@/pages/vendors";
 import InvoicesPage from "@/pages/invoices";
 import TicketsPage from "@/pages/tickets";
@@ -24,6 +25,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/customers" component={CustomersPage} />
+      <Route path="/agents" component={AgentsPage} />
       <Route path="/vendors" component={VendorsPage} />
       <Route path="/invoices" component={InvoicesPage} />
       <Route path="/tickets" component={TicketsPage} />

@@ -42,6 +42,29 @@ export type Customer = {
   depositBalance: number;
 };
 
+// Agents (bulk ticket buyers)
+export const insertAgentSchema = z.object({
+  name: z.string().min(1, "Agent name is required"),
+  phone: z.string().min(1, "Phone number is required"),
+  company: z.string().optional().or(z.literal("")),
+  address: z.string().optional().or(z.literal("")),
+  email: z.string().email("Invalid email").optional().or(z.literal("")),
+  creditBalance: z.number().default(0), // Credit we give to agent
+  depositBalance: z.number().default(0), // Deposit received from agent
+});
+
+export type InsertAgent = z.infer<typeof insertAgentSchema>;
+export type Agent = {
+  id: string;
+  name: string;
+  phone: string;
+  company: string;
+  address: string;
+  email: string;
+  creditBalance: number;
+  depositBalance: number;
+};
+
 // Vendor Airlines
 export const insertVendorAirlineSchema = z.object({
   name: z.string().min(1, "Airline name is required"),
@@ -96,9 +119,14 @@ export type InvoiceItem = InsertInvoiceItem & { id: string };
 export const vendorBalanceSources = ["none", "credit", "deposit"] as const;
 export type VendorBalanceSource = typeof vendorBalanceSources[number];
 
+// Customer types for invoice
+export const customerTypes = ["customer", "agent"] as const;
+export type CustomerType = typeof customerTypes[number];
+
 // Invoices
 export const insertInvoiceSchema = z.object({
-  customerId: z.string().min(1, "Customer is required"),
+  customerType: z.enum(customerTypes).default("customer"), // Individual customer or agent
+  customerId: z.string().min(1, "Customer/Agent is required"),
   vendorId: z.string().min(1, "Vendor is required"),
   items: z.array(insertInvoiceItemSchema).min(1, "At least one item is required"),
   subtotal: z.number().min(0),

@@ -11,6 +11,7 @@ import {
   Lock,
   LogOut,
   BarChart3,
+  Briefcase,
 } from "lucide-react";
 import {
   Sidebar,
@@ -37,6 +38,7 @@ const mainNavItems = [
 
 const partyItems = [
   { title: "Customers", url: "/customers", icon: Users },
+  { title: "Agents", url: "/agents", icon: Briefcase },
   { title: "Vendors", url: "/vendors", icon: Building2 },
 ];
 

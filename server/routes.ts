@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import {
   insertCustomerSchema,
+  insertAgentSchema,
   insertVendorSchema,
   insertBillCreatorSchema,
   insertInvoiceSchema,
@@ -123,6 +124,53 @@ export async function registerRoutes(
         res.status(400).json({ error: error.errors });
       } else {
         res.status(500).json({ error: "Failed to create customer" });
+      }
+    }
+  });
+
+  // Agents
+  app.get("/api/agents", async (req, res) => {
+    try {
+      const agents = await storage.getAgents();
+      res.json(agents);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch agents" });
+    }
+  });
+
+  app.get("/api/agents/:id", async (req, res) => {
+    try {
+      const agent = await storage.getAgent(req.params.id);
+      if (!agent) {
+        res.status(404).json({ error: "Agent not found" });
+        return;
+      }
+      res.json(agent);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch agent" });
+    }
+  });
+
+  app.post("/api/agents", async (req, res) => {
+    try {
+      const data = insertAgentSchema.parse(req.body);
+      
+      // Check for duplicate agent by name or phone
+      const duplicate = await storage.findDuplicateAgent(data.name, data.phone);
+      if (duplicate) {
+        res.status(409).json({ 
+          error: `Agent already exists with matching ${duplicate.name.toLowerCase() === data.name.toLowerCase() ? 'name' : 'phone number'}` 
+        });
+        return;
+      }
+      
+      const agent = await storage.createAgent(data);
+      res.status(201).json(agent);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create agent" });
       }
     }
   });

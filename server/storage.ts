@@ -3,6 +3,8 @@ import {
   type InsertUser,
   type Customer,
   type InsertCustomer,
+  type Agent,
+  type InsertAgent,
   type Vendor,
   type InsertVendor,
   type BillCreator,
@@ -38,6 +40,13 @@ export interface IStorage {
   findDuplicateCustomer(name: string, phone: string): Promise<Customer | undefined>;
   createCustomer(customer: InsertCustomer): Promise<Customer>;
   updateCustomer(id: string, updates: Partial<Customer>): Promise<Customer | undefined>;
+
+  // Agents
+  getAgents(): Promise<Agent[]>;
+  getAgent(id: string): Promise<Agent | undefined>;
+  findDuplicateAgent(name: string, phone: string): Promise<Agent | undefined>;
+  createAgent(agent: InsertAgent): Promise<Agent>;
+  updateAgent(id: string, updates: Partial<Agent>): Promise<Agent | undefined>;
 
   // Vendors
   getVendors(): Promise<Vendor[]>;
@@ -76,6 +85,7 @@ export class MemStorage implements IStorage {
   private users: Map<string, User>;
   private billCreators: Map<string, BillCreator>;
   private customers: Map<string, Customer>;
+  private agents: Map<string, Agent>;
   private vendors: Map<string, Vendor>;
   private invoices: Map<string, Invoice>;
   private tickets: Map<string, Ticket>;
@@ -88,6 +98,7 @@ export class MemStorage implements IStorage {
     this.users = new Map();
     this.billCreators = new Map();
     this.customers = new Map();
+    this.agents = new Map();
     this.vendors = new Map();
     this.invoices = new Map();
     this.tickets = new Map();
@@ -199,6 +210,47 @@ export class MemStorage implements IStorage {
     if (!customer) return undefined;
     const updated = { ...customer, ...updates };
     this.customers.set(id, updated);
+    return updated;
+  }
+
+  // Agents
+  async getAgents(): Promise<Agent[]> {
+    return Array.from(this.agents.values());
+  }
+
+  async getAgent(id: string): Promise<Agent | undefined> {
+    return this.agents.get(id);
+  }
+
+  async findDuplicateAgent(name: string, phone: string): Promise<Agent | undefined> {
+    const agents = Array.from(this.agents.values());
+    return agents.find(a => 
+      a.name.toLowerCase() === name.toLowerCase() || 
+      (phone && a.phone === phone)
+    );
+  }
+
+  async createAgent(agent: InsertAgent): Promise<Agent> {
+    const id = randomUUID();
+    const newAgent: Agent = {
+      id,
+      name: agent.name,
+      phone: agent.phone,
+      company: agent.company || "",
+      address: agent.address || "",
+      email: agent.email || "",
+      creditBalance: agent.creditBalance || 0,
+      depositBalance: agent.depositBalance || 0,
+    };
+    this.agents.set(id, newAgent);
+    return newAgent;
+  }
+
+  async updateAgent(id: string, updates: Partial<Agent>): Promise<Agent | undefined> {
+    const agent = this.agents.get(id);
+    if (!agent) return undefined;
+    const updated = { ...agent, ...updates };
+    this.agents.set(id, updated);
     return updated;
   }
 
