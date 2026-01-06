@@ -18,6 +18,7 @@ import {
   type VendorTransaction,
   type InsertVendorTransaction,
   type DashboardMetrics,
+  type PasswordResetToken,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
@@ -26,9 +27,17 @@ export interface IStorage {
   // Users
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByPhone(phone: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUserPassword(userId: string, newPassword: string): Promise<boolean>;
   verifyUserPassword(username: string, password: string): Promise<User | null>;
   getPasswordHint(username: string): Promise<string | null>;
+  
+  // Password Reset
+  createPasswordResetToken(userId: string): Promise<PasswordResetToken>;
+  getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined>;
+  markTokenUsed(tokenId: string): Promise<void>;
 
   // Bill Creators
   getBillCreators(): Promise<BillCreator[]>;
@@ -86,6 +95,7 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
+  private passwordResetTokens: Map<string, PasswordResetToken>;
   private billCreators: Map<string, BillCreator>;
   private customers: Map<string, Customer>;
   private agents: Map<string, Agent>;
@@ -99,6 +109,7 @@ export class MemStorage implements IStorage {
 
   constructor() {
     this.users = new Map();
+    this.passwordResetTokens = new Map();
     this.billCreators = new Map();
     this.customers = new Map();
     this.agents = new Map();
@@ -126,6 +137,7 @@ export class MemStorage implements IStorage {
       id: defaultUserId,
       username: "admin",
       password: hashedPassword,
+      email: "admin@example.com",
       passwordHint: "Default password is admin followed by 123",
     });
   }
@@ -141,12 +153,33 @@ export class MemStorage implements IStorage {
     );
   }
 
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.email === email,
+    );
+  }
+
+  async getUserByPhone(phone: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.phone === phone,
+    );
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
     const hashedPassword = bcrypt.hashSync(insertUser.password, 10);
     const user: User = { ...insertUser, password: hashedPassword, id };
     this.users.set(id, user);
     return user;
+  }
+
+  async updateUserPassword(userId: string, newPassword: string): Promise<boolean> {
+    const user = this.users.get(userId);
+    if (!user) return false;
+    const hashedPassword = bcrypt.hashSync(newPassword, 10);
+    user.password = hashedPassword;
+    this.users.set(userId, user);
+    return true;
   }
 
   async verifyUserPassword(username: string, password: string): Promise<User | null> {
@@ -161,6 +194,35 @@ export class MemStorage implements IStorage {
     const user = await this.getUserByUsername(username);
     if (!user || !user.passwordHint) return null;
     return user.passwordHint;
+  }
+
+  // Password Reset Tokens
+  async createPasswordResetToken(userId: string): Promise<PasswordResetToken> {
+    const id = randomUUID();
+    const token = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const resetToken: PasswordResetToken = {
+      id,
+      userId,
+      token,
+      expiresAt: Date.now() + 15 * 60 * 1000, // 15 minutes
+      used: false,
+    };
+    this.passwordResetTokens.set(id, resetToken);
+    return resetToken;
+  }
+
+  async getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined> {
+    return Array.from(this.passwordResetTokens.values()).find(
+      (t) => t.token === token && !t.used && t.expiresAt > Date.now()
+    );
+  }
+
+  async markTokenUsed(tokenId: string): Promise<void> {
+    const token = this.passwordResetTokens.get(tokenId);
+    if (token) {
+      token.used = true;
+      this.passwordResetTokens.set(tokenId, token);
+    }
   }
 
   // Bill Creators

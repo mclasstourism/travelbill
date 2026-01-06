@@ -116,6 +116,72 @@ export async function registerRoutes(
     }
   });
 
+  // Request password reset (send code via email)
+  app.post("/api/auth/request-reset", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        res.status(400).json({ success: false, error: "Email is required" });
+        return;
+      }
+      
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        // Don't reveal if user exists for security
+        res.json({ success: true, message: "If an account exists with this email, a reset code will be sent" });
+        return;
+      }
+      
+      const resetToken = await storage.createPasswordResetToken(user.id);
+      
+      // Send email with reset code
+      const { sendPasswordResetEmail } = await import("./lib/resend");
+      const sent = await sendPasswordResetEmail(email, resetToken.token);
+      
+      if (sent) {
+        res.json({ success: true, message: "Reset code sent to your email" });
+      } else {
+        res.status(500).json({ success: false, error: "Failed to send reset email" });
+      }
+    } catch (error) {
+      console.error("Password reset request error:", error);
+      res.status(500).json({ success: false, error: "Failed to process reset request" });
+    }
+  });
+
+  // Verify reset code and set new password
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { code, newPassword } = req.body;
+      if (!code || !newPassword) {
+        res.status(400).json({ success: false, error: "Code and new password are required" });
+        return;
+      }
+      
+      if (newPassword.length < 6) {
+        res.status(400).json({ success: false, error: "Password must be at least 6 characters" });
+        return;
+      }
+      
+      const resetToken = await storage.getPasswordResetToken(code);
+      if (!resetToken) {
+        res.status(400).json({ success: false, error: "Invalid or expired reset code" });
+        return;
+      }
+      
+      const success = await storage.updateUserPassword(resetToken.userId, newPassword);
+      if (success) {
+        await storage.markTokenUsed(resetToken.id);
+        res.json({ success: true, message: "Password reset successfully" });
+      } else {
+        res.status(500).json({ success: false, error: "Failed to reset password" });
+      }
+    } catch (error) {
+      console.error("Password reset error:", error);
+      res.status(500).json({ success: false, error: "Failed to reset password" });
+    }
+  });
+
   // PIN Authentication
   app.post("/api/auth/verify-pin", async (req, res) => {
     try {
