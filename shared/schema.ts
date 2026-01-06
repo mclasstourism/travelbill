@@ -262,6 +262,7 @@ export const users = {
 export const insertUserSchema = z.object({
   username: z.string().min(1),
   password: z.string().min(1),
+  passwordHint: z.string().optional(),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -269,4 +270,5 @@ export type User = {
   id: string;
   username: string;
   password: string;
+  passwordHint?: string;
 };

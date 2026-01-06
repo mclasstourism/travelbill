@@ -28,6 +28,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   verifyUserPassword(username: string, password: string): Promise<User | null>;
+  getPasswordHint(username: string): Promise<string | null>;
 
   // Bill Creators
   getBillCreators(): Promise<BillCreator[]>;
@@ -125,6 +126,7 @@ export class MemStorage implements IStorage {
       id: defaultUserId,
       username: "admin",
       password: hashedPassword,
+      passwordHint: "Default password is admin followed by 123",
     });
   }
 
@@ -153,6 +155,12 @@ export class MemStorage implements IStorage {
     const isValid = bcrypt.compareSync(password, user.password);
     if (!isValid) return null;
     return user;
+  }
+
+  async getPasswordHint(username: string): Promise<string | null> {
+    const user = await this.getUserByUsername(username);
+    if (!user || !user.passwordHint) return null;
+    return user.passwordHint;
   }
 
   // Bill Creators

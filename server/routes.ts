@@ -101,6 +101,21 @@ export async function registerRoutes(
     }
   });
 
+  // Get password hint for a username
+  app.post("/api/auth/password-hint", async (req, res) => {
+    try {
+      const { username } = req.body;
+      if (!username) {
+        res.status(400).json({ hint: null });
+        return;
+      }
+      const hint = await storage.getPasswordHint(username);
+      res.json({ hint });
+    } catch (error) {
+      res.status(500).json({ hint: null });
+    }
+  });
+
   // PIN Authentication
   app.post("/api/auth/verify-pin", async (req, res) => {
     try {

@@ -6,15 +6,48 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plane, Loader2 } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { Plane, Loader2, HelpCircle } from "lucide-react";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [passwordHint, setPasswordHint] = useState<string | null>(null);
+  const [showHint, setShowHint] = useState(false);
   const { login } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+
+  const fetchPasswordHint = async () => {
+    if (!username.trim()) {
+      toast({
+        title: "Enter username first",
+        description: "Please enter your username to get a password hint",
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      const res = await apiRequest("POST", "/api/auth/password-hint", { username: username.trim() });
+      const data = await res.json();
+      if (data.hint) {
+        setPasswordHint(data.hint);
+        setShowHint(true);
+      } else {
+        toast({
+          title: "No hint available",
+          description: "No password hint is set for this user",
+        });
+      }
+    } catch {
+      toast({
+        title: "Error",
+        description: "Could not retrieve password hint",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +109,20 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor="password">Password</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto p-0 text-xs text-muted-foreground"
+                  onClick={fetchPasswordHint}
+                  data-testid="button-password-hint"
+                >
+                  <HelpCircle className="w-3 h-3 mr-1" />
+                  Forgot password?
+                </Button>
+              </div>
               <Input
                 id="password"
                 type="password"
@@ -86,6 +132,11 @@ export default function LoginPage() {
                 disabled={isLoading}
                 data-testid="input-password"
               />
+              {showHint && passwordHint && (
+                <p className="text-sm text-muted-foreground bg-muted p-2 rounded-md">
+                  Hint: {passwordHint}
+                </p>
+              )}
             </div>
             <Button
               type="submit"
