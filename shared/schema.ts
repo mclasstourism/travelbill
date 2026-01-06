@@ -262,6 +262,8 @@ export const users = {
 export const insertUserSchema = z.object({
   username: z.string().min(1),
   password: z.string().min(1),
+  email: z.string().email().optional(),
+  phone: z.string().optional(),
   passwordHint: z.string().optional(),
 });
 
@@ -270,5 +272,16 @@ export type User = {
   id: string;
   username: string;
   password: string;
+  email?: string;
+  phone?: string;
   passwordHint?: string;
+};
+
+// Password reset token
+export type PasswordResetToken = {
+  id: string;
+  userId: string;
+  token: string;
+  expiresAt: number;
+  used: boolean;
 };
