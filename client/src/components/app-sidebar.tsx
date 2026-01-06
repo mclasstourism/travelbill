@@ -12,6 +12,7 @@ import {
   LogOut,
   BarChart3,
   Briefcase,
+  User,
 } from "lucide-react";
 import {
   Sidebar,
@@ -28,6 +29,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { usePin } from "@/lib/pin-context";
+import { useAuth } from "@/lib/auth-context";
 
 const mainNavItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
@@ -53,7 +55,8 @@ const settingsItems = [
 
 export function AppSidebar() {
   const [location] = useLocation();
-  const { isAuthenticated, billCreatorName, logout } = usePin();
+  const { isAuthenticated, billCreatorName, logout: pinLogout } = usePin();
+  const { user, logout: authLogout } = useAuth();
 
   return (
     <Sidebar>
@@ -155,8 +158,8 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4 border-t border-sidebar-border">
-        {isAuthenticated ? (
+      <SidebarFooter className="p-4 border-t border-sidebar-border space-y-3">
+        {isAuthenticated && (
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <Badge variant="secondary" className="text-xs">
@@ -167,18 +170,31 @@ export function AppSidebar() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={logout}
+              onClick={pinLogout}
+              data-testid="button-pin-logout"
+              title="End PIN session"
+            >
+              <Lock className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
+        {user && (
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <Badge variant="outline" className="text-xs">
+                <User className="w-3 h-3 mr-1" />
+                {user.username}
+              </Badge>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={authLogout}
               data-testid="button-logout"
+              title="Sign out"
             >
               <LogOut className="w-4 h-4" />
             </Button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs text-muted-foreground">
-              <Lock className="w-3 h-3 mr-1" />
-              Not authenticated
-            </Badge>
           </div>
         )}
       </SidebarFooter>

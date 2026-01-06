@@ -61,6 +61,26 @@ export async function registerRoutes(
     }
   });
 
+  // Staff Login Authentication
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      if (!username || !password) {
+        res.status(400).json({ success: false, error: "Username and password are required" });
+        return;
+      }
+      const user = await storage.getUserByUsername(username);
+      if (!user || user.password !== password) {
+        res.status(401).json({ success: false, error: "Invalid credentials" });
+        return;
+      }
+      const { password: _, ...safeUser } = user;
+      res.json({ success: true, user: safeUser });
+    } catch (error) {
+      res.status(500).json({ success: false, error: "Login failed" });
+    }
+  });
+
   // PIN Authentication
   app.post("/api/auth/verify-pin", async (req, res) => {
     try {

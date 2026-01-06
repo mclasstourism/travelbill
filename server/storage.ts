@@ -115,6 +115,14 @@ export class MemStorage implements IStorage {
       pin: "12345678",
       active: true,
     });
+
+    // Seed with a default staff user
+    const defaultUserId = randomUUID();
+    this.users.set(defaultUserId, {
+      id: defaultUserId,
+      username: "admin",
+      password: "admin123",
+    });
   }
 
   // Users
