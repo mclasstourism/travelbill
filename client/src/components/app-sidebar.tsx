@@ -14,6 +14,7 @@ import {
   Briefcase,
   User,
 } from "lucide-react";
+import companyLogo from "@assets/Updated_Logo_1769092146053.png";
 import {
   Sidebar,
   SidebarContent,
@@ -61,14 +62,13 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4 border-b border-sidebar-border">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center justify-center w-8 h-8 rounded-md bg-primary text-primary-foreground">
-            <Ticket className="w-4 h-4" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold">TravelBill</span>
-            <span className="text-xs text-muted-foreground">Agency Billing</span>
-          </div>
+        <div className="flex items-center justify-center">
+          <img 
+            src={companyLogo} 
+            alt="Middle Class Tourism" 
+            className="h-10 w-auto object-contain"
+            data-testid="img-sidebar-logo"
+          />
         </div>
       </SidebarHeader>
 

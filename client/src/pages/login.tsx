@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Plane, Loader2, ArrowLeft, Mail } from "lucide-react";
+import { Loader2, ArrowLeft, Mail } from "lucide-react";
+import companyLogo from "@assets/Updated_Logo_1769092146053.png";
 
 type ViewState = "login" | "forgot" | "reset";
 
@@ -355,8 +356,13 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto flex items-center justify-center w-16 h-16 rounded-full bg-primary text-primary-foreground">
-            <Plane className="w-8 h-8" />
+          <div className="mx-auto">
+            <img 
+              src={companyLogo} 
+              alt="Middle Class Tourism" 
+              className="h-16 w-auto object-contain"
+              data-testid="img-company-logo"
+            />
           </div>
           <div>
             <CardTitle className="text-2xl">{getTitle()}</CardTitle>
