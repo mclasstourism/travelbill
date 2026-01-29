@@ -919,6 +919,7 @@ export default function TicketsPage() {
                         setTicketSource("direct");
                         form.setValue("vendorId", "direct");
                         form.setValue("airlines", "");
+                        form.setValue("vendorPrice", 0);
                       }}
                       data-testid="button-source-direct"
                     >
@@ -933,6 +934,7 @@ export default function TicketsPage() {
                         setTicketSource("vendor");
                         form.setValue("vendorId", "");
                         form.setValue("airlines", "");
+                        form.setValue("airlinePrice", 0);
                       }}
                       data-testid="button-source-vendor"
                     >
