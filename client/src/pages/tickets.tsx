@@ -142,6 +142,7 @@ export default function TicketsPage() {
   const [clientType, setClientType] = useState<"customer" | "agent">("customer");
   const [ticketNumbersList, setTicketNumbersList] = useState<string[]>([""]);
   const [ticketPricesList, setTicketPricesList] = useState<number[]>([0]);
+  const [ticketClassesList, setTicketClassesList] = useState<string[]>(["economy"]);
   const [createEticketFile, setCreateEticketFile] = useState<File | null>(null);
   const [createEticketPreview, setCreateEticketPreview] = useState<string | null>(null);
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
@@ -232,6 +233,14 @@ export default function TicketsPage() {
     setTicketPricesList(prev => {
       if (passengerCount > prev.length) {
         return [...prev, ...Array(passengerCount - prev.length).fill(0)];
+      } else if (passengerCount < prev.length) {
+        return prev.slice(0, passengerCount);
+      }
+      return prev;
+    });
+    setTicketClassesList(prev => {
+      if (passengerCount > prev.length) {
+        return [...prev, ...Array(passengerCount - prev.length).fill("economy")];
       } else if (passengerCount < prev.length) {
         return prev.slice(0, passengerCount);
       }
@@ -597,6 +606,7 @@ export default function TicketsPage() {
     setCreateEticketPreview(null);
     setTicketNumbersList([""]); // Reset ticket numbers list
     setTicketPricesList([0]); // Reset ticket prices list
+    setTicketClassesList(["economy"]); // Reset ticket classes list
   };
 
   return (
@@ -1208,7 +1218,7 @@ export default function TicketsPage() {
                   
               </div>
 
-              {/* Row 4: Ticket #, Passenger Name, Ticket Price */}
+              {/* Row 4: Ticket #, Ticket Class, Passenger Name, Ticket Price */}
               <div className="space-y-3">
                 <Label className="text-sm font-medium">
                   Passenger Details ({passengerCount} {passengerCount === 1 ? 'ticket' : 'tickets'})
@@ -1216,9 +1226,9 @@ export default function TicketsPage() {
                 <div className="space-y-2">
                   {ticketNumbersList.map((ticketNum, index) => (
                     <div key={index} className="grid grid-cols-12 gap-2 items-center">
-                      <div className="col-span-3">
+                      <div className="col-span-2">
                         <Input
-                          placeholder={`Ticket #${index + 1}`}
+                          placeholder={`Ticket #`}
                           value={ticketNum}
                           onChange={(e) => {
                             const newList = [...ticketNumbersList];
@@ -1229,7 +1239,26 @@ export default function TicketsPage() {
                           data-testid={`input-ticket-number-${index}`}
                         />
                       </div>
-                      <div className="col-span-6">
+                      <div className="col-span-2">
+                        <Select
+                          value={ticketClassesList[index] || "economy"}
+                          onValueChange={(value) => {
+                            const newClasses = [...ticketClassesList];
+                            newClasses[index] = value;
+                            setTicketClassesList(newClasses);
+                          }}
+                        >
+                          <SelectTrigger className="text-xs" data-testid={`select-ticket-class-${index}`}>
+                            <SelectValue placeholder="Class" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="economy">Economy</SelectItem>
+                            <SelectItem value="business">Business</SelectItem>
+                            <SelectItem value="first">First</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="col-span-5">
                         {index === 0 ? (
                           <FormField
                             control={form.control}
@@ -1275,7 +1304,7 @@ export default function TicketsPage() {
                   ))}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Ticket # | Passenger Name | Price per person (AED)
+                  Ticket # | Class | Passenger Name | Price (AED)
                 </p>
               </div>
 
