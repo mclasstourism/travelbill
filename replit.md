@@ -34,15 +34,16 @@ MVP fully implemented with:
 
 ### Backend (Express)
 - **Framework**: Express.js with TypeScript
-- **Storage**: In-memory storage (MemStorage class)
+- **Database**: PostgreSQL (Neon serverless) with Drizzle ORM
 - **Validation**: Zod schemas
 - **API Pattern**: REST endpoints under `/api/*`
 - **Authentication**: Token-based with server-side session store
 - **Email**: Resend integration for HTML invoice emails
 
 ### Key Files
-- `shared/schema.ts` - All data models and Zod schemas
-- `server/storage.ts` - Storage interface and in-memory implementation
+- `shared/schema.ts` - Drizzle table definitions and Zod schemas
+- `server/db.ts` - Database connection using Neon serverless
+- `server/storage.ts` - DatabaseStorage class implementing all CRUD operations
 - `server/routes.ts` - All API endpoints with auth middleware
 - `client/src/App.tsx` - Main app with routing and providers
 - `client/src/lib/auth-context.tsx` - Staff authentication context

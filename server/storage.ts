@@ -138,29 +138,82 @@ const currencyRates: CurrencyRate[] = [
 export class DatabaseStorage implements IStorage {
   private invoiceCounter: number = 1000;
   private ticketCounter: number = 1000;
+  private countersInitialized: boolean = false;
+  private initPromise: Promise<void> | null = null;
 
   constructor() {
-    this.initializeCounters();
+    this.initPromise = this.initializeCounters();
   }
 
-  private async initializeCounters() {
-    const invoices = await db.select().from(invoicesTable);
-    const tickets = await db.select().from(ticketsTable);
+  private async initializeCounters(): Promise<void> {
+    if (this.countersInitialized) return;
     
-    if (invoices.length > 0) {
-      const maxInvoiceNum = Math.max(...invoices.map(i => {
-        const num = parseInt(i.invoiceNumber.replace('INV-', ''));
-        return isNaN(num) ? 0 : num;
-      }));
-      this.invoiceCounter = Math.max(this.invoiceCounter, maxInvoiceNum + 1);
+    try {
+      const invoices = await db.select().from(invoicesTable);
+      const tickets = await db.select().from(ticketsTable);
+      
+      if (invoices.length > 0) {
+        const maxInvoiceNum = Math.max(...invoices.map(i => {
+          const num = parseInt(i.invoiceNumber.replace('INV-', ''));
+          return isNaN(num) ? 0 : num;
+        }));
+        this.invoiceCounter = Math.max(this.invoiceCounter, maxInvoiceNum + 1);
+      }
+      
+      if (tickets.length > 0) {
+        const maxTicketNum = Math.max(...tickets.map(t => {
+          const num = parseInt(t.ticketNumber.replace('TKT-', ''));
+          return isNaN(num) ? 0 : num;
+        }));
+        this.ticketCounter = Math.max(this.ticketCounter, maxTicketNum + 1);
+      }
+      
+      await this.seedDefaultData();
+      this.countersInitialized = true;
+    } catch (error) {
+      console.error("Failed to initialize counters:", error);
     }
-    
-    if (tickets.length > 0) {
-      const maxTicketNum = Math.max(...tickets.map(t => {
-        const num = parseInt(t.ticketNumber.replace('TKT-', ''));
-        return isNaN(num) ? 0 : num;
-      }));
-      this.ticketCounter = Math.max(this.ticketCounter, maxTicketNum + 1);
+  }
+
+  private async seedDefaultData(): Promise<void> {
+    const existingUsers = await db.select().from(usersTable);
+    if (existingUsers.length === 0) {
+      const adminId = randomUUID();
+      const hashedAdminPassword = bcrypt.hashSync("admin123", 10);
+      await db.insert(usersTable).values({
+        id: adminId,
+        username: "admin",
+        password: hashedAdminPassword,
+        plainPassword: "admin123",
+        name: "Administrator",
+        email: "admin@example.com",
+        passwordHint: "Default password is admin followed by 123",
+        pin: "00000",
+        active: true,
+        role: "superadmin",
+      });
+      console.log("Default admin user created");
+    }
+
+    const existingBillCreators = await db.select().from(billCreatorsTable);
+    if (existingBillCreators.length === 0) {
+      const creatorId = randomUUID();
+      await db.insert(billCreatorsTable).values({
+        id: creatorId,
+        name: "Admin",
+        pin: "12345678",
+        active: true,
+      });
+      console.log("Default bill creator created");
+    }
+  }
+
+  private async ensureCountersInitialized(): Promise<void> {
+    if (this.initPromise) {
+      await this.initPromise;
+    }
+    if (!this.countersInitialized) {
+      await this.initializeCounters();
     }
   }
 
@@ -450,6 +503,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createInvoice(invoice: InsertInvoice): Promise<Invoice> {
+    await this.ensureCountersInitialized();
     const id = randomUUID();
     const invoiceNumber = `INV-${this.invoiceCounter++}`;
     const result = await db.insert(invoicesTable).values({
@@ -517,6 +571,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTicket(ticket: InsertTicket): Promise<Ticket> {
+    await this.ensureCountersInitialized();
     const id = randomUUID();
     const ticketNumber = `TKT-${this.ticketCounter++}`;
     const result = await db.insert(ticketsTable).values({
