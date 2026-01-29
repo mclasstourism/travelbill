@@ -18,6 +18,7 @@ import {
   Activity,
   UserCog,
   Plane,
+  Monitor,
 } from "lucide-react";
 import companyLogo from "@assets/Updated_Logo_1769092146053.png";
 import {
@@ -43,6 +44,7 @@ import { useAuth } from "@/lib/auth-context";
 const mainNavItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Ticket Issuance", url: "/tickets", icon: Ticket },
+  { title: "Sales Monitor", url: "/sales-monitor", icon: Monitor },
   { title: "Invoices", url: "/invoices", icon: FileText },
 ];
 

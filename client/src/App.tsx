@@ -25,6 +25,7 @@ import AccountSettingsPage from "@/pages/account-settings";
 import AdminSettingsPage from "@/pages/admin-settings";
 import CalendarPage from "@/pages/calendar";
 import AirlinesPage from "@/pages/airlines";
+import SalesMonitorPage from "@/pages/sales-monitor";
 import LoginPage from "@/pages/login";
 import { Loader2 } from "lucide-react";
 
@@ -38,6 +39,7 @@ function Router() {
       <Route path="/airlines" component={AirlinesPage} />
       <Route path="/invoices" component={InvoicesPage} />
       <Route path="/tickets" component={TicketsPage} />
+      <Route path="/sales-monitor" component={SalesMonitorPage} />
       <Route path="/deposits" component={DepositsPage} />
       <Route path="/vendor-credits" component={VendorCreditsPage} />
       <Route path="/reports" component={ReportsPage} />
