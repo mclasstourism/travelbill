@@ -39,9 +39,8 @@ import { useAuth } from "@/lib/auth-context";
 
 const mainNavItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Ticket Issuance", url: "/tickets", icon: Ticket },
   { title: "Invoices", url: "/invoices", icon: FileText },
-  { title: "Tickets", url: "/tickets", icon: Ticket },
-  { title: "Calendar", url: "/calendar", icon: Calendar },
 ];
 
 const partyItems = [
