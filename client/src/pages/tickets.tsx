@@ -220,7 +220,10 @@ export default function TicketsPage() {
     }
   }, [watchCustomerId, selectedCustomer, selectedCustomerOption, form]);
 
-  // Auto-calculate face value based on ticket source
+  // Calculate passenger count
+  const passengerCount = 1 + additionalPassengers.length;
+
+  // Auto-calculate face value based on ticket source (per person × passenger count)
   useEffect(() => {
     const middleClass = Number(watchMiddleClassPrice) || 0;
     let basePrice = 0;
@@ -230,19 +233,21 @@ export default function TicketsPage() {
       // For vendor or agent sources, use vendor/agent price
       basePrice = Number(watchVendorPrice) || 0;
     }
-    const total = basePrice + middleClass;
+    const perPersonPrice = basePrice + middleClass;
+    const total = perPersonPrice * passengerCount;
     form.setValue("faceValue", total);
-  }, [ticketSource, watchVendorPrice, watchAirlinePrice, watchMiddleClassPrice, form]);
+  }, [ticketSource, watchVendorPrice, watchAirlinePrice, watchMiddleClassPrice, passengerCount, form]);
 
   const calculations = useMemo(() => {
     const faceValue = Number(watchFaceValue) || 0;
+    const perPersonPrice = passengerCount > 0 ? faceValue / passengerCount : faceValue;
     let depositDeducted = 0;
     if (watchDeductFromDeposit && selectedCustomer) {
       depositDeducted = Math.min(selectedCustomer.depositBalance, faceValue);
     }
     const amountDue = faceValue - depositDeducted;
-    return { faceValue, depositDeducted, amountDue };
-  }, [watchFaceValue, watchDeductFromDeposit, selectedCustomer]);
+    return { faceValue, perPersonPrice, depositDeducted, amountDue };
+  }, [watchFaceValue, watchDeductFromDeposit, selectedCustomer, passengerCount]);
 
   // Quick add customer mutation
   const createCustomerMutation = useMutation({
@@ -1446,7 +1451,7 @@ export default function TicketsPage() {
                       name="vendorPrice"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Vendor Price (AED)</FormLabel>
+                          <FormLabel>Vendor Price per Person (AED)</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
@@ -1475,7 +1480,7 @@ export default function TicketsPage() {
                       name="airlinePrice"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Airline Price (AED)</FormLabel>
+                          <FormLabel>Airline Price per Person (AED)</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
@@ -1504,7 +1509,7 @@ export default function TicketsPage() {
                     name="middleClassPrice"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Middle Class Addition (AED)</FormLabel>
+                        <FormLabel>MC Addition per Person (AED)</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -1530,15 +1535,23 @@ export default function TicketsPage() {
                 </div>
               </div>
 
-              <div className="p-4 bg-muted rounded-md space-y-2">
+              <div className="p-4 bg-muted rounded-md space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Face Value (Customer Price)</span>
-                  <span className="text-lg font-bold text-primary" data-testid="text-face-value">
-                    AED {Number(watchFaceValue || 0).toFixed(2)}
+                  <span className="text-sm text-muted-foreground">Price per Person</span>
+                  <span className="text-sm font-mono" data-testid="text-price-per-person">
+                    AED {calculations.perPersonPrice.toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">
+                    Total Face Value ({passengerCount} {passengerCount === 1 ? 'person' : 'persons'})
+                  </span>
+                  <span className="text-lg font-bold text-primary font-mono" data-testid="text-face-value">
+                    AED {calculations.faceValue.toFixed(2)}
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Auto-calculated: {ticketSource === "direct" ? "Airline" : "Vendor"} Price + Middle Class Addition
+                  ({ticketSource === "direct" ? "Airline" : "Vendor"} Price + MC Addition) × {passengerCount} passengers
                 </p>
               </div>
 
