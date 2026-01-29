@@ -41,7 +41,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Ticket as TicketIcon, Search, Loader2, Lock, Calendar, Plane, Upload, Download, UserPlus, Building2, Check, ChevronsUpDown, Edit, Image, Eye, X, Users } from "lucide-react";
+import { Plus, Ticket as TicketIcon, Search, Loader2, Lock, Calendar, Plane, Upload, Download, UserPlus, Building2, Check, ChevronsUpDown, Edit, Image, Eye, X, Users, FileText, Printer } from "lucide-react";
+import companyLogo from "@assets/Updated_Logo_1769092146053.png";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
   Popover,
@@ -139,6 +140,8 @@ export default function TicketsPage() {
   const [additionalPassengers, setAdditionalPassengers] = useState<string[]>([]);
   const [newPassengerName, setNewPassengerName] = useState("");
   const [showGroupSection, setShowGroupSection] = useState(false);
+  const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
+  const [invoiceTicket, setInvoiceTicket] = useState<Ticket | null>(null);
   const { toast } = useToast();
   const { isAuthenticated, session } = usePin();
 
@@ -667,14 +670,30 @@ export default function TicketsPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleEditTicket(ticket)}
-                          data-testid={`button-edit-ticket-${ticket.id}`}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          {ticket.status === "issued" && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => {
+                                setInvoiceTicket(ticket);
+                                setIsInvoiceOpen(true);
+                              }}
+                              data-testid={`button-invoice-ticket-${ticket.id}`}
+                              title="View Invoice"
+                            >
+                              <FileText className="w-4 h-4" />
+                            </Button>
+                          )}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => handleEditTicket(ticket)}
+                            data-testid={`button-edit-ticket-${ticket.id}`}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -1646,6 +1665,166 @@ export default function TicketsPage() {
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   )}
                   Save Changes
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Ticket Invoice Dialog */}
+      <Dialog open={isInvoiceOpen} onOpenChange={setIsInvoiceOpen}>
+        <DialogContent className="sm:max-w-2xl print:max-w-full print:shadow-none">
+          <DialogHeader className="print:hidden">
+            <DialogTitle>Ticket Invoice</DialogTitle>
+            <DialogDescription>
+              Invoice for issued ticket
+            </DialogDescription>
+          </DialogHeader>
+          
+          {invoiceTicket && (
+            <div className="space-y-6" id="ticket-invoice-content">
+              {/* Header with Logo */}
+              <div className="flex items-center justify-between border-b pb-4">
+                <div className="flex items-center gap-3">
+                  <img src={companyLogo} alt="Company Logo" className="h-16 w-auto" />
+                  <div>
+                    <h2 className="text-xl font-bold">Middle Class Tourism</h2>
+                    <p className="text-sm text-muted-foreground">Travel Agency</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Invoice Date</p>
+                  <p className="font-medium">{format(new Date(), "MMM d, yyyy")}</p>
+                </div>
+              </div>
+
+              {/* Ticket Details */}
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Booking Details</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Ticket Number:</span>
+                      <span className="font-mono font-medium">{invoiceTicket.ticketNumber || "Pending"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Airline:</span>
+                      <span className="font-medium">{invoiceTicket.airlines}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Flight:</span>
+                      <span className="font-mono">{invoiceTicket.flightNumber || "N/A"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Route:</span>
+                      <span className="font-medium">{invoiceTicket.route}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Travel Date:</span>
+                      <span className="font-medium">{format(new Date(invoiceTicket.travelDate), "MMM d, yyyy")}</span>
+                    </div>
+                    {invoiceTicket.returnDate && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Return Date:</span>
+                        <span className="font-medium">{format(new Date(invoiceTicket.returnDate), "MMM d, yyyy")}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Class:</span>
+                      <span className="font-medium capitalize">{invoiceTicket.seatClass || "Economy"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Trip Type:</span>
+                      <span className="font-medium">{invoiceTicket.tripType === "round_trip" ? "Round Trip" : "One Way"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Passenger Details</h3>
+                  <div className="space-y-2">
+                    <div className="p-3 bg-muted rounded-md">
+                      <p className="font-medium">{invoiceTicket.passengerName}</p>
+                      <p className="text-xs text-muted-foreground">Lead Passenger</p>
+                    </div>
+                    {invoiceTicket.passengers && invoiceTicket.passengers.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">Group Members:</p>
+                        {invoiceTicket.passengers.map((passenger, index) => (
+                          <div key={index} className="p-2 bg-muted/50 rounded-md">
+                            <p className="text-sm">{passenger}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="pt-2 border-t">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Total Passengers:</span>
+                        <span className="font-medium">{invoiceTicket.passengerCount || 1}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pricing */}
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">Pricing Summary</h3>
+                <div className="bg-muted/30 rounded-md p-4 space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      {invoiceTicket.vendorId ? "Vendor Price" : "Airline Price"}:
+                    </span>
+                    <span className="font-mono">
+                      {formatCurrency(invoiceTicket.vendorId ? (invoiceTicket.vendorPrice || 0) : (invoiceTicket.airlinePrice || 0))}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Service Charge:</span>
+                    <span className="font-mono">{formatCurrency(invoiceTicket.middleClassPrice || 0)}</span>
+                  </div>
+                  <div className="flex justify-between text-lg font-bold border-t pt-2 mt-2">
+                    <span>Total (Face Value):</span>
+                    <span className="text-primary font-mono">{formatCurrency(invoiceTicket.faceValue)}</span>
+                  </div>
+                  {(invoiceTicket.depositDeducted || 0) > 0 && (
+                    <>
+                      <div className="flex justify-between text-sm text-blue-600 dark:text-blue-400">
+                        <span>Deposit Applied:</span>
+                        <span className="font-mono">-{formatCurrency(invoiceTicket.depositDeducted || 0)}</span>
+                      </div>
+                      <div className="flex justify-between font-semibold">
+                        <span>Amount Paid:</span>
+                        <span className="font-mono">
+                          {formatCurrency(invoiceTicket.faceValue - (invoiceTicket.depositDeducted || 0))}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="text-center text-sm text-muted-foreground border-t pt-4">
+                <p>Thank you for choosing Middle Class Tourism</p>
+                <p>For any queries, please contact us</p>
+              </div>
+
+              {/* Print Button */}
+              <div className="flex justify-end gap-2 print:hidden">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsInvoiceOpen(false)}
+                >
+                  Close
+                </Button>
+                <Button
+                  onClick={() => window.print()}
+                  data-testid="button-print-invoice"
+                >
+                  <Printer className="w-4 h-4 mr-2" />
+                  Print Invoice
                 </Button>
               </div>
             </div>
