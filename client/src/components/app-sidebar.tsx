@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { usePin } from "@/lib/pin-context";
 import { useAuth } from "@/lib/auth-context";
 
@@ -214,16 +215,7 @@ export function AppSidebar() {
                 <LogOut className="w-4 h-4 mr-2" />
                 Logout
               </Button>
-              <Link href="/settings/admin">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  data-testid="button-admin-settings"
-                  title="Admin Settings"
-                >
-                  <Settings className="w-4 h-4" />
-                </Button>
-              </Link>
+              <ThemeToggle variant="outline" />
             </div>
           </div>
         )}
