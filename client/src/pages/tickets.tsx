@@ -183,6 +183,9 @@ export default function TicketsPage() {
   const watchCustomerId = form.watch("customerId");
   const watchDeductFromDeposit = form.watch("deductFromDeposit");
   const watchFaceValue = form.watch("faceValue");
+  const watchVendorPrice = form.watch("vendorPrice");
+  const watchAirlinePrice = form.watch("airlinePrice");
+  const watchMiddleClassPrice = form.watch("middleClassPrice");
 
   const selectedCustomer = customers.find((c) => c.id === watchCustomerId);
   const selectedVendor = vendors.find((v) => v.id === watchVendorId);
@@ -205,6 +208,19 @@ export default function TicketsPage() {
       form.setValue("passengerName", selectedCustomer.name);
     }
   }, [watchCustomerId, selectedCustomer, selectedCustomerOption, form]);
+
+  // Auto-calculate face value based on ticket source
+  useEffect(() => {
+    const middleClass = Number(watchMiddleClassPrice) || 0;
+    let basePrice = 0;
+    if (ticketSource === "direct") {
+      basePrice = Number(watchAirlinePrice) || 0;
+    } else {
+      basePrice = Number(watchVendorPrice) || 0;
+    }
+    const total = basePrice + middleClass;
+    form.setValue("faceValue", total);
+  }, [ticketSource, watchVendorPrice, watchAirlinePrice, watchMiddleClassPrice, form]);
 
   const calculations = useMemo(() => {
     const faceValue = Number(watchFaceValue) || 0;
@@ -1233,89 +1249,86 @@ export default function TicketsPage() {
                 />
               )}
 
-              <div className="grid grid-cols-3 gap-3">
-                <FormField
-                  control={form.control}
-                  name="vendorPrice"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Vendor Price</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          placeholder="0.00"
-                          {...field}
-                          data-testid="input-vendor-price"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Pricing</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  {ticketSource === "vendor" ? (
+                    <FormField
+                      control={form.control}
+                      name="vendorPrice"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Vendor Price (AED)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              placeholder="0.00"
+                              {...field}
+                              data-testid="input-vendor-price"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ) : (
+                    <FormField
+                      control={form.control}
+                      name="airlinePrice"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Airline Price (AED)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              placeholder="0.00"
+                              {...field}
+                              data-testid="input-airline-price"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   )}
-                />
-                <FormField
-                  control={form.control}
-                  name="airlinePrice"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Airline Price</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          placeholder="0.00"
-                          {...field}
-                          data-testid="input-airline-price"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="middleClassPrice"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Middle Class Price</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          placeholder="0.00"
-                          {...field}
-                          data-testid="input-middle-class-price"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  <FormField
+                    control={form.control}
+                    name="middleClassPrice"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Middle Class Addition (AED)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            placeholder="0.00"
+                            {...field}
+                            data-testid="input-middle-class-price"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
 
-              <FormField
-                control={form.control}
-                name="faceValue"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Face Value (Customer Price) *</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        placeholder="0.00"
-                        {...field}
-                        data-testid="input-face-value"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="p-4 bg-muted rounded-md space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Face Value (Customer Price)</span>
+                  <span className="text-lg font-bold text-primary" data-testid="text-face-value">
+                    AED {Number(watchFaceValue || 0).toFixed(2)}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Auto-calculated: {ticketSource === "vendor" ? "Vendor" : "Airline"} Price + Middle Class Addition
+                </p>
+              </div>
 
               {selectedCustomer && selectedCustomer.depositBalance > 0 && (
                 <FormField
