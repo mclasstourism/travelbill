@@ -982,7 +982,7 @@ export default function TicketsPage() {
 
                 <div className="flex items-center gap-2">
                   <Input
-                    placeholder="Add family member name"
+                    placeholder="Add group member name"
                     value={newPassengerName}
                     onChange={(e) => setNewPassengerName(e.target.value)}
                     onKeyDown={(e) => {
