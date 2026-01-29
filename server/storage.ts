@@ -955,8 +955,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async resetAllData(): Promise<void> {
-    // Delete in correct order to respect foreign key constraints
-    // First delete records that reference other tables
+    // Reset ticket issuance data only - keep customers, vendors, agents, airlines
+    // Delete tickets and invoices
     await db.delete(ticketsTable);
     await db.delete(invoicesTable);
     await db.delete(depositTransactionsTable);
@@ -964,21 +964,18 @@ export class DatabaseStorage implements IStorage {
     await db.delete(activityLogsTable);
     await db.delete(documentsTable);
     
-    // Then delete the main entity tables
-    await db.delete(customersTable);
-    await db.delete(agentsTable);
-    await db.delete(vendorsTable);
-    await db.delete(airlinesTable);
-    await db.delete(billCreatorsTable);
-    await db.delete(passwordResetTokensTable);
-    await db.delete(usersTable);
+    // Reset customer deposit balances to 0
+    await db.update(customersTable).set({ depositBalance: 0 });
+    
+    // Reset agent balances to 0
+    await db.update(agentsTable).set({ creditBalance: 0, depositBalance: 0 });
+    
+    // Reset vendor balances to 0
+    await db.update(vendorsTable).set({ creditBalance: 0, depositBalance: 0 });
     
     // Reset counters
     this.invoiceCounter = 1000;
     this.ticketCounter = 1000;
-    
-    // Re-seed default data
-    await this.seedDefaultData();
   }
 
   // Helper mapping functions
