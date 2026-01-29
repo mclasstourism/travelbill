@@ -17,7 +17,7 @@ import crypto from "crypto";
 
 // Server-side session store
 const sessions = new Map<string, { userId: string; role: string; createdAt: number }>();
-const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days for development
 
 function generateSessionToken(): string {
   return crypto.randomBytes(32).toString("hex");
@@ -45,6 +45,8 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
     res.status(401).json({ error: "Session expired" });
     return;
   }
+  // Refresh session timestamp on each request to keep session alive
+  session.createdAt = Date.now();
   (req as any).session = session;
   next();
 }
@@ -154,6 +156,8 @@ export async function registerRoutes(
         res.status(401).json({ valid: false });
         return;
       }
+      // Refresh session timestamp to keep session alive
+      session.createdAt = Date.now();
       const { password: _, ...safeUser } = user;
       res.json({ valid: true, user: safeUser });
     } catch (error) {
