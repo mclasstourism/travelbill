@@ -1305,7 +1305,11 @@ export default function TicketsPage() {
                               min={0}
                               step="0.01"
                               placeholder="0.00"
-                              {...field}
+                              value={field.value}
+                              onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                              onBlur={field.onBlur}
+                              name={field.name}
+                              ref={field.ref}
                               data-testid="input-vendor-price"
                             />
                           </FormControl>
@@ -1326,7 +1330,11 @@ export default function TicketsPage() {
                               min={0}
                               step="0.01"
                               placeholder="0.00"
-                              {...field}
+                              value={field.value}
+                              onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                              onBlur={field.onBlur}
+                              name={field.name}
+                              ref={field.ref}
                               data-testid="input-airline-price"
                             />
                           </FormControl>
@@ -1347,7 +1355,11 @@ export default function TicketsPage() {
                             min={0}
                             step="0.01"
                             placeholder="0.00"
-                            {...field}
+                            value={field.value}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                            onBlur={field.onBlur}
+                            name={field.name}
+                            ref={field.ref}
                             data-testid="input-middle-class-price"
                           />
                         </FormControl>
