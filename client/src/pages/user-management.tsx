@@ -5,11 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Users, Plus, ShieldCheck, User, Loader2 } from "lucide-react";
+import { Users, Plus, User, Loader2 } from "lucide-react";
 import type { User as UserType } from "@shared/schema";
 
 type SafeUser = Omit<UserType, 'password' | 'twoFactorSecret'>;
@@ -20,7 +19,7 @@ const roleColors: Record<string, string> = {
 };
 
 const roleIcons: Record<string, any> = {
-  superadmin: ShieldCheck,
+  superadmin: User,
   staff: User,
 };
 
@@ -49,19 +48,6 @@ export default function UserManagementPage() {
     },
   });
 
-  const updateRoleMutation = useMutation({
-    mutationFn: async ({ id, role }: { id: string; role: string }) => {
-      const res = await apiRequest("PATCH", `/api/users/${id}`, { role });
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-      toast({ title: "Role updated successfully" });
-    },
-    onError: () => {
-      toast({ title: "Failed to update role", variant: "destructive" });
-    },
-  });
 
   const handleCreateUser = (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,18 +106,6 @@ export default function UserManagementPage() {
                   data-testid="input-new-email"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
-                <Select value={newUser.role} onValueChange={(v) => setNewUser({ ...newUser, role: v })}>
-                  <SelectTrigger data-testid="select-new-role">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="superadmin">Super Admin</SelectItem>
-                    <SelectItem value="staff">Staff</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
               <Button type="submit" className="w-full" disabled={createMutation.isPending} data-testid="button-create-user">
                 {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create User"}
               </Button>
@@ -174,20 +148,8 @@ export default function UserManagementPage() {
                     </div>
                     <div className="flex items-center gap-3">
                       <Badge className={roleColors[user.role || "staff"]}>
-                        {user.role || "staff"}
+                        {user.role === "superadmin" ? "Super Admin" : "Staff"}
                       </Badge>
-                      <Select
-                        value={user.role || "staff"}
-                        onValueChange={(role) => updateRoleMutation.mutate({ id: user.id, role })}
-                      >
-                        <SelectTrigger className="w-32" data-testid={`select-role-${user.id}`}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="superadmin">Super Admin</SelectItem>
-                          <SelectItem value="staff">Staff</SelectItem>
-                        </SelectContent>
-                      </Select>
                       {user.twoFactorEnabled && (
                         <Badge variant="outline" className="text-xs">2FA</Badge>
                       )}
@@ -202,36 +164,22 @@ export default function UserManagementPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Role Permissions</CardTitle>
+          <CardTitle>Staff Permissions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 rounded-md border">
-              <div className="flex items-center gap-2 mb-2">
-                <ShieldCheck className="w-5 h-5 text-red-600" />
-                <span className="font-medium">Super Admin</span>
-              </div>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>Full system access</li>
-                <li>User management</li>
-                <li>Bill creator management</li>
-                <li>Activity logs & reports</li>
-                <li>All operations</li>
-              </ul>
+          <div className="p-4 rounded-md border bg-muted/30">
+            <div className="flex items-center gap-2 mb-3">
+              <User className="w-5 h-5 text-primary" />
+              <span className="font-medium">What Staff Can Do</span>
             </div>
-            <div className="p-4 rounded-md border">
-              <div className="flex items-center gap-2 mb-2">
-                <User className="w-5 h-5 text-gray-600" />
-                <span className="font-medium">Staff</span>
-              </div>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>Create invoices & tickets</li>
-                <li>Manage customers & agents</li>
-                <li>Manage vendors</li>
-                <li>View analytics & reports</li>
-                <li>View activity logs</li>
-              </ul>
-            </div>
+            <ul className="text-sm text-muted-foreground space-y-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+              <li>Create invoices & tickets</li>
+              <li>Manage customers & agents</li>
+              <li>Manage vendors</li>
+              <li>View analytics & reports</li>
+              <li>View activity logs</li>
+              <li>Process deposits & credits</li>
+            </ul>
           </div>
         </CardContent>
       </Card>
