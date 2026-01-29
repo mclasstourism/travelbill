@@ -147,6 +147,13 @@ export default function TicketsPage() {
   const selectedVendor = vendors.find((v) => v.id === watchVendorId);
   const vendorAirlines = selectedVendor?.airlines || [];
 
+  // Auto-fill passenger name when existing customer is selected
+  useEffect(() => {
+    if (customerType === "existing" && selectedCustomer) {
+      form.setValue("passengerName", selectedCustomer.name);
+    }
+  }, [watchCustomerId, selectedCustomer, customerType, form]);
+
   const calculations = useMemo(() => {
     const faceValue = Number(watchFaceValue) || 0;
     let depositDeducted = 0;
@@ -170,6 +177,7 @@ export default function TicketsPage() {
     onSuccess: (newCustomer) => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       form.setValue("customerId", newCustomer.id);
+      form.setValue("passengerName", newCustomer.name);
       setCustomerType("existing");
       setNewCustomerName("");
       setNewCustomerPhone("");
