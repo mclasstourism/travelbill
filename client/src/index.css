@@ -286,3 +286,25 @@
     inset: -1px;
   }
 }
+
+/* Touch-friendly scrolling for tablets and mobile */
+.touch-scroll {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
+/* Enable smooth touch scrolling on all scrollable areas */
+[class*="overflow-auto"],
+[class*="overflow-y-auto"],
+[class*="overflow-x-auto"],
+[class*="overflow-scroll"] {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Ensure touch action is enabled for scrollable containers */
+.scrollable-touch {
+  touch-action: pan-y pan-x;
+  -webkit-overflow-scrolling: touch;
+}
