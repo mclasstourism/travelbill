@@ -58,8 +58,8 @@ const CommandList = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <CommandPrimitive.List
     ref={ref}
-    className={cn("max-h-[300px] overflow-y-auto overflow-x-hidden overscroll-contain", className)}
-    style={{ pointerEvents: 'auto' }}
+    className={cn("max-h-[300px] overflow-y-auto overflow-x-hidden overscroll-contain touch-scroll", className)}
+    style={{ pointerEvents: 'auto', WebkitOverflowScrolling: 'touch' }}
     {...props}
   />
 ))

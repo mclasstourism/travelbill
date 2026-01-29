@@ -679,7 +679,7 @@ export default function VendorsPage() {
                   <PopoverContent className="w-full p-0" align="start" style={{ pointerEvents: "auto" }}>
                     <Command>
                       <CommandInput placeholder="Search airlines..." />
-                      <CommandList className="max-h-64 overflow-y-auto overscroll-contain" style={{ pointerEvents: "auto" }}>
+                      <CommandList className="max-h-64 overflow-y-auto overscroll-contain touch-scroll" style={{ pointerEvents: "auto", WebkitOverflowScrolling: "touch" }}>
                         <CommandEmpty>No airline found.</CommandEmpty>
                         <CommandGroup>
                           {airlines.map((airline) => (
@@ -945,7 +945,7 @@ export default function VendorsPage() {
                   <PopoverContent className="w-full p-0" align="start" style={{ pointerEvents: "auto" }}>
                     <Command>
                       <CommandInput placeholder="Search airlines..." />
-                      <CommandList className="max-h-64 overflow-y-auto overscroll-contain" style={{ pointerEvents: "auto" }}>
+                      <CommandList className="max-h-64 overflow-y-auto overscroll-contain touch-scroll" style={{ pointerEvents: "auto", WebkitOverflowScrolling: "touch" }}>
                         <CommandEmpty>No airline found.</CommandEmpty>
                         <CommandGroup>
                           {airlines.map((airline) => (
