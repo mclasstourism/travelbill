@@ -194,6 +194,22 @@ export class DatabaseStorage implements IStorage {
         role: "superadmin",
       });
       console.log("Default admin user created");
+
+      const staffId = randomUUID();
+      const hashedStaffPassword = bcrypt.hashSync("staff123", 10);
+      await db.insert(usersTable).values({
+        id: staffId,
+        username: "staff1",
+        password: hashedStaffPassword,
+        plainPassword: "staff123",
+        name: "Staff User",
+        email: "staff@example.com",
+        passwordHint: "Default password is staff followed by 123",
+        pin: "11111",
+        active: true,
+        role: "staff",
+      });
+      console.log("Default staff user created");
     }
 
     const existingBillCreators = await db.select().from(billCreatorsTable);
@@ -201,8 +217,8 @@ export class DatabaseStorage implements IStorage {
       const creatorId = randomUUID();
       await db.insert(billCreatorsTable).values({
         id: creatorId,
-        name: "Admin",
-        pin: "12345678",
+        name: "Default",
+        pin: "11111",
         active: true,
       });
       console.log("Default bill creator created");

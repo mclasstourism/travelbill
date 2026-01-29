@@ -71,7 +71,8 @@ MVP fully implemented with:
 - Secure token-based sessions (32-byte hex tokens via crypto.randomBytes)
 - Server-side session store with 24-hour expiration
 - Token stored in localStorage, sent via Authorization header
-- Default credentials: username "admin", password "admin123"
+- Default admin: username "admin", password "admin123", PIN "00000"
+- Default staff: username "staff1", password "staff123", PIN "11111"
 
 ### Role-Based Access Control
 - **superadmin**: Full access - user management, bill creators, all operations
@@ -80,9 +81,10 @@ MVP fully implemented with:
 - Enforced server-side with requireAuth and requireRole middleware
 
 ### Bill Creator PIN
-- 8-digit PIN for invoice/ticket creation
+- 5-digit PIN for invoice/ticket creation (user-based)
+- Each user has their own PIN for creating bills
 - Session persists for 30 minutes in localStorage
-- Default test PIN: "12345678"
+- Admin default PIN: "00000", Staff default PIN: "11111"
 
 ## Features
 

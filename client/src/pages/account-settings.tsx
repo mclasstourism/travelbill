@@ -200,7 +200,7 @@ export default function AccountSettingsPage() {
               <div className="text-xs text-muted-foreground">PIN</div>
               <div className="flex items-center gap-2">
                 <Key className="w-4 h-4 text-muted-foreground" />
-                <span className="font-medium font-mono">{showPin ? "12345678" : "••••"}</span>
+                <span className="font-medium font-mono">{showPin ? (user?.pin || "Not set") : "•••••"}</span>
                 <Button
                   variant="ghost"
                   size="icon"
