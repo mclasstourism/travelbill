@@ -67,7 +67,7 @@ export async function registerRoutes(
 ): Promise<Server> {
 
   // Bill Creators (admin only)
-  app.get("/api/bill-creators", requireAuth, requireRole("admin"), async (req, res) => {
+  app.get("/api/bill-creators", requireAuth, requireRole("superadmin"), async (req, res) => {
     try {
       const creators = await storage.getBillCreators();
       // Don't expose PIN in response
@@ -78,7 +78,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/bill-creators", requireAuth, requireRole("admin"), async (req, res) => {
+  app.post("/api/bill-creators", requireAuth, requireRole("superadmin"), async (req, res) => {
     try {
       const data = insertBillCreatorSchema.parse(req.body);
       const creator = await storage.createBillCreator(data);
@@ -93,7 +93,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/bill-creators/:id", requireAuth, requireRole("admin"), async (req, res) => {
+  app.patch("/api/bill-creators/:id", requireAuth, requireRole("superadmin"), async (req, res) => {
     try {
       const { id } = req.params;
       const { active } = req.body;
@@ -590,8 +590,8 @@ export async function registerRoutes(
     }
   });
 
-  // Activity Logs (admin/manager only)
-  app.get("/api/activity-logs", requireAuth, requireRole("admin", "manager"), async (req, res) => {
+  // Activity Logs (superadmin only)
+  app.get("/api/activity-logs", requireAuth, requireRole("superadmin"), async (req, res) => {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
       const logs = await storage.getActivityLogs(limit);
@@ -626,7 +626,7 @@ export async function registerRoutes(
   });
 
   // Users Management (admin only)
-  app.get("/api/users", requireAuth, requireRole("admin"), async (req, res) => {
+  app.get("/api/users", requireAuth, requireRole("superadmin"), async (req, res) => {
     try {
       const users = await storage.getUsers();
       const safeUsers = users.map(({ password, twoFactorSecret, ...user }) => user);
@@ -636,7 +636,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
+  app.patch("/api/users/:id", requireAuth, requireRole("superadmin"), async (req, res) => {
     try {
       const { id } = req.params;
       const updates = req.body;
@@ -652,7 +652,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/users", requireAuth, requireRole("admin"), async (req, res) => {
+  app.post("/api/users", requireAuth, requireRole("superadmin"), async (req, res) => {
     try {
       const data = insertUserSchema.parse(req.body);
       const existing = await storage.getUserByUsername(data.username);

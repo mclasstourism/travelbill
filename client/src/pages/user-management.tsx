@@ -9,20 +9,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Users, Plus, Shield, ShieldCheck, User, Loader2 } from "lucide-react";
+import { Users, Plus, ShieldCheck, User, Loader2 } from "lucide-react";
 import type { User as UserType } from "@shared/schema";
 
 type SafeUser = Omit<UserType, 'password' | 'twoFactorSecret'>;
 
 const roleColors: Record<string, string> = {
-  admin: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-  manager: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  superadmin: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
   staff: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
 };
 
 const roleIcons: Record<string, any> = {
-  admin: ShieldCheck,
-  manager: Shield,
+  superadmin: ShieldCheck,
   staff: User,
 };
 
@@ -129,8 +127,7 @@ export default function UserManagementPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="superadmin">Super Admin</SelectItem>
                     <SelectItem value="staff">Staff</SelectItem>
                   </SelectContent>
                 </Select>
@@ -186,8 +183,7 @@ export default function UserManagementPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="manager">Manager</SelectItem>
+                          <SelectItem value="superadmin">Super Admin</SelectItem>
                           <SelectItem value="staff">Staff</SelectItem>
                         </SelectContent>
                       </Select>
@@ -208,29 +204,18 @@ export default function UserManagementPage() {
           <CardTitle>Role Permissions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-4 rounded-md border">
               <div className="flex items-center gap-2 mb-2">
                 <ShieldCheck className="w-5 h-5 text-red-600" />
-                <span className="font-medium">Admin</span>
+                <span className="font-medium">Super Admin</span>
               </div>
               <ul className="text-sm text-muted-foreground space-y-1">
                 <li>Full system access</li>
                 <li>User management</li>
-                <li>System settings</li>
-                <li>View all reports</li>
-              </ul>
-            </div>
-            <div className="p-4 rounded-md border">
-              <div className="flex items-center gap-2 mb-2">
-                <Shield className="w-5 h-5 text-blue-600" />
-                <span className="font-medium">Manager</span>
-              </div>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>Create invoices & tickets</li>
-                <li>Manage customers & vendors</li>
-                <li>View reports</li>
-                <li>Process refunds</li>
+                <li>Bill creator management</li>
+                <li>Activity logs & reports</li>
+                <li>All operations</li>
               </ul>
             </div>
             <div className="p-4 rounded-md border">
@@ -240,7 +225,8 @@ export default function UserManagementPage() {
               </div>
               <ul className="text-sm text-muted-foreground space-y-1">
                 <li>Create invoices & tickets</li>
-                <li>View customer info</li>
+                <li>Manage customers & agents</li>
+                <li>Manage vendors</li>
                 <li>Basic operations</li>
               </ul>
             </div>

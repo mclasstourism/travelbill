@@ -275,7 +275,7 @@ export type User = {
   email?: string;
   phone?: string;
   passwordHint?: string;
-  role?: "admin" | "manager" | "staff";
+  role?: "superadmin" | "staff";
   twoFactorEnabled?: boolean;
   twoFactorSecret?: string;
 };
@@ -290,7 +290,7 @@ export type PasswordResetToken = {
 };
 
 // User roles for role-based permissions
-export const userRoles = ["admin", "manager", "staff"] as const;
+export const userRoles = ["superadmin", "staff"] as const;
 export type UserRole = typeof userRoles[number];
 
 // Activity log actions

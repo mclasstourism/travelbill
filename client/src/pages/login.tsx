@@ -340,7 +340,7 @@ export default function LoginPage() {
     switch (view) {
       case "forgot": return "Reset Password";
       case "reset": return "Create New Password";
-      default: return "TravelBill";
+      default: return "Billing Application";
     }
   };
 

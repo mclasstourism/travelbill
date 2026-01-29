@@ -183,7 +183,7 @@ export class MemStorage implements IStorage {
       password: hashedPassword,
       email: "admin@example.com",
       passwordHint: "Default password is admin followed by 123",
-      role: "admin",
+      role: "superadmin",
     });
   }
 

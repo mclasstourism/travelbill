@@ -72,9 +72,9 @@ MVP fully implemented with:
 - Default credentials: username "admin", password "admin123"
 
 ### Role-Based Access Control
-- **admin**: Full access - users, bill creators, all operations
-- **manager**: Analytics, activity logs, basic operations
-- **staff**: Basic operations only
+- **superadmin**: Full access - user management, bill creators, activity logs, all operations
+- **staff**: Basic operations only (invoices, tickets, customers, agents, vendors)
+- Superadmin can add one or more staff users
 - Enforced server-side with requireAuth and requireRole middleware
 
 ### Bill Creator PIN
