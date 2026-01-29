@@ -114,7 +114,6 @@ export default function TicketsPage() {
   const [selectedCustomerOption, setSelectedCustomerOption] = useState<"walkin" | string>("");
   const [newCustomerName, setNewCustomerName] = useState("");
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
-  const [newCustomerCompany, setNewCustomerCompany] = useState("");
   const [newCustomerAddress, setNewCustomerAddress] = useState("");
   const [newCustomerEmail, setNewCustomerEmail] = useState("");
   const [ticketSource, setTicketSource] = useState<"direct" | "vendor">("direct");
@@ -193,7 +192,7 @@ export default function TicketsPage() {
 
   // Quick add customer mutation
   const createCustomerMutation = useMutation({
-    mutationFn: async (data: { name: string; phone: string; company?: string; address?: string; email?: string }) => {
+    mutationFn: async (data: { name: string; phone: string; address?: string; email?: string }) => {
       const res = await apiRequest("POST", "/api/customers", data);
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: "Failed to add customer" }));
@@ -208,7 +207,6 @@ export default function TicketsPage() {
       setSelectedCustomerOption(newCustomer.id);
       setNewCustomerName("");
       setNewCustomerPhone("");
-      setNewCustomerCompany("");
       setNewCustomerAddress("");
       setNewCustomerEmail("");
       toast({
@@ -262,7 +260,6 @@ export default function TicketsPage() {
     createCustomerMutation.mutate({
       name: newCustomerName.trim(),
       phone: newCustomerPhone.trim(),
-      company: newCustomerCompany.trim() || undefined,
       address: newCustomerAddress.trim() || undefined,
       email: newCustomerEmail.trim() || undefined,
     });

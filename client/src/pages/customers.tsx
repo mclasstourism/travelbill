@@ -57,7 +57,6 @@ export default function CustomersPage() {
     defaultValues: {
       name: "",
       phone: "",
-      company: "",
       address: "",
       email: "",
       depositBalance: 0,
@@ -146,7 +145,7 @@ export default function CustomersPage() {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Phone</TableHead>
-                    <TableHead>Company</TableHead>
+                    <TableHead>Email</TableHead>
                     <TableHead className="text-right">Deposit Balance</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -158,7 +157,7 @@ export default function CustomersPage() {
                         {customer.phone || "-"}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {customer.company || "-"}
+                        {customer.email || "-"}
                       </TableCell>
                       <TableCell className="text-right font-mono font-semibold">
                         <span className={customer.depositBalance >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
@@ -214,24 +213,6 @@ export default function CustomersPage() {
                         placeholder="+971 50 123 4567"
                         {...field}
                         data-testid="input-customer-phone"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="company"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Company</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Company name"
-                        {...field}
-                        data-testid="input-customer-company"
                       />
                     </FormControl>
                     <FormMessage />
