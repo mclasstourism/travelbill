@@ -1305,8 +1305,11 @@ export default function TicketsPage() {
                               min={0}
                               step="0.01"
                               placeholder="0.00"
-                              {...field}
-                              onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
+                              value={field.value || ""}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                field.onChange(val === "" ? 0 : Number(val));
+                              }}
                               data-testid="input-vendor-price"
                             />
                           </FormControl>
@@ -1327,8 +1330,11 @@ export default function TicketsPage() {
                               min={0}
                               step="0.01"
                               placeholder="0.00"
-                              {...field}
-                              onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
+                              value={field.value || ""}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                field.onChange(val === "" ? 0 : Number(val));
+                              }}
                               data-testid="input-airline-price"
                             />
                           </FormControl>
@@ -1349,8 +1355,11 @@ export default function TicketsPage() {
                             min={0}
                             step="0.01"
                             placeholder="0.00"
-                            {...field}
-                            onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
+                            value={field.value || ""}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              field.onChange(val === "" ? 0 : Number(val));
+                            }}
                             data-testid="input-middle-class-price"
                           />
                         </FormControl>
