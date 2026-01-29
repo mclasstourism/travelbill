@@ -646,7 +646,78 @@ export default function TicketsPage() {
               <p className="text-sm">Issue your first ticket to get started</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            {/* Mobile Card View */}
+            <div className="block md:hidden space-y-3">
+              {filteredTickets.map((ticket) => (
+                <div key={ticket.id} className="border rounded-lg p-4 space-y-3" data-testid={`card-ticket-${ticket.id}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-col gap-0.5 mb-1">
+                        {(ticket.ticketNumbers && ticket.ticketNumbers.length > 0) ? (
+                          ticket.ticketNumbers.map((tNum: string, idx: number) => (
+                            <span key={idx} className="font-mono text-sm font-medium">{tNum}</span>
+                          ))
+                        ) : ticket.ticketNumber ? (
+                          <span className="font-mono text-sm font-medium">{ticket.ticketNumber}</span>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">No ticket #</span>
+                        )}
+                      </div>
+                      <p className="font-medium truncate">{ticket.passengerName}</p>
+                      {(ticket.passengerCount || 1) > 1 && (
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Users className="w-3 h-3" />
+                          +{(ticket.passengerCount || 1) - 1} more passengers
+                        </span>
+                      )}
+                    </div>
+                    <Badge variant={ticket.vendorId ? "secondary" : "outline"} className="shrink-0">
+                      {ticket.vendorId ? "Vendor" : "Airline"}
+                    </Badge>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Plane className="w-4 h-4" />
+                    <span>{ticket.route}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Calendar className="w-4 h-4" />
+                    <span>{format(new Date(ticket.travelDate), "MMM d, yyyy")}</span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">Face Value: </span>
+                      <span className="font-mono font-semibold text-primary">{formatCurrency(ticket.faceValue)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {ticket.eticketImage && (
+                        <Badge variant="default" className="gap-1">
+                          <Image className="w-3 h-3" />
+                          E-Ticket
+                        </Badge>
+                      )}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => {
+                          setInvoiceTicket(ticket);
+                          setIsInvoiceOpen(true);
+                        }}
+                        data-testid={`button-view-invoice-mobile-${ticket.id}`}
+                      >
+                        <FileText className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -756,6 +827,7 @@ export default function TicketsPage() {
                 </TableBody>
               </Table>
             </div>
+            </>
           )}
         </CardContent>
       </Card>
