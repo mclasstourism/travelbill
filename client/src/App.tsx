@@ -8,8 +8,6 @@ import { PinProvider } from "@/lib/pin-context";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { Button } from "@/components/ui/button";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import CustomersPage from "@/pages/customers";
@@ -27,7 +25,7 @@ import AccountSettingsPage from "@/pages/account-settings";
 import AdminSettingsPage from "@/pages/admin-settings";
 import CalendarPage from "@/pages/calendar";
 import LoginPage from "@/pages/login";
-import { Loader2, LogOut } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 function Router() {
   return (
@@ -57,7 +55,7 @@ function AuthenticatedApp() {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3rem",
   };
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   return (
     <PinProvider>
@@ -65,25 +63,8 @@ function AuthenticatedApp() {
         <div className="flex h-screen w-full">
           <AppSidebar />
           <div className="flex flex-col flex-1 overflow-hidden">
-            <header className="flex items-center justify-between gap-4 p-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <header className="flex items-center gap-4 p-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
               <SidebarTrigger data-testid="button-sidebar-toggle" />
-              <div className="flex items-center gap-2">
-                {user && (
-                  <span className="text-sm text-muted-foreground hidden sm:inline">
-                    {user.username}
-                  </span>
-                )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={logout}
-                  title="Sign out"
-                  data-testid="button-logout-header"
-                >
-                  <LogOut className="w-4 h-4" />
-                </Button>
-                <ThemeToggle />
-              </div>
             </header>
             <main className="flex-1 overflow-auto bg-muted/30">
               <Router />
