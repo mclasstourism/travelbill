@@ -788,7 +788,6 @@ export default function TicketsPage() {
                     <FormControl>
                       <div className="relative">
                         <Input
-                          placeholder="e.g., DXB - LHR"
                           {...field}
                           value={field.value}
                           onChange={(e) => {
@@ -796,15 +795,16 @@ export default function TicketsPage() {
                             const upperValue = e.target.value.toUpperCase();
                             field.onChange(upperValue);
                           }}
-                          className="font-mono tracking-wider text-transparent caret-foreground"
+                          className="font-mono tracking-wider text-transparent caret-foreground bg-transparent"
+                          style={{ caretColor: 'hsl(var(--foreground))' }}
                           data-testid="input-route"
                         />
                         {/* Overlay to show highlighted separator */}
-                        <div className="absolute inset-0 flex items-center px-3 pointer-events-none font-mono tracking-wider">
+                        <div className="absolute inset-y-0 left-0 right-0 flex items-center px-3 pointer-events-none font-mono tracking-wider overflow-hidden">
                           {field.value ? (
                             field.value.split(/(-+)/).map((part, i) => (
                               part.match(/^-+$/) ? (
-                                <span key={i} className="text-primary font-bold mx-0.5">{part}</span>
+                                <span key={i} className="text-primary font-bold bg-primary/20 px-1 rounded">{part}</span>
                               ) : (
                                 <span key={i} className="text-foreground">{part}</span>
                               )
