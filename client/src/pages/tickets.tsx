@@ -36,6 +36,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -139,9 +140,7 @@ export default function TicketsPage() {
   const [newCustomerEmail, setNewCustomerEmail] = useState("");
   const [ticketSource, setTicketSource] = useState<"direct" | "vendor">("direct");
   const [clientType, setClientType] = useState<"customer" | "agent">("customer");
-  const [additionalPassengers, setAdditionalPassengers] = useState<string[]>([]);
-  const [newPassengerName, setNewPassengerName] = useState("");
-  const [showGroupSection, setShowGroupSection] = useState(false);
+  const [ticketNumbersList, setTicketNumbersList] = useState<string[]>([""]);
   const [createEticketFile, setCreateEticketFile] = useState<File | null>(null);
   const [createEticketPreview, setCreateEticketPreview] = useState<string | null>(null);
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
@@ -225,6 +224,20 @@ export default function TicketsPage() {
 
   // Calculate passenger count from quantity field
   const passengerCount = Number(watchQuantity) || 1;
+
+  // Sync ticket numbers list with quantity
+  useEffect(() => {
+    setTicketNumbersList(prev => {
+      if (passengerCount > prev.length) {
+        // Add empty entries for new passengers
+        return [...prev, ...Array(passengerCount - prev.length).fill("")];
+      } else if (passengerCount < prev.length) {
+        // Trim excess entries
+        return prev.slice(0, passengerCount);
+      }
+      return prev;
+    });
+  }, [passengerCount]);
 
   // Auto-calculate face value based on ticket source (per person × quantity)
   useEffect(() => {
@@ -559,6 +572,9 @@ export default function TicketsPage() {
       }
     }
 
+    // Filter out empty ticket numbers and use the list
+    const validTicketNumbers = ticketNumbersList.filter(t => t.trim() !== "");
+    
     const ticketData = {
       ...data,
       route, // Combined route
@@ -568,11 +584,14 @@ export default function TicketsPage() {
       passengerCount: Number(data.quantity) || 1,
       issuedBy: session.staffId,
       eticketImage: eticketImageUrl,
+      ticketNumbers: validTicketNumbers,
+      ticketNumber: validTicketNumbers[0] || "", // Also set first ticket number for legacy field
     };
 
     createMutation.mutate(ticketData);
     setCreateEticketFile(null);
     setCreateEticketPreview(null);
+    setTicketNumbersList([""]); // Reset ticket numbers list
   };
 
   return (
@@ -647,8 +666,12 @@ export default function TicketsPage() {
                   {filteredTickets.map((ticket) => (
                     <TableRow key={ticket.id} data-testid={`row-ticket-${ticket.id}`}>
                       <TableCell className="font-medium">
-                        <div className="flex flex-col">
-                          {ticket.ticketNumber ? (
+                        <div className="flex flex-col gap-0.5">
+                          {(ticket.ticketNumbers && ticket.ticketNumbers.length > 0) ? (
+                            ticket.ticketNumbers.map((tNum: string, idx: number) => (
+                              <span key={idx} className="font-mono text-sm">{tNum}</span>
+                            ))
+                          ) : ticket.ticketNumber ? (
                             <span className="font-mono text-sm">{ticket.ticketNumber}</span>
                           ) : (
                             <span className="text-muted-foreground text-sm">Pending</span>
@@ -754,47 +777,27 @@ export default function TicketsPage() {
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="ticketNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Ticket # *</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter ticket number"
-                          {...field}
-                          className="font-mono"
-                          data-testid="input-ticket-number"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="pnr"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>PNR / Booking Ref</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="e.g., ABC123"
-                          value={field.value}
-                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                          maxLength={6}
-                          className="uppercase"
-                          data-testid="input-pnr"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="pnr"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>PNR / Booking Ref</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g., ABC123"
+                        value={field.value}
+                        onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                        maxLength={6}
+                        className="uppercase font-mono"
+                        data-testid="input-pnr"
+                      />
+                    </FormControl>
+                    <FormDescription className="text-xs">6-character booking reference</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <div className="space-y-3">
                 <FormLabel>Select Client</FormLabel>
@@ -1344,6 +1347,36 @@ export default function TicketsPage() {
                 </div>
               </div>
 
+              {/* Ticket Numbers Section */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">
+                    Ticket Numbers * ({passengerCount} {passengerCount === 1 ? 'ticket' : 'tickets'})
+                  </Label>
+                </div>
+                <div className="space-y-2">
+                  {ticketNumbersList.map((ticketNum, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground w-6">{index + 1}.</span>
+                      <Input
+                        placeholder={`Ticket #${index + 1}`}
+                        value={ticketNum}
+                        onChange={(e) => {
+                          const newList = [...ticketNumbersList];
+                          newList[index] = e.target.value;
+                          setTicketNumbersList(newList);
+                        }}
+                        className="font-mono flex-1"
+                        data-testid={`input-ticket-number-${index}`}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Enter ticket number for each passenger in this booking
+                </p>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -1811,8 +1844,16 @@ export default function TicketsPage() {
                   <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Booking Details</h3>
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Ticket Number:</span>
-                      <span className="font-mono font-medium">{invoiceTicket.ticketNumber || "Pending"}</span>
+                      <span className="text-muted-foreground">Ticket {(invoiceTicket.ticketNumbers?.length || 1) > 1 ? "Numbers" : "Number"}:</span>
+                      <div className="text-right">
+                        {(invoiceTicket.ticketNumbers && invoiceTicket.ticketNumbers.length > 0) ? (
+                          invoiceTicket.ticketNumbers.map((tNum: string, idx: number) => (
+                            <div key={idx} className="font-mono font-medium">{tNum}</div>
+                          ))
+                        ) : (
+                          <span className="font-mono font-medium">{invoiceTicket.ticketNumber || "Pending"}</span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Airline:</span>

@@ -110,7 +110,8 @@ export const invoicesTable = pgTable("invoices", {
 // Tickets table
 export const ticketsTable = pgTable("tickets", {
   id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
-  ticketNumber: varchar("ticket_number", { length: 50 }), // Optional - added later after e-ticket upload
+  ticketNumber: varchar("ticket_number", { length: 50 }), // Legacy single ticket number
+  ticketNumbers: text("ticket_numbers").array(), // Array of ticket numbers (one per passenger)
   pnr: varchar("pnr", { length: 10 }), // Booking reference (6 chars typically)
   customerId: varchar("customer_id", { length: 36 }).notNull(),
   vendorId: varchar("vendor_id", { length: 36 }),
@@ -382,7 +383,8 @@ export const seatClasses = ["economy", "business", "first"] as const;
 export type SeatClass = typeof seatClasses[number];
 
 export const insertTicketSchema = z.object({
-  ticketNumber: z.string().optional(), // Optional - added later after e-ticket upload
+  ticketNumber: z.string().optional(), // Legacy single ticket number
+  ticketNumbers: z.array(z.string()).optional(), // Array of ticket numbers (one per passenger)
   pnr: z.string().optional(), // Booking reference
   customerId: z.string().min(1, "Customer is required"),
   vendorId: z.string().optional(), // Optional - "direct" or empty means direct from airline
