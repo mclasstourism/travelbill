@@ -21,7 +21,7 @@ export default function UserManagementPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<SafeUser | null>(null);
-  const [newUser, setNewUser] = useState({ username: "", password: "", name: "", pin: "", active: true });
+  const [newUser, setNewUser] = useState({ password: "", name: "", pin: "11111", active: true });
   const [editUser, setEditUser] = useState({ username: "", password: "", name: "", pin: "", active: true });
   const [activeTab, setActiveTab] = useState("stats");
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
@@ -32,8 +32,16 @@ export default function UserManagementPage() {
     queryKey: ["/api/users"],
   });
 
+  const staffUsers = users?.filter(u => u.role === "staff") || [];
+  const superadminUsers = users?.filter(u => u.role === "superadmin") || [];
+
+  const generateUsername = () => {
+    const staffCount = staffUsers.length + 1;
+    return `staff${staffCount}`;
+  };
+
   const createMutation = useMutation({
-    mutationFn: async (data: typeof newUser) => {
+    mutationFn: async (data: typeof newUser & { username: string }) => {
       const res = await apiRequest("POST", "/api/users", data);
       return res.json();
     },
@@ -41,7 +49,7 @@ export default function UserManagementPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       toast({ title: "Staff user created successfully" });
       setIsAddOpen(false);
-      setNewUser({ username: "", password: "", name: "", pin: "", active: true });
+      setNewUser({ password: "", name: "", pin: "11111", active: true });
     },
     onError: (error: any) => {
       toast({ title: "Failed to create user", description: error.message, variant: "destructive" });
@@ -93,15 +101,16 @@ export default function UserManagementPage() {
 
   const handleCreateUser = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newUser.username || !newUser.password) {
-      toast({ title: "Username and password are required", variant: "destructive" });
+    if (!newUser.password) {
+      toast({ title: "Password is required", variant: "destructive" });
       return;
     }
-    if (newUser.pin && newUser.pin.length !== 8) {
-      toast({ title: "PIN must be exactly 8 digits", variant: "destructive" });
+    if (newUser.pin && newUser.pin.length !== 5) {
+      toast({ title: "PIN must be exactly 5 digits", variant: "destructive" });
       return;
     }
-    createMutation.mutate(newUser);
+    const username = generateUsername();
+    createMutation.mutate({ ...newUser, username });
   };
 
   const handleEditUser = (e: React.FormEvent) => {
@@ -112,8 +121,8 @@ export default function UserManagementPage() {
     if (editUser.password) updateData.password = editUser.password;
     if (editUser.name !== undefined) updateData.name = editUser.name;
     if (editUser.pin !== undefined) {
-      if (editUser.pin && editUser.pin.length !== 8) {
-        toast({ title: "PIN must be exactly 8 digits", variant: "destructive" });
+      if (editUser.pin && editUser.pin.length !== 5) {
+        toast({ title: "PIN must be exactly 5 digits", variant: "destructive" });
         return;
       }
       updateData.pin = editUser.pin;

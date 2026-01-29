@@ -179,7 +179,7 @@ export class MemStorage implements IStorage {
       active: true,
     });
 
-    // Seed with a default staff user (password: admin123)
+    // Seed with a default admin user (password: admin123, PIN: 00000)
     const defaultUserId = randomUUID();
     const hashedPassword = bcrypt.hashSync("admin123", 10);
     this.users.set(defaultUserId, {
@@ -188,6 +188,8 @@ export class MemStorage implements IStorage {
       password: hashedPassword,
       email: "admin@example.com",
       passwordHint: "Default password is admin followed by 123",
+      pin: "00000",
+      active: true,
       role: "superadmin",
     });
   }
@@ -925,6 +927,8 @@ export class MemStorage implements IStorage {
       password: hashedPassword,
       email: "admin@example.com",
       passwordHint: "Default password is admin followed by 123",
+      pin: "00000",
+      active: true,
       role: "superadmin",
     });
   }

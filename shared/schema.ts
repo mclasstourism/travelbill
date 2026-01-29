@@ -266,7 +266,7 @@ export const insertUserSchema = z.object({
   email: z.string().email().optional(),
   phone: z.string().optional(),
   passwordHint: z.string().optional(),
-  pin: z.string().length(8).optional(),
+  pin: z.string().length(5).optional(),
   active: z.boolean().optional(),
 });
 
