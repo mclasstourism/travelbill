@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar as CalendarIcon, Plane, ChevronLeft, ChevronRight } from "lucide-react";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import type { Ticket } from "@shared/schema";
@@ -59,7 +60,10 @@ export default function CalendarPage() {
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-        <h1 className="text-xl md:text-2xl font-bold">Booking Calendar</h1>
+        <div className="flex items-center gap-3">
+          <SidebarTrigger className="lg:hidden" data-testid="button-sidebar-toggle" />
+          <h1 className="text-xl md:text-2xl font-bold">Booking Calendar</h1>
+        </div>
         <Badge variant="outline" className="text-sm">
           <CalendarIcon className="w-4 h-4 mr-1" />
           Travel Schedule

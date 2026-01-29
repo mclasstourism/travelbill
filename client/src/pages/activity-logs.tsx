@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Activity, FileText, Ticket, Users, Building2, Wallet, User, BarChart3 } from "lucide-react";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import type { ActivityLog } from "@shared/schema";
 
 const entityIcons: Record<string, any> = {
@@ -35,7 +36,10 @@ export default function ActivityLogsPage() {
   if (isLoading) {
     return (
       <div className="p-4 md:p-6 space-y-4 md:space-y-6">
-        <h1 className="text-xl md:text-2xl font-bold">Activity Logs</h1>
+        <div className="flex items-center gap-3">
+          <SidebarTrigger className="lg:hidden" data-testid="button-sidebar-toggle" />
+          <h1 className="text-xl md:text-2xl font-bold">Activity Logs</h1>
+        </div>
         <Card>
           <CardContent className="pt-6">
             {[1, 2, 3, 4, 5].map((i) => (
@@ -56,7 +60,10 @@ export default function ActivityLogsPage() {
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-        <h1 className="text-xl md:text-2xl font-bold">Activity Logs</h1>
+        <div className="flex items-center gap-3">
+          <SidebarTrigger className="lg:hidden" data-testid="button-sidebar-toggle" />
+          <h1 className="text-xl md:text-2xl font-bold">Activity Logs</h1>
+        </div>
         <Badge variant="outline" className="text-sm">
           <Activity className="w-4 h-4 mr-1" />
           Audit Trail

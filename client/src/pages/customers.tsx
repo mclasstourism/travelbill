@@ -42,6 +42,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Plus, Users, Search, Loader2, Pencil, Trash2 } from "lucide-react";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertCustomerSchema, type Customer, type InsertCustomer } from "@shared/schema";
@@ -193,9 +194,12 @@ export default function CustomersPage() {
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 w-full">
-        <div>
-          <h1 className="text-xl md:text-2xl font-semibold" data-testid="text-customers-title">Customers</h1>
-          <p className="text-sm text-muted-foreground">Manage your customer database</p>
+        <div className="flex items-center gap-3">
+          <SidebarTrigger className="lg:hidden" data-testid="button-sidebar-toggle" />
+          <div>
+            <h1 className="text-xl md:text-2xl font-semibold" data-testid="text-customers-title">Customers</h1>
+            <p className="text-sm text-muted-foreground">Manage your customer database</p>
+          </div>
         </div>
         <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto" data-testid="button-add-customer">
           <Plus className="w-4 h-4 mr-2" />

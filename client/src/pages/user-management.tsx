@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Users, Plus, User, Loader2, BarChart3, Settings, Eye, EyeOff, Pencil, Trash2 } from "lucide-react";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import type { User as UserType } from "@shared/schema";
 
 type SafeUser = Omit<UserType, 'twoFactorSecret'>;
@@ -153,6 +154,7 @@ export default function UserManagementPage() {
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       <div className="flex items-center gap-3">
+        <SidebarTrigger className="lg:hidden" data-testid="button-sidebar-toggle" />
         <Users className="w-5 h-5 md:w-6 md:h-6 text-primary" />
         <h1 className="text-xl md:text-2xl font-bold">Staff Members</h1>
       </div>

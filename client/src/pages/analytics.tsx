@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Users, Briefcase, MapPin, Building2, DollarSign } from "lucide-react";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import type { SalesAnalytics } from "@shared/schema";
 
 export default function AnalyticsPage() {
@@ -13,7 +14,10 @@ export default function AnalyticsPage() {
   if (isLoading) {
     return (
       <div className="p-4 md:p-6 space-y-4 md:space-y-6">
-        <h1 className="text-xl md:text-2xl font-bold">Sales Analytics</h1>
+        <div className="flex items-center gap-3">
+          <SidebarTrigger className="lg:hidden" data-testid="button-sidebar-toggle" />
+          <h1 className="text-xl md:text-2xl font-bold">Sales Analytics</h1>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <Card key={i}>
@@ -33,7 +37,10 @@ export default function AnalyticsPage() {
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-        <h1 className="text-xl md:text-2xl font-bold">Sales Analytics</h1>
+        <div className="flex items-center gap-3">
+          <SidebarTrigger className="lg:hidden" data-testid="button-sidebar-toggle" />
+          <h1 className="text-xl md:text-2xl font-bold">Sales Analytics</h1>
+        </div>
         <Badge variant="outline" className="text-sm">
           <TrendingUp className="w-4 h-4 mr-1" />
           Real-time Data

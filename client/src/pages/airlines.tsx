@@ -35,6 +35,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth-context";
 import { Plus, Pencil, Search, Plane, Image } from "lucide-react";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { insertAirlineSchema, type Airline } from "@shared/schema";
 
 const formSchema = insertAirlineSchema.extend({
@@ -158,12 +159,15 @@ export default function Airlines() {
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-4 md:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-        <div>
-          <h1 className="text-xl md:text-3xl font-bold flex items-center gap-2">
-            <Plane className="w-6 h-6 md:w-8 md:h-8" />
-            Airlines
-          </h1>
-          <p className="text-muted-foreground">Manage your airline database</p>
+        <div className="flex items-center gap-3">
+          <SidebarTrigger className="lg:hidden" data-testid="button-sidebar-toggle" />
+          <div>
+            <h1 className="text-xl md:text-3xl font-bold flex items-center gap-2">
+              <Plane className="w-6 h-6 md:w-8 md:h-8" />
+              Airlines
+            </h1>
+            <p className="text-muted-foreground">Manage your airline database</p>
+          </div>
         </div>
         {isSuperAdmin && (
           <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto" data-testid="button-add-airline">

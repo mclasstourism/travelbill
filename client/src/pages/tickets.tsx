@@ -41,6 +41,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Plus, Ticket as TicketIcon, Search, Loader2, Lock, Calendar, Plane, Upload, Download, UserPlus, Building2, Check, ChevronsUpDown } from "lucide-react";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
   Popover,
   PopoverContent,
@@ -384,9 +385,12 @@ export default function TicketsPage() {
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-        <div>
-          <h1 className="text-xl md:text-2xl font-semibold" data-testid="text-tickets-title">Tickets</h1>
-          <p className="text-sm text-muted-foreground">Issue and manage travel tickets</p>
+        <div className="flex items-center gap-3">
+          <SidebarTrigger className="lg:hidden" data-testid="button-sidebar-toggle" />
+          <div>
+            <h1 className="text-xl md:text-2xl font-semibold" data-testid="text-tickets-title">Tickets</h1>
+            <p className="text-sm text-muted-foreground">Issue and manage travel tickets</p>
+          </div>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
           <Button variant="outline" onClick={() => setIsImportOpen(true)} className="w-full sm:w-auto" data-testid="button-import-tickets">
