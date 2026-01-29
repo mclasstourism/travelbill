@@ -786,11 +786,34 @@ export default function TicketsPage() {
                   <FormItem>
                     <FormLabel>Route *</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="e.g., DXB - LHR"
-                        {...field}
-                        data-testid="input-route"
-                      />
+                      <div className="relative">
+                        <Input
+                          placeholder="e.g., DXB - LHR"
+                          {...field}
+                          value={field.value}
+                          onChange={(e) => {
+                            // Auto-capitalize all text
+                            const upperValue = e.target.value.toUpperCase();
+                            field.onChange(upperValue);
+                          }}
+                          className="font-mono tracking-wider text-transparent caret-foreground"
+                          data-testid="input-route"
+                        />
+                        {/* Overlay to show highlighted separator */}
+                        <div className="absolute inset-0 flex items-center px-3 pointer-events-none font-mono tracking-wider">
+                          {field.value ? (
+                            field.value.split(/(-+)/).map((part, i) => (
+                              part.match(/^-+$/) ? (
+                                <span key={i} className="text-primary font-bold mx-0.5">{part}</span>
+                              ) : (
+                                <span key={i} className="text-foreground">{part}</span>
+                              )
+                            ))
+                          ) : (
+                            <span className="text-muted-foreground">e.g., DXB - LHR</span>
+                          )}
+                        </div>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
