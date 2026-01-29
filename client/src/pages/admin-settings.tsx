@@ -145,7 +145,7 @@ export default function AdminSettings() {
             System Reset
           </CardTitle>
           <CardDescription>
-            Reset all system data including orders, bills, clients, transactions, dues, and inventory stock.
+            Reset all system data including invoices, tickets, customers, agents, vendors, deposits, credits, transactions, and all other services.
           </CardDescription>
         </CardHeader>
         <CardContent>
