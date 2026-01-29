@@ -138,6 +138,7 @@ export default function TicketsPage() {
   const [ticketSource, setTicketSource] = useState<"direct" | "vendor">("direct");
   const [additionalPassengers, setAdditionalPassengers] = useState<string[]>([]);
   const [newPassengerName, setNewPassengerName] = useState("");
+  const [showGroupSection, setShowGroupSection] = useState(false);
   const { toast } = useToast();
   const { isAuthenticated, session } = usePin();
 
@@ -529,6 +530,7 @@ export default function TicketsPage() {
     createMutation.mutate(ticketData);
     setAdditionalPassengers([]); // Reset for next ticket
     setNewPassengerName("");
+    setShowGroupSection(false);
   };
 
   return (
@@ -955,65 +957,101 @@ export default function TicketsPage() {
                   )}
                 />
 
-                {additionalPassengers.length > 0 && (
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Additional Passengers</Label>
-                    {additionalPassengers.map((passenger, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <div className="flex-1 flex items-center gap-2 p-2 bg-muted rounded-md">
-                          <Users className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-sm">{passenger}</span>
-                        </div>
+                {!showGroupSection && additionalPassengers.length === 0 ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground"
+                    onClick={() => setShowGroupSection(true)}
+                    data-testid="button-show-group-section"
+                  >
+                    <Users className="w-4 h-4 mr-2" />
+                    Add more passengers (group booking)
+                  </Button>
+                ) : (
+                  <div className="space-y-3 p-3 border rounded-md">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        Group Members
+                      </Label>
+                      {additionalPassengers.length === 0 && (
                         <Button
                           type="button"
                           variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setAdditionalPassengers(prev => prev.filter((_, i) => i !== index));
-                          }}
-                          data-testid={`button-remove-passenger-${index}`}
+                          size="sm"
+                          onClick={() => setShowGroupSection(false)}
+                          data-testid="button-hide-group-section"
                         >
                           <X className="w-4 h-4" />
                         </Button>
+                      )}
+                    </div>
+
+                    {additionalPassengers.length > 0 && (
+                      <div className="space-y-2">
+                        {additionalPassengers.map((passenger, index) => (
+                          <div key={index} className="flex items-center gap-2">
+                            <div className="flex-1 flex items-center gap-2 p-2 bg-muted rounded-md">
+                              <span className="text-sm">{passenger}</span>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                const newList = additionalPassengers.filter((_, i) => i !== index);
+                                setAdditionalPassengers(newList);
+                                if (newList.length === 0) {
+                                  setShowGroupSection(false);
+                                }
+                              }}
+                              data-testid={`button-remove-passenger-${index}`}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
+
+                    <div className="flex items-center gap-2">
+                      <Input
+                        placeholder="Enter passenger name"
+                        value={newPassengerName}
+                        onChange={(e) => setNewPassengerName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && newPassengerName.trim()) {
+                            e.preventDefault();
+                            setAdditionalPassengers(prev => [...prev, newPassengerName.trim()]);
+                            setNewPassengerName("");
+                          }
+                        }}
+                        data-testid="input-additional-passenger"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          if (newPassengerName.trim()) {
+                            setAdditionalPassengers(prev => [...prev, newPassengerName.trim()]);
+                            setNewPassengerName("");
+                          }
+                        }}
+                        data-testid="button-add-passenger"
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Add
+                      </Button>
+                    </div>
+
+                    {additionalPassengers.length > 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        Total passengers: {1 + additionalPassengers.length} (including lead)
+                      </p>
+                    )}
                   </div>
-                )}
-
-                <div className="flex items-center gap-2">
-                  <Input
-                    placeholder="Add group member name"
-                    value={newPassengerName}
-                    onChange={(e) => setNewPassengerName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && newPassengerName.trim()) {
-                        e.preventDefault();
-                        setAdditionalPassengers(prev => [...prev, newPassengerName.trim()]);
-                        setNewPassengerName("");
-                      }
-                    }}
-                    data-testid="input-additional-passenger"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      if (newPassengerName.trim()) {
-                        setAdditionalPassengers(prev => [...prev, newPassengerName.trim()]);
-                        setNewPassengerName("");
-                      }
-                    }}
-                    data-testid="button-add-passenger"
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Add
-                  </Button>
-                </div>
-
-                {(1 + additionalPassengers.length) > 1 && (
-                  <p className="text-sm text-muted-foreground">
-                    Total passengers: {1 + additionalPassengers.length}
-                  </p>
                 )}
               </div>
 
