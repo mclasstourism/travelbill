@@ -129,8 +129,9 @@ export const ticketsTable = pgTable("tickets", {
   faceValue: doublePrecision("face_value").notNull(),
   deductFromDeposit: boolean("deduct_from_deposit").default(false),
   depositDeducted: doublePrecision("deposit_deducted").default(0),
+  eticketImage: varchar("eticket_image", { length: 500 }), // URL to e-ticket image (PNG/screenshot)
   issuedBy: varchar("issued_by", { length: 36 }).notNull(),
-  status: varchar("status", { length: 20 }).default("issued"),
+  status: varchar("status", { length: 20 }).default("pending"), // pending, processing, issued
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -369,7 +370,7 @@ export type Invoice = InsertInvoice & {
 };
 
 // Tickets (for travel tickets)
-export const ticketStatuses = ["issued", "used", "cancelled", "refunded"] as const;
+export const ticketStatuses = ["pending", "processing", "issued", "used", "cancelled", "refunded"] as const;
 export type TicketStatus = typeof ticketStatuses[number];
 
 export const tripTypes = ["one_way", "round_trip"] as const;
@@ -398,6 +399,7 @@ export const insertTicketSchema = z.object({
   faceValue: z.number().min(0, "Face value must be positive"),
   deductFromDeposit: z.boolean().default(false),
   depositDeducted: z.number().min(0).default(0),
+  eticketImage: z.string().optional(), // URL to e-ticket image (PNG/screenshot)
   issuedBy: z.string().min(1, "Bill creator is required"),
 });
 

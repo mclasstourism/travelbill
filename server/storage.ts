@@ -666,16 +666,34 @@ export class DatabaseStorage implements IStorage {
       faceValue: ticket.faceValue,
       deductFromDeposit: ticket.deductFromDeposit || false,
       depositDeducted: ticket.depositDeducted || 0,
+      eticketImage: ticket.eticketImage || null,
       issuedBy: ticket.issuedBy,
-      status: "issued",
+      status: "pending",
     }).returning();
     return this.mapTicket(result[0]);
   }
 
   async updateTicket(id: string, updates: Partial<Ticket>): Promise<Ticket | undefined> {
-    const result = await db.update(ticketsTable).set({
-      status: updates.status,
-    }).where(eq(ticketsTable.id, id)).returning();
+    const updateData: Record<string, any> = {};
+    if (updates.status !== undefined) updateData.status = updates.status;
+    if (updates.eticketImage !== undefined) updateData.eticketImage = updates.eticketImage;
+    if (updates.ticketNumber !== undefined) updateData.ticketNumber = updates.ticketNumber;
+    if (updates.pnr !== undefined) updateData.pnr = updates.pnr;
+    if (updates.seatClass !== undefined) updateData.seatClass = updates.seatClass;
+    if (updates.baggageAllowance !== undefined) updateData.baggageAllowance = updates.baggageAllowance;
+    if (updates.flightNumber !== undefined) updateData.flightNumber = updates.flightNumber;
+    if (updates.flightTime !== undefined) updateData.flightTime = updates.flightTime;
+    if (updates.route !== undefined) updateData.route = updates.route;
+    if (updates.travelDate !== undefined) updateData.travelDate = updates.travelDate;
+    if (updates.returnDate !== undefined) updateData.returnDate = updates.returnDate;
+    if (updates.passengerName !== undefined) updateData.passengerName = updates.passengerName;
+    if (updates.faceValue !== undefined) updateData.faceValue = updates.faceValue;
+    
+    if (Object.keys(updateData).length === 0) {
+      return this.getTicket(id);
+    }
+    
+    const result = await db.update(ticketsTable).set(updateData).where(eq(ticketsTable.id, id)).returning();
     return result[0] ? this.mapTicket(result[0]) : undefined;
   }
 
@@ -1094,8 +1112,9 @@ export class DatabaseStorage implements IStorage {
       faceValue: row.faceValue,
       deductFromDeposit: row.deductFromDeposit || false,
       depositDeducted: row.depositDeducted || 0,
+      eticketImage: row.eticketImage,
       issuedBy: row.issuedBy,
-      status: row.status as "issued" | "used" | "cancelled" | "refunded",
+      status: row.status as "pending" | "processing" | "issued" | "used" | "cancelled" | "refunded",
       createdAt: row.createdAt?.toISOString() || new Date().toISOString(),
     };
   }

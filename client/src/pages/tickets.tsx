@@ -40,7 +40,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Ticket as TicketIcon, Search, Loader2, Lock, Calendar, Plane, Upload, Download, UserPlus, Building2, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, Ticket as TicketIcon, Search, Loader2, Lock, Calendar, Plane, Upload, Download, UserPlus, Building2, Check, ChevronsUpDown, Edit, Image, Eye, X } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
   Popover,
@@ -76,6 +76,10 @@ function getStatusBadgeVariant(status: string): "default" | "secondary" | "destr
   switch (status) {
     case "issued":
       return "default";
+    case "processing":
+      return "secondary";
+    case "pending":
+      return "outline";
     case "used":
       return "secondary";
     case "cancelled":
@@ -113,6 +117,12 @@ export default function TicketsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
+  const [editStatus, setEditStatus] = useState<string>("pending");
+  const [eticketFile, setEticketFile] = useState<File | null>(null);
+  const [eticketPreview, setEticketPreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [importData, setImportData] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [customerSelectOpen, setCustomerSelectOpen] = useState(false);
@@ -301,6 +311,92 @@ export default function TicketsPage() {
     },
   });
 
+  const updateTicketMutation = useMutation({
+    mutationFn: async (data: { id: string; status?: string; eticketImage?: string }) => {
+      const res = await apiRequest("PATCH", `/api/tickets/${data.id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
+      setIsEditOpen(false);
+      setEditingTicket(null);
+      setEticketFile(null);
+      setEticketPreview(null);
+      toast({
+        title: "Ticket updated",
+        description: "The ticket has been updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update ticket",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEditTicket = (ticket: Ticket) => {
+    setEditingTicket(ticket);
+    setEditStatus(ticket.status);
+    setEticketPreview(ticket.eticketImage || null);
+    setEticketFile(null);
+    setIsEditOpen(true);
+  };
+
+  const handleEticketFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setEticketFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEticketPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSaveTicket = async () => {
+    if (!editingTicket) return;
+    
+    setIsUploading(true);
+    try {
+      let eticketImageUrl = editingTicket.eticketImage;
+      
+      // Upload e-ticket image if new file selected
+      if (eticketFile) {
+        const formData = new FormData();
+        formData.append("file", eticketFile);
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          },
+        });
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          eticketImageUrl = uploadData.url;
+        }
+      }
+      
+      updateTicketMutation.mutate({
+        id: editingTicket.id,
+        status: editStatus,
+        eticketImage: eticketImageUrl,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to upload e-ticket image",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const filteredTickets = tickets.filter((ticket) =>
     ticket.ticketNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
     ticket.passengerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -452,6 +548,8 @@ export default function TicketsPage() {
                     <TableHead>Travel Date</TableHead>
                     <TableHead className="text-right">Value</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>E-Ticket</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -477,6 +575,29 @@ export default function TicketsPage() {
                         <Badge variant={getStatusBadgeVariant(ticket.status)}>
                           {ticket.status}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {ticket.eticketImage ? (
+                          <Badge variant="default" className="gap-1">
+                            <Image className="w-3 h-3" />
+                            Attached
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="gap-1 text-muted-foreground">
+                            <X className="w-3 h-3" />
+                            None
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleEditTicket(ticket)}
+                          data-testid={`button-edit-ticket-${ticket.id}`}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -1204,6 +1325,138 @@ export default function TicketsPage() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Ticket Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Ticket</DialogTitle>
+            <DialogDescription>
+              Update ticket status and attach e-ticket image
+            </DialogDescription>
+          </DialogHeader>
+          
+          {editingTicket && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 p-3 bg-muted rounded-lg text-sm">
+                <div>
+                  <span className="text-muted-foreground">Ticket #:</span>
+                  <p className="font-mono font-medium">{editingTicket.ticketNumber}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Passenger:</span>
+                  <p className="font-medium">{editingTicket.passengerName}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Route:</span>
+                  <p className="font-medium">{editingTicket.route}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Airlines:</span>
+                  <p className="font-medium">{editingTicket.airlines}</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Status</label>
+                <Select value={editStatus} onValueChange={setEditStatus}>
+                  <SelectTrigger data-testid="select-ticket-status">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="processing">Processing</SelectItem>
+                    <SelectItem value="issued">Issued</SelectItem>
+                    <SelectItem value="used">Used</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="refunded">Refunded</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">E-Ticket Image</label>
+                <div className="border-2 border-dashed rounded-lg p-4 text-center">
+                  {eticketPreview ? (
+                    <div className="space-y-2">
+                      <img 
+                        src={eticketPreview} 
+                        alt="E-Ticket Preview" 
+                        className="max-h-48 mx-auto rounded-lg object-contain"
+                      />
+                      <div className="flex justify-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            window.open(eticketPreview, '_blank');
+                          }}
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          View Full
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setEticketFile(null);
+                            setEticketPreview(null);
+                          }}
+                        >
+                          <X className="w-4 h-4 mr-1" />
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer block">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleEticketFileChange}
+                        className="hidden"
+                        data-testid="input-eticket-file"
+                      />
+                      <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                        <Upload className="w-8 h-8" />
+                        <span className="text-sm">Click to upload e-ticket image</span>
+                        <span className="text-xs">PNG, JPG, or screenshot</span>
+                      </div>
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setIsEditOpen(false);
+                    setEditingTicket(null);
+                    setEticketFile(null);
+                    setEticketPreview(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSaveTicket}
+                  disabled={isUploading || updateTicketMutation.isPending}
+                  data-testid="button-save-ticket-edit"
+                >
+                  {(isUploading || updateTicketMutation.isPending) && (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  )}
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
