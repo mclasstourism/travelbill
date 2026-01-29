@@ -453,9 +453,9 @@ export default function VendorsPage() {
                   <PopoverContent className="w-full p-0" align="start">
                     <Command>
                       <CommandInput placeholder="Search airlines..." />
-                      <CommandList>
+                      <CommandList className="max-h-64 overflow-y-auto">
                         <CommandEmpty>No airline found.</CommandEmpty>
-                        <CommandGroup className="max-h-64 overflow-y-auto">
+                        <CommandGroup>
                           {airlines.map((airline) => (
                             <CommandItem
                               key={airline.id}
