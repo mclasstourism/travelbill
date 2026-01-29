@@ -1,7 +1,7 @@
-# TravelBill - Travel Agency Billing Application
+# Agency Management Platform - Middle Class Tourism
 
 ## Overview
-A comprehensive billing application for travel agencies featuring invoice management, payment tracking, customer deposits, vendor credits, ticket issuance, and multi-level authentication. Supports three party types: Vendors, Agents (bulk buyers), and Individual Customers.
+A comprehensive agency management platform for travel agencies featuring ticket issuance, invoice management, payment tracking, customer deposits, vendor credits, sales monitoring, and multi-level authentication. Supports three party types: Vendors, Agents (bulk buyers), and Individual Customers.
 
 ## Current State
 MVP fully implemented with:
