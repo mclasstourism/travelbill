@@ -162,6 +162,7 @@ export default function VendorsPage() {
       name: "",
       email: "",
       phone: "",
+      telephone: "",
       address: "",
       creditBalance: 0,
       depositBalance: 0,
@@ -175,6 +176,7 @@ export default function VendorsPage() {
       name: "",
       email: "",
       phone: "",
+      telephone: "",
       address: "",
       creditBalance: 0,
       depositBalance: 0,
@@ -218,6 +220,7 @@ export default function VendorsPage() {
       name: vendor.name,
       email: vendor.email || "",
       phone: vendor.phone || "",
+      telephone: vendor.telephone || "",
       address: vendor.address || "",
       creditBalance: vendor.creditBalance,
       depositBalance: vendor.depositBalance,
@@ -358,7 +361,8 @@ export default function VendorsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
-                    <TableHead>Phone</TableHead>
+                    <TableHead>Mobile</TableHead>
+                    <TableHead>Telephone</TableHead>
                     <TableHead>Airlines</TableHead>
                     <TableHead className="text-right">Credit Balance</TableHead>
                     <TableHead className="text-right">Deposit Balance</TableHead>
@@ -370,7 +374,10 @@ export default function VendorsPage() {
                     <TableRow key={vendor.id} data-testid={`row-vendor-${vendor.id}`}>
                       <TableCell className="font-medium">{vendor.name}</TableCell>
                       <TableCell className="text-muted-foreground">
-                        {vendor.phone || "-"}
+                        {vendor.phone ? `+971 ${vendor.phone}` : "-"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {vendor.telephone || "-"}
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
@@ -486,7 +493,7 @@ export default function VendorsPage() {
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Phone</FormLabel>
+                    <FormLabel>Mobile</FormLabel>
                     <FormControl>
                       <div className="flex">
                         <span className="inline-flex items-center px-3 text-sm border border-r-0 rounded-l-md bg-muted text-muted-foreground">
@@ -501,6 +508,24 @@ export default function VendorsPage() {
                           className="rounded-l-none"
                         />
                       </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="telephone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Telephone</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="04-1234567"
+                        {...field}
+                        data-testid="input-vendor-telephone"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -699,7 +724,7 @@ export default function VendorsPage() {
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Phone</FormLabel>
+                    <FormLabel>Mobile</FormLabel>
                     <FormControl>
                       <div className="flex">
                         <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground text-sm">
@@ -715,6 +740,25 @@ export default function VendorsPage() {
                           className="rounded-l-none"
                         />
                       </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={editForm.control}
+                name="telephone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Telephone</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="04-1234567"
+                        {...field}
+                        value={field.value || ""}
+                        data-testid="input-edit-vendor-telephone"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

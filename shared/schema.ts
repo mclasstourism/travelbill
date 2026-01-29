@@ -62,7 +62,8 @@ export const vendorsTable = pgTable("vendors", {
   id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).default(""),
-  phone: varchar("phone", { length: 50 }).notNull(),
+  phone: varchar("phone", { length: 50 }).default(""),
+  telephone: varchar("telephone", { length: 50 }).default(""),
   address: text("address").default(""),
   creditBalance: doublePrecision("credit_balance").default(0),
   depositBalance: doublePrecision("deposit_balance").default(0),
@@ -263,7 +264,8 @@ export type VendorAirline = InsertVendorAirline & { id: string };
 export const insertVendorSchema = z.object({
   name: z.string().min(1, "Vendor name is required"),
   email: z.string().email("Invalid email").optional().or(z.literal("")),
-  phone: z.string().min(1, "Phone number is required"),
+  phone: z.string().optional().or(z.literal("")),
+  telephone: z.string().optional().or(z.literal("")),
   address: z.string().optional().or(z.literal("")),
   creditBalance: z.number().default(0), // Credit given by vendor
   depositBalance: z.number().default(0), // Deposit made to vendor
@@ -276,6 +278,7 @@ export type Vendor = {
   name: string;
   email: string;
   phone: string;
+  telephone: string;
   address: string;
   creditBalance: number;
   depositBalance: number;
