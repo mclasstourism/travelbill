@@ -760,19 +760,17 @@ export default function TicketsPage() {
                   name="ticketType"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Ticket Type *</FormLabel>
+                      <FormLabel>Class *</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger data-testid="select-ticket-type">
-                            <SelectValue placeholder="Select type" />
+                            <SelectValue placeholder="Select class" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="flight">Flight</SelectItem>
-                          <SelectItem value="bus">Bus</SelectItem>
-                          <SelectItem value="train">Train</SelectItem>
-                          <SelectItem value="ferry">Ferry</SelectItem>
-                          <SelectItem value="cruise">Cruise</SelectItem>
+                          <SelectItem value="economy">Economy</SelectItem>
+                          <SelectItem value="business">Business</SelectItem>
+                          <SelectItem value="first">First Class</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
