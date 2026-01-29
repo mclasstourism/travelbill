@@ -215,13 +215,6 @@ export default function TicketsPage() {
     );
   }, [customers, customerSearchQuery]);
 
-  // Auto-fill passenger name when existing customer is selected
-  useEffect(() => {
-    if (selectedCustomerOption && selectedCustomerOption !== "walkin" && selectedCustomer) {
-      form.setValue("passengerName", selectedCustomer.name);
-    }
-  }, [watchCustomerId, selectedCustomer, selectedCustomerOption, form]);
-
   // Calculate passenger count from quantity field
   const passengerCount = Number(watchQuantity) || 1;
 
@@ -278,7 +271,6 @@ export default function TicketsPage() {
     onSuccess: (newCustomer) => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       form.setValue("customerId", newCustomer.id);
-      form.setValue("passengerName", newCustomer.name);
       setSelectedCustomerOption(newCustomer.id);
       setNewCustomerName("");
       setNewCustomerPhone("");
