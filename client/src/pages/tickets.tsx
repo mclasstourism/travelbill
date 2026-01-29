@@ -747,12 +747,12 @@ export default function TicketsPage() {
                   name="ticketNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Ticket Number</FormLabel>
+                      <FormLabel>Invoice</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="e.g., 176-1234567890"
+                          placeholder="Invoice number"
                           {...field}
-                          data-testid="input-ticket-number"
+                          data-testid="input-invoice"
                         />
                       </FormControl>
                       <FormMessage />
