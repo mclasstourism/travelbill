@@ -1218,94 +1218,104 @@ export default function TicketsPage() {
                   
               </div>
 
-              {/* Row 4: Ticket #, Ticket Class, Passenger Name, Ticket Price */}
-              <div className="space-y-3">
+              {/* Row 4: Ticket #, Ticket Class, Passenger Name, Ticket Price - Table Form */}
+              <div className="space-y-2">
                 <Label className="text-sm font-medium">
                   Passenger Details ({passengerCount} {passengerCount === 1 ? 'ticket' : 'tickets'})
                 </Label>
-                <div className="space-y-2">
-                  {ticketNumbersList.map((ticketNum, index) => (
-                    <div key={index} className="grid grid-cols-12 gap-2 items-center">
-                      <div className="col-span-2">
-                        <Input
-                          placeholder={`Ticket #`}
-                          value={ticketNum}
-                          onChange={(e) => {
-                            const newList = [...ticketNumbersList];
-                            newList[index] = e.target.value;
-                            setTicketNumbersList(newList);
-                          }}
-                          className="font-mono text-sm"
-                          data-testid={`input-ticket-number-${index}`}
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <Select
-                          value={ticketClassesList[index] || "economy"}
-                          onValueChange={(value) => {
-                            const newClasses = [...ticketClassesList];
-                            newClasses[index] = value;
-                            setTicketClassesList(newClasses);
-                          }}
-                        >
-                          <SelectTrigger className="text-xs" data-testid={`select-ticket-class-${index}`}>
-                            <SelectValue placeholder="Class" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="economy">Economy</SelectItem>
-                            <SelectItem value="business">Business</SelectItem>
-                            <SelectItem value="first">First</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="col-span-5">
-                        {index === 0 ? (
-                          <FormField
-                            control={form.control}
-                            name="passengerName"
-                            render={({ field }) => (
-                              <FormItem className="space-y-0">
-                                <FormControl>
-                                  <Input
-                                    placeholder="Passenger name as per passport"
-                                    {...field}
-                                    data-testid="input-passenger-name"
-                                  />
-                                </FormControl>
-                              </FormItem>
+                <div className="border rounded-md overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="w-[100px] text-xs">Ticket #</TableHead>
+                        <TableHead className="w-[90px] text-xs">Class</TableHead>
+                        <TableHead className="text-xs">Passenger Name</TableHead>
+                        <TableHead className="w-[100px] text-right text-xs">Price (AED)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {ticketNumbersList.map((ticketNum, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="p-2">
+                            <Input
+                              placeholder={`Ticket #`}
+                              value={ticketNum}
+                              onChange={(e) => {
+                                const newList = [...ticketNumbersList];
+                                newList[index] = e.target.value;
+                                setTicketNumbersList(newList);
+                              }}
+                              className="font-mono text-sm h-8"
+                              data-testid={`input-ticket-number-${index}`}
+                            />
+                          </TableCell>
+                          <TableCell className="p-2">
+                            <Select
+                              value={ticketClassesList[index] || "economy"}
+                              onValueChange={(value) => {
+                                const newClasses = [...ticketClassesList];
+                                newClasses[index] = value;
+                                setTicketClassesList(newClasses);
+                              }}
+                            >
+                              <SelectTrigger className="text-xs h-8" data-testid={`select-ticket-class-${index}`}>
+                                <SelectValue placeholder="Class" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="economy">Economy</SelectItem>
+                                <SelectItem value="business">Business</SelectItem>
+                                <SelectItem value="first">First</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell className="p-2">
+                            {index === 0 ? (
+                              <FormField
+                                control={form.control}
+                                name="passengerName"
+                                render={({ field }) => (
+                                  <FormItem className="space-y-0">
+                                    <FormControl>
+                                      <Input
+                                        placeholder="Name as per passport"
+                                        {...field}
+                                        className="h-8"
+                                        data-testid="input-passenger-name"
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                            ) : (
+                              <Input
+                                placeholder={`Passenger ${index + 1} name`}
+                                disabled
+                                className="text-muted-foreground h-8"
+                              />
                             )}
-                          />
-                        ) : (
-                          <Input
-                            placeholder={`Passenger ${index + 1} name`}
-                            disabled
-                            className="text-muted-foreground"
-                          />
-                        )}
-                      </div>
-                      <div className="col-span-3">
-                        <Input
-                          type="number"
-                          min="0"
-                          step="any"
-                          placeholder="Price"
-                          value={ticketPricesList[index] || ""}
-                          onChange={(e) => {
-                            const val = parseFloat(e.target.value) || 0;
-                            const newPrices = [...ticketPricesList];
-                            newPrices[index] = val;
-                            setTicketPricesList(newPrices);
-                          }}
-                          className="text-right"
-                          data-testid={`input-ticket-price-${index}`}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                          </TableCell>
+                          <TableCell className="p-2">
+                            <Input
+                              type="number"
+                              min="0"
+                              step="any"
+                              placeholder="0"
+                              value={ticketPricesList[index] || ""}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value) || 0;
+                                const newPrices = [...ticketPricesList];
+                                newPrices[index] = val;
+                                setTicketPricesList(newPrices);
+                              }}
+                              className="text-right h-8"
+                              data-testid={`input-ticket-price-${index}`}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Ticket # | Class | Passenger Name | Price (AED)
-                </p>
               </div>
 
               {/* Separator and Trip Details */}
