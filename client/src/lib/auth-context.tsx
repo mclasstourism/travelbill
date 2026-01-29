@@ -4,11 +4,13 @@ import { apiRequest } from "./queryClient";
 type AuthUser = {
   id: string;
   username: string;
+  role: string;
 };
 
 type AuthContextType = {
   user: AuthUser | null;
   isLoading: boolean;
+  token: string | null;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
 };
@@ -16,40 +18,51 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 const AUTH_STORAGE_KEY = "travelbill_auth";
+const TOKEN_STORAGE_KEY = "travelbill_token";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const validateSession = async () => {
-      const stored = localStorage.getItem(AUTH_STORAGE_KEY);
-      if (!stored) {
+      const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+      if (!storedToken) {
         setIsLoading(false);
         return;
       }
       
       try {
-        const parsed = JSON.parse(stored);
-        if (!parsed || !parsed.id) {
-          localStorage.removeItem(AUTH_STORAGE_KEY);
-          setIsLoading(false);
-          return;
-        }
+        const res = await fetch("/api/auth/validate", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${storedToken}`,
+          },
+          body: JSON.stringify({ token: storedToken }),
+        });
         
-        const res = await apiRequest("POST", "/api/auth/validate", { userId: parsed.id });
         if (res.ok) {
           const data = await res.json();
           if (data.valid && data.user) {
-            setUser({ id: data.user.id, username: data.user.username });
+            setUser({ 
+              id: data.user.id, 
+              username: data.user.username,
+              role: data.user.role || "staff"
+            });
+            setToken(storedToken);
           } else {
             localStorage.removeItem(AUTH_STORAGE_KEY);
+            localStorage.removeItem(TOKEN_STORAGE_KEY);
           }
         } else {
           localStorage.removeItem(AUTH_STORAGE_KEY);
+          localStorage.removeItem(TOKEN_STORAGE_KEY);
         }
       } catch {
         localStorage.removeItem(AUTH_STORAGE_KEY);
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
       }
       setIsLoading(false);
     };
@@ -64,13 +77,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return false;
       }
       const data = await res.json();
-      if (data.success && data.user) {
+      if (data.success && data.user && data.token) {
         const authUser: AuthUser = {
           id: data.user.id,
           username: data.user.username,
+          role: data.user.role || "staff",
         };
         setUser(authUser);
+        setToken(data.token);
         localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authUser));
+        localStorage.setItem(TOKEN_STORAGE_KEY, data.token);
         return true;
       }
       return false;
@@ -79,13 +95,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (storedToken) {
+      try {
+        await fetch("/api/auth/logout", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${storedToken}`,
+          },
+        });
+      } catch {
+        // Ignore errors
+      }
+    }
     setUser(null);
+    setToken(null);
     localStorage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, token, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

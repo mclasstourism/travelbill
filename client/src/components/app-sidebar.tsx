@@ -13,6 +13,10 @@ import {
   BarChart3,
   Briefcase,
   User,
+  TrendingUp,
+  Calendar,
+  Activity,
+  UserCog,
 } from "lucide-react";
 import companyLogo from "@assets/Updated_Logo_1769092146053.png";
 import {
@@ -36,7 +40,7 @@ const mainNavItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Invoices", url: "/invoices", icon: FileText },
   { title: "Tickets", url: "/tickets", icon: Ticket },
-  { title: "Reports", url: "/reports", icon: BarChart3 },
+  { title: "Calendar", url: "/calendar", icon: Calendar },
 ];
 
 const partyItems = [
@@ -50,8 +54,15 @@ const financeItems = [
   { title: "Vendor Credits", url: "/vendor-credits", icon: CreditCard },
 ];
 
+const reportsItems = [
+  { title: "Reports", url: "/reports", icon: BarChart3 },
+  { title: "Analytics", url: "/analytics", icon: TrendingUp },
+  { title: "Activity Logs", url: "/activity-logs", icon: Activity },
+];
+
 const settingsItems = [
   { title: "Bill Creators", url: "/settings/bill-creators", icon: Lock },
+  { title: "User Management", url: "/settings/users", icon: UserCog },
 ];
 
 export function AppSidebar() {
@@ -120,6 +131,27 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {financeItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location === item.url}
+                  >
+                    <Link href={item.url} data-testid={`link-nav-${item.title.toLowerCase().replace(" ", "-")}`}>
+                      <item.icon className="w-4 h-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Reports</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {reportsItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild

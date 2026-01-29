@@ -40,7 +40,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Ticket as TicketIcon, Search, Loader2, Lock, Calendar, Plane } from "lucide-react";
+import { Plus, Ticket as TicketIcon, Search, Loader2, Lock, Calendar, Plane, Upload, Download } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
@@ -90,6 +91,8 @@ type CreateTicketForm = z.infer<typeof createTicketFormSchema>;
 export default function TicketsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [importData, setImportData] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
   const { isAuthenticated, session } = usePin();
@@ -171,11 +174,73 @@ export default function TicketsPage() {
     },
   });
 
+  const bulkImportMutation = useMutation({
+    mutationFn: async (tickets: any[]) => {
+      const res = await apiRequest("POST", "/api/tickets/bulk-import", { tickets });
+      return res.json();
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
+      setIsImportOpen(false);
+      setImportData("");
+      toast({
+        title: "Import completed",
+        description: `${result.success} tickets imported successfully. ${result.failed} failed.`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Import failed",
+        description: "Failed to import tickets",
+        variant: "destructive",
+      });
+    },
+  });
+
   const filteredTickets = tickets.filter((ticket) =>
     ticket.ticketNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
     ticket.passengerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     ticket.route.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleImport = () => {
+    try {
+      const lines = importData.trim().split('\n');
+      if (lines.length < 2) {
+        toast({ title: "Invalid CSV", description: "CSV must have header and at least one data row", variant: "destructive" });
+        return;
+      }
+      
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const tickets = lines.slice(1).map(line => {
+        const values = line.split(',').map(v => v.trim());
+        const ticket: any = {};
+        headers.forEach((header, i) => {
+          if (header === 'facevalue') ticket.faceValue = parseFloat(values[i]) || 0;
+          else if (header === 'customerid') ticket.customerId = values[i];
+          else if (header === 'vendorid') ticket.vendorId = values[i];
+          else if (header === 'triptype') ticket.tripType = values[i] || 'one_way';
+          else if (header === 'tickettype') ticket.ticketType = values[i];
+          else if (header === 'route') ticket.route = values[i];
+          else if (header === 'airlines') ticket.airlines = values[i];
+          else if (header === 'flightnumber') ticket.flightNumber = values[i];
+          else if (header === 'flighttime') ticket.flightTime = values[i];
+          else if (header === 'traveldate') ticket.travelDate = values[i];
+          else if (header === 'passengername') ticket.passengerName = values[i];
+        });
+        ticket.issuedBy = session?.billCreatorId || '';
+        ticket.deductFromDeposit = false;
+        ticket.depositDeducted = 0;
+        return ticket;
+      });
+      
+      bulkImportMutation.mutate(tickets);
+    } catch {
+      toast({ title: "Parse error", description: "Failed to parse CSV data", variant: "destructive" });
+    }
+  };
 
   const handleCreateClick = () => {
     if (!isAuthenticated) {
@@ -219,11 +284,17 @@ export default function TicketsPage() {
           <h1 className="text-2xl font-semibold" data-testid="text-tickets-title">Tickets</h1>
           <p className="text-sm text-muted-foreground">Issue and manage travel tickets</p>
         </div>
-        <Button onClick={handleCreateClick} data-testid="button-issue-ticket">
-          {!isAuthenticated && <Lock className="w-4 h-4 mr-2" />}
-          <Plus className="w-4 h-4 mr-2" />
-          Issue Ticket
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setIsImportOpen(true)} data-testid="button-import-tickets">
+            <Upload className="w-4 h-4 mr-2" />
+            Bulk Import
+          </Button>
+          <Button onClick={handleCreateClick} data-testid="button-issue-ticket">
+            {!isAuthenticated && <Lock className="w-4 h-4 mr-2" />}
+            <Plus className="w-4 h-4 mr-2" />
+            Issue Ticket
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -663,6 +734,47 @@ export default function TicketsPage() {
               </div>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Import Dialog */}
+      <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Bulk Import Tickets</DialogTitle>
+            <DialogDescription>
+              Import multiple tickets from CSV data. Format: customerId, vendorId, passengerName, route, airlines, flightNumber, flightTime, travelDate, ticketType, faceValue
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-3 bg-muted rounded-md text-xs font-mono overflow-x-auto">
+              <p className="font-semibold mb-1">Example CSV:</p>
+              customerId,vendorId,passengerName,route,airlines,flightNumber,flightTime,travelDate,ticketType,faceValue
+              <br />
+              cust-1,vendor-1,John Doe,DXB-LON,Emirates,EK007,10:00,2024-03-15,Economy,1500
+            </div>
+            <Textarea
+              placeholder="Paste CSV data here..."
+              value={importData}
+              onChange={(e) => setImportData(e.target.value)}
+              rows={10}
+              className="font-mono text-sm"
+              data-testid="textarea-import-data"
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsImportOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleImport} 
+                disabled={!importData.trim() || bulkImportMutation.isPending}
+                data-testid="button-confirm-import"
+              >
+                {bulkImportMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Import Tickets
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

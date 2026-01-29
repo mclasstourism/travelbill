@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import {
@@ -10,16 +10,64 @@ import {
   insertTicketSchema,
   insertDepositTransactionSchema,
   insertVendorTransactionSchema,
+  insertUserSchema,
 } from "@shared/schema";
 import { z } from "zod";
+import crypto from "crypto";
+
+// Server-side session store
+const sessions = new Map<string, { userId: string; role: string; createdAt: number }>();
+const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+
+function generateSessionToken(): string {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+function cleanExpiredSessions() {
+  const now = Date.now();
+  for (const [token, session] of sessions) {
+    if (now - session.createdAt > SESSION_DURATION) {
+      sessions.delete(token);
+    }
+  }
+}
+
+// Middleware to check authentication
+function requireAuth(req: Request, res: Response, next: NextFunction) {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) {
+    res.status(401).json({ error: "Authentication required" });
+    return;
+  }
+  const session = sessions.get(token);
+  if (!session || Date.now() - session.createdAt > SESSION_DURATION) {
+    sessions.delete(token || "");
+    res.status(401).json({ error: "Session expired" });
+    return;
+  }
+  (req as any).session = session;
+  next();
+}
+
+// Middleware to check role
+function requireRole(...roles: string[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const session = (req as any).session;
+    if (!session || !roles.includes(session.role)) {
+      res.status(403).json({ error: "Insufficient permissions" });
+      return;
+    }
+    next();
+  };
+}
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
 
-  // Bill Creators
-  app.get("/api/bill-creators", async (req, res) => {
+  // Bill Creators (admin only)
+  app.get("/api/bill-creators", requireAuth, requireRole("admin"), async (req, res) => {
     try {
       const creators = await storage.getBillCreators();
       // Don't expose PIN in response
@@ -30,7 +78,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/bill-creators", async (req, res) => {
+  app.post("/api/bill-creators", requireAuth, requireRole("admin"), async (req, res) => {
     try {
       const data = insertBillCreatorSchema.parse(req.body);
       const creator = await storage.createBillCreator(data);
@@ -45,7 +93,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/bill-creators/:id", async (req, res) => {
+  app.patch("/api/bill-creators/:id", requireAuth, requireRole("admin"), async (req, res) => {
     try {
       const { id } = req.params;
       const { active } = req.body;
@@ -64,6 +112,7 @@ export async function registerRoutes(
   // Staff Login Authentication
   app.post("/api/auth/login", async (req, res) => {
     try {
+      cleanExpiredSessions();
       const { username, password } = req.body;
       if (!username || !password) {
         res.status(400).json({ success: false, error: "Username and password are required" });
@@ -74,23 +123,34 @@ export async function registerRoutes(
         res.status(401).json({ success: false, error: "Invalid credentials" });
         return;
       }
+      // Generate server-side session token
+      const token = generateSessionToken();
+      sessions.set(token, { userId: user.id, role: user.role, createdAt: Date.now() });
+      
       const { password: _, ...safeUser } = user;
-      res.json({ success: true, user: safeUser });
+      res.json({ success: true, user: safeUser, token });
     } catch (error) {
       res.status(500).json({ success: false, error: "Login failed" });
     }
   });
 
-  // Validate user session
+  // Validate user session using token
   app.post("/api/auth/validate", async (req, res) => {
     try {
-      const { userId } = req.body;
-      if (!userId) {
+      const token = req.headers.authorization?.replace("Bearer ", "") || req.body.token;
+      if (!token) {
         res.status(400).json({ valid: false });
         return;
       }
-      const user = await storage.getUser(userId);
+      const session = sessions.get(token);
+      if (!session || Date.now() - session.createdAt > SESSION_DURATION) {
+        sessions.delete(token);
+        res.status(401).json({ valid: false });
+        return;
+      }
+      const user = await storage.getUser(session.userId);
       if (!user) {
+        sessions.delete(token);
         res.status(401).json({ valid: false });
         return;
       }
@@ -99,6 +159,15 @@ export async function registerRoutes(
     } catch (error) {
       res.status(500).json({ valid: false });
     }
+  });
+
+  // Logout endpoint
+  app.post("/api/auth/logout", (req, res) => {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    if (token) {
+      sessions.delete(token);
+    }
+    res.json({ success: true });
   });
 
   // Get password hint for a username
@@ -203,7 +272,7 @@ export async function registerRoutes(
   });
 
   // Customers
-  app.get("/api/customers", async (req, res) => {
+  app.get("/api/customers", requireAuth, async (req, res) => {
     try {
       const customers = await storage.getCustomers();
       res.json(customers);
@@ -212,7 +281,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/customers/:id", async (req, res) => {
+  app.get("/api/customers/:id", requireAuth, async (req, res) => {
     try {
       const customer = await storage.getCustomer(req.params.id);
       if (!customer) {
@@ -225,7 +294,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/customers", async (req, res) => {
+  app.post("/api/customers", requireAuth, async (req, res) => {
     try {
       const data = insertCustomerSchema.parse(req.body);
       
@@ -250,7 +319,7 @@ export async function registerRoutes(
   });
 
   // Agents
-  app.get("/api/agents", async (req, res) => {
+  app.get("/api/agents", requireAuth, async (req, res) => {
     try {
       const agents = await storage.getAgents();
       res.json(agents);
@@ -259,7 +328,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/agents/:id", async (req, res) => {
+  app.get("/api/agents/:id", requireAuth, async (req, res) => {
     try {
       const agent = await storage.getAgent(req.params.id);
       if (!agent) {
@@ -272,7 +341,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/agents", async (req, res) => {
+  app.post("/api/agents", requireAuth, async (req, res) => {
     try {
       const data = insertAgentSchema.parse(req.body);
       
@@ -297,7 +366,7 @@ export async function registerRoutes(
   });
 
   // Vendors
-  app.get("/api/vendors", async (req, res) => {
+  app.get("/api/vendors", requireAuth, async (req, res) => {
     try {
       const vendors = await storage.getVendors();
       res.json(vendors);
@@ -306,7 +375,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/vendors/:id", async (req, res) => {
+  app.get("/api/vendors/:id", requireAuth, async (req, res) => {
     try {
       const vendor = await storage.getVendor(req.params.id);
       if (!vendor) {
@@ -319,7 +388,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/vendors", async (req, res) => {
+  app.post("/api/vendors", requireAuth, async (req, res) => {
     try {
       const data = insertVendorSchema.parse(req.body);
       
@@ -344,7 +413,7 @@ export async function registerRoutes(
   });
 
   // Invoices
-  app.get("/api/invoices", async (req, res) => {
+  app.get("/api/invoices", requireAuth, async (req, res) => {
     try {
       const invoices = await storage.getInvoices();
       res.json(invoices);
@@ -353,7 +422,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/invoices/:id", async (req, res) => {
+  app.get("/api/invoices/:id", requireAuth, async (req, res) => {
     try {
       const invoice = await storage.getInvoice(req.params.id);
       if (!invoice) {
@@ -366,7 +435,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/invoices", async (req, res) => {
+  app.post("/api/invoices", requireAuth, async (req, res) => {
     try {
       const data = insertInvoiceSchema.parse(req.body);
       const invoice = await storage.createInvoice(data);
@@ -380,7 +449,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/invoices/:id", async (req, res) => {
+  app.patch("/api/invoices/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const updated = await storage.updateInvoice(id, req.body);
@@ -395,7 +464,7 @@ export async function registerRoutes(
   });
 
   // Tickets
-  app.get("/api/tickets", async (req, res) => {
+  app.get("/api/tickets", requireAuth, async (req, res) => {
     try {
       const tickets = await storage.getTickets();
       res.json(tickets);
@@ -404,7 +473,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/tickets/:id", async (req, res) => {
+  app.get("/api/tickets/:id", requireAuth, async (req, res) => {
     try {
       const ticket = await storage.getTicket(req.params.id);
       if (!ticket) {
@@ -417,7 +486,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/tickets", async (req, res) => {
+  app.post("/api/tickets", requireAuth, async (req, res) => {
     try {
       const data = insertTicketSchema.parse(req.body);
       const ticket = await storage.createTicket(data);
@@ -431,7 +500,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/tickets/:id", async (req, res) => {
+  app.patch("/api/tickets/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const updated = await storage.updateTicket(id, req.body);
@@ -446,7 +515,7 @@ export async function registerRoutes(
   });
 
   // Deposit Transactions
-  app.get("/api/deposit-transactions", async (req, res) => {
+  app.get("/api/deposit-transactions", requireAuth, async (req, res) => {
     try {
       const transactions = await storage.getDepositTransactions();
       res.json(transactions);
@@ -455,7 +524,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/customers/:id/deposits", async (req, res) => {
+  app.get("/api/customers/:id/deposits", requireAuth, async (req, res) => {
     try {
       const transactions = await storage.getCustomerDepositTransactions(req.params.id);
       res.json(transactions);
@@ -464,7 +533,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/deposit-transactions", async (req, res) => {
+  app.post("/api/deposit-transactions", requireAuth, async (req, res) => {
     try {
       const data = insertDepositTransactionSchema.parse(req.body);
       const transaction = await storage.createDepositTransaction(data);
@@ -479,7 +548,7 @@ export async function registerRoutes(
   });
 
   // Vendor Transactions
-  app.get("/api/vendor-transactions", async (req, res) => {
+  app.get("/api/vendor-transactions", requireAuth, async (req, res) => {
     try {
       const transactions = await storage.getVendorTransactions();
       res.json(transactions);
@@ -488,7 +557,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/vendors/:id/transactions", async (req, res) => {
+  app.get("/api/vendors/:id/transactions", requireAuth, async (req, res) => {
     try {
       const transactions = await storage.getVendorTransactionsByVendor(req.params.id);
       res.json(transactions);
@@ -497,7 +566,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/vendor-transactions", async (req, res) => {
+  app.post("/api/vendor-transactions", requireAuth, async (req, res) => {
     try {
       const data = insertVendorTransactionSchema.parse(req.body);
       const transaction = await storage.createVendorTransaction(data);
@@ -512,12 +581,197 @@ export async function registerRoutes(
   });
 
   // Dashboard Metrics
-  app.get("/api/metrics", async (req, res) => {
+  app.get("/api/metrics", requireAuth, async (req, res) => {
     try {
       const metrics = await storage.getDashboardMetrics();
       res.json(metrics);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch metrics" });
+    }
+  });
+
+  // Activity Logs (admin/manager only)
+  app.get("/api/activity-logs", requireAuth, requireRole("admin", "manager"), async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
+      const logs = await storage.getActivityLogs(limit);
+      res.json(logs);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch activity logs" });
+    }
+  });
+
+  // Sales Analytics
+  app.get("/api/analytics", requireAuth, async (req, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      const analytics = await storage.getSalesAnalytics(
+        startDate as string | undefined,
+        endDate as string | undefined
+      );
+      res.json(analytics);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch analytics" });
+    }
+  });
+
+  // Currency Rates
+  app.get("/api/currency-rates", requireAuth, async (req, res) => {
+    try {
+      const rates = await storage.getCurrencyRates();
+      res.json(rates);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch currency rates" });
+    }
+  });
+
+  // Users Management (admin only)
+  app.get("/api/users", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const users = await storage.getUsers();
+      const safeUsers = users.map(({ password, twoFactorSecret, ...user }) => user);
+      res.json(safeUsers);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  app.patch("/api/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      const user = await storage.updateUser(id, updates);
+      if (!user) {
+        res.status(404).json({ error: "User not found" });
+        return;
+      }
+      const { password, twoFactorSecret, ...safeUser } = user;
+      res.json(safeUser);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update user" });
+    }
+  });
+
+  app.post("/api/users", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const data = insertUserSchema.parse(req.body);
+      const existing = await storage.getUserByUsername(data.username);
+      if (existing) {
+        res.status(409).json({ error: "Username already exists" });
+        return;
+      }
+      const user = await storage.createUser(data);
+      const { password, twoFactorSecret, ...safeUser } = user;
+      res.status(201).json(safeUser);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create user" });
+      }
+    }
+  });
+
+  // Documents
+  app.get("/api/documents/:entityType/:entityId", requireAuth, async (req, res) => {
+    try {
+      const { entityType, entityId } = req.params;
+      const documents = await storage.getDocuments(entityType, entityId);
+      res.json(documents);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch documents" });
+    }
+  });
+
+  app.delete("/api/documents/:id", requireAuth, async (req, res) => {
+    try {
+      const deleted = await storage.deleteDocument(req.params.id);
+      if (!deleted) {
+        res.status(404).json({ error: "Document not found" });
+        return;
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete document" });
+    }
+  });
+
+  // Customer Portal - Get invoices for a customer
+  app.get("/api/customers/:id/invoices", requireAuth, async (req, res) => {
+    try {
+      const invoices = await storage.getInvoicesByCustomer(req.params.id);
+      res.json(invoices);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch customer invoices" });
+    }
+  });
+
+  // Agent invoices
+  app.get("/api/agents/:id/invoices", requireAuth, async (req, res) => {
+    try {
+      const invoices = await storage.getInvoicesByAgent(req.params.id);
+      res.json(invoices);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch agent invoices" });
+    }
+  });
+
+  // Email invoice
+  app.post("/api/invoices/:id/email", requireAuth, async (req, res) => {
+    try {
+      const invoice = await storage.getInvoice(req.params.id);
+      if (!invoice) {
+        res.status(404).json({ error: "Invoice not found" });
+        return;
+      }
+      
+      const { email } = req.body;
+      if (!email) {
+        res.status(400).json({ error: "Email is required" });
+        return;
+      }
+
+      const { sendInvoiceEmail } = await import("./lib/resend");
+      const sent = await sendInvoiceEmail(email, invoice);
+      
+      if (sent) {
+        res.json({ success: true, message: "Invoice sent successfully" });
+      } else {
+        res.status(500).json({ error: "Failed to send invoice email" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to send invoice email" });
+    }
+  });
+
+  // Bulk ticket import (requires authentication)
+  app.post("/api/tickets/bulk-import", requireAuth, async (req, res) => {
+    try {
+      const { tickets } = req.body;
+      if (!Array.isArray(tickets)) {
+        res.status(400).json({ error: "Tickets must be an array" });
+        return;
+      }
+
+      const results = { success: 0, failed: 0, errors: [] as { row: number; error: string }[] };
+      
+      for (let i = 0; i < tickets.length; i++) {
+        try {
+          const data = insertTicketSchema.parse(tickets[i]);
+          await storage.createTicket(data);
+          results.success++;
+        } catch (error) {
+          results.failed++;
+          results.errors.push({
+            row: i + 1,
+            error: error instanceof z.ZodError ? error.errors[0].message : "Invalid ticket data",
+          });
+        }
+      }
+
+      res.json(results);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to import tickets" });
     }
   });
 

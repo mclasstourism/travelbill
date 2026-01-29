@@ -54,6 +54,7 @@ import {
   Lock,
   Printer,
   Eye,
+  Mail,
 } from "lucide-react";
 import { numberToWords } from "@/lib/number-to-words";
 import { useForm, useFieldArray } from "react-hook-form";
@@ -148,6 +149,26 @@ export default function InvoicesPage() {
     return customers.find(c => c.id === invoice.customerId)?.name || "Unknown Customer";
   };
   const getVendorName = (id: string) => vendors.find(v => v.id === id)?.name || "Unknown";
+  
+  const getPartyEmail = (invoice: Invoice): string | undefined => {
+    if (invoice.customerType === "agent") {
+      return agents.find(a => a.id === invoice.customerId)?.email;
+    }
+    return customers.find(c => c.id === invoice.customerId)?.email;
+  };
+  
+  const emailInvoiceMutation = useMutation({
+    mutationFn: async ({ invoiceId, email }: { invoiceId: string; email: string }) => {
+      const res = await apiRequest("POST", `/api/invoices/${invoiceId}/email`, { email });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Invoice sent successfully", description: "The invoice has been emailed." });
+    },
+    onError: () => {
+      toast({ title: "Failed to send invoice", variant: "destructive" });
+    },
+  });
 
   const form = useForm<CreateInvoiceForm>({
     resolver: zodResolver(createInvoiceFormSchema),
@@ -409,6 +430,27 @@ export default function InvoicesPage() {
                               data-testid={`button-print-invoice-${invoice.id}`}
                             >
                               <Printer className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => {
+                                const email = getPartyEmail(invoice);
+                                if (!email) {
+                                  toast({ title: "No email address", description: "This customer/agent has no email on file.", variant: "destructive" });
+                                  return;
+                                }
+                                emailInvoiceMutation.mutate({ invoiceId: invoice.id, email });
+                              }}
+                              disabled={emailInvoiceMutation.isPending}
+                              data-testid={`button-email-invoice-${invoice.id}`}
+                              title="Email invoice"
+                            >
+                              {emailInvoiceMutation.isPending ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Mail className="w-4 h-4" />
+                              )}
                             </Button>
                           </div>
                         </TableCell>

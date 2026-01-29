@@ -19,6 +19,13 @@ import {
   type InsertVendorTransaction,
   type DashboardMetrics,
   type PasswordResetToken,
+  type ActivityLog,
+  type InsertActivityLog,
+  type DocumentAttachment,
+  type InsertDocumentAttachment,
+  type SalesAnalytics,
+  type CurrencyRate,
+  type Currency,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
@@ -91,6 +98,29 @@ export interface IStorage {
 
   // Metrics
   getDashboardMetrics(): Promise<DashboardMetrics>;
+  
+  // Activity Logs
+  getActivityLogs(limit?: number): Promise<ActivityLog[]>;
+  createActivityLog(log: InsertActivityLog): Promise<ActivityLog>;
+  
+  // Documents
+  getDocuments(entityType: string, entityId: string): Promise<DocumentAttachment[]>;
+  createDocument(doc: InsertDocumentAttachment): Promise<DocumentAttachment>;
+  deleteDocument(id: string): Promise<boolean>;
+  
+  // Analytics
+  getSalesAnalytics(startDate?: string, endDate?: string): Promise<SalesAnalytics>;
+  
+  // Currency
+  getCurrencyRates(): Promise<CurrencyRate[]>;
+  
+  // Users management
+  getUsers(): Promise<User[]>;
+  updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
+  
+  // Invoices by customer
+  getInvoicesByCustomer(customerId: string): Promise<Invoice[]>;
+  getInvoicesByAgent(agentId: string): Promise<Invoice[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -104,8 +134,20 @@ export class MemStorage implements IStorage {
   private tickets: Map<string, Ticket>;
   private depositTransactions: Map<string, DepositTransaction>;
   private vendorTransactions: Map<string, VendorTransaction>;
+  private activityLogs: Map<string, ActivityLog>;
+  private documents: Map<string, DocumentAttachment>;
   private invoiceCounter: number;
   private ticketCounter: number;
+  
+  private currencyRates: CurrencyRate[] = [
+    { code: "AED", name: "UAE Dirham", rate: 1, symbol: "د.إ" },
+    { code: "USD", name: "US Dollar", rate: 3.67, symbol: "$" },
+    { code: "EUR", name: "Euro", rate: 4.02, symbol: "€" },
+    { code: "GBP", name: "British Pound", rate: 4.65, symbol: "£" },
+    { code: "SAR", name: "Saudi Riyal", rate: 0.98, symbol: "﷼" },
+    { code: "INR", name: "Indian Rupee", rate: 0.044, symbol: "₹" },
+    { code: "PKR", name: "Pakistani Rupee", rate: 0.013, symbol: "Rs" },
+  ];
 
   constructor() {
     this.users = new Map();
@@ -118,6 +160,8 @@ export class MemStorage implements IStorage {
     this.tickets = new Map();
     this.depositTransactions = new Map();
     this.vendorTransactions = new Map();
+    this.activityLogs = new Map();
+    this.documents = new Map();
     this.invoiceCounter = 1000;
     this.ticketCounter = 1000;
 
@@ -139,6 +183,7 @@ export class MemStorage implements IStorage {
       password: hashedPassword,
       email: "admin@example.com",
       passwordHint: "Default password is admin followed by 123",
+      role: "admin",
     });
   }
 
@@ -650,6 +695,212 @@ export class MemStorage implements IStorage {
       recentInvoices: invoices.slice(0, 5),
       recentTickets: tickets.slice(0, 5),
     };
+  }
+
+  // Activity Logs
+  async getActivityLogs(limit = 100): Promise<ActivityLog[]> {
+    const logs = Array.from(this.activityLogs.values());
+    logs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return logs.slice(0, limit);
+  }
+
+  async createActivityLog(log: InsertActivityLog): Promise<ActivityLog> {
+    const id = randomUUID();
+    const newLog: ActivityLog = {
+      ...log,
+      id,
+      createdAt: new Date().toISOString(),
+    };
+    this.activityLogs.set(id, newLog);
+    return newLog;
+  }
+
+  // Documents
+  async getDocuments(entityType: string, entityId: string): Promise<DocumentAttachment[]> {
+    return Array.from(this.documents.values()).filter(
+      (doc) => doc.entityType === entityType && doc.entityId === entityId
+    );
+  }
+
+  async createDocument(doc: InsertDocumentAttachment): Promise<DocumentAttachment> {
+    const id = randomUUID();
+    const newDoc: DocumentAttachment = {
+      ...doc,
+      id,
+      uploadedAt: new Date().toISOString(),
+    };
+    this.documents.set(id, newDoc);
+    return newDoc;
+  }
+
+  async deleteDocument(id: string): Promise<boolean> {
+    return this.documents.delete(id);
+  }
+
+  // Analytics
+  async getSalesAnalytics(startDate?: string, endDate?: string): Promise<SalesAnalytics> {
+    const invoices = await this.getInvoices();
+    const tickets = await this.getTickets();
+    const customers = await this.getCustomers();
+    const agents = await this.getAgents();
+    const vendors = await this.getVendors();
+
+    let filteredInvoices = invoices.filter((inv) => inv.status !== "cancelled");
+    if (startDate) {
+      filteredInvoices = filteredInvoices.filter((inv) => inv.createdAt >= startDate);
+    }
+    if (endDate) {
+      filteredInvoices = filteredInvoices.filter((inv) => inv.createdAt <= endDate);
+    }
+
+    // Daily sales (last 30 days)
+    const dailySalesMap = new Map<string, { amount: number; count: number }>();
+    filteredInvoices.forEach((inv) => {
+      const date = inv.createdAt.split("T")[0];
+      const existing = dailySalesMap.get(date) || { amount: 0, count: 0 };
+      dailySalesMap.set(date, { amount: existing.amount + inv.total, count: existing.count + 1 });
+    });
+    const dailySales = Array.from(dailySalesMap.entries())
+      .map(([date, data]) => ({ date, ...data }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    // Top customers
+    const customerSpending = new Map<string, { totalSpent: number; invoiceCount: number }>();
+    filteredInvoices.filter((inv) => inv.customerType === "customer").forEach((inv) => {
+      const existing = customerSpending.get(inv.customerId) || { totalSpent: 0, invoiceCount: 0 };
+      customerSpending.set(inv.customerId, {
+        totalSpent: existing.totalSpent + inv.total,
+        invoiceCount: existing.invoiceCount + 1,
+      });
+    });
+    const topCustomers = Array.from(customerSpending.entries())
+      .map(([id, data]) => {
+        const customer = customers.find((c) => c.id === id);
+        return { id, name: customer?.name || "Unknown", ...data };
+      })
+      .sort((a, b) => b.totalSpent - a.totalSpent)
+      .slice(0, 10);
+
+    // Top agents
+    const agentSales = new Map<string, { totalSales: number; ticketCount: number }>();
+    filteredInvoices.filter((inv) => inv.customerType === "agent").forEach((inv) => {
+      const existing = agentSales.get(inv.customerId) || { totalSales: 0, ticketCount: 0 };
+      agentSales.set(inv.customerId, {
+        totalSales: existing.totalSales + inv.total,
+        ticketCount: existing.ticketCount + 1,
+      });
+    });
+    const topAgents = Array.from(agentSales.entries())
+      .map(([id, data]) => {
+        const agent = agents.find((a) => a.id === id);
+        return { id, name: agent?.name || "Unknown", ...data };
+      })
+      .sort((a, b) => b.totalSales - a.totalSales)
+      .slice(0, 10);
+
+    // Top routes
+    const routeStats = new Map<string, { count: number; revenue: number }>();
+    tickets.forEach((ticket) => {
+      const existing = routeStats.get(ticket.route) || { count: 0, revenue: 0 };
+      routeStats.set(ticket.route, {
+        count: existing.count + 1,
+        revenue: existing.revenue + ticket.faceValue,
+      });
+    });
+    const topRoutes = Array.from(routeStats.entries())
+      .map(([route, data]) => ({ route, ...data }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    // Vendor comparison
+    const vendorStats = new Map<string, { totalCost: number; ticketCount: number }>();
+    filteredInvoices.forEach((inv) => {
+      const existing = vendorStats.get(inv.vendorId) || { totalCost: 0, ticketCount: 0 };
+      vendorStats.set(inv.vendorId, {
+        totalCost: existing.totalCost + inv.vendorCost,
+        ticketCount: existing.ticketCount + 1,
+      });
+    });
+    const vendorComparison = Array.from(vendorStats.entries())
+      .map(([id, data]) => {
+        const vendor = vendors.find((v) => v.id === id);
+        return {
+          id,
+          name: vendor?.name || "Unknown",
+          totalCost: data.totalCost,
+          ticketCount: data.ticketCount,
+          avgCost: data.ticketCount > 0 ? data.totalCost / data.ticketCount : 0,
+        };
+      })
+      .sort((a, b) => b.totalCost - a.totalCost);
+
+    // Profit by vendor
+    const vendorProfitMap = new Map<string, { revenue: number; cost: number }>();
+    filteredInvoices.forEach((inv) => {
+      const existing = vendorProfitMap.get(inv.vendorId) || { revenue: 0, cost: 0 };
+      vendorProfitMap.set(inv.vendorId, {
+        revenue: existing.revenue + inv.total,
+        cost: existing.cost + inv.vendorCost,
+      });
+    });
+    const profitByVendor = Array.from(vendorProfitMap.entries())
+      .map(([vendorId, data]) => {
+        const vendor = vendors.find((v) => v.id === vendorId);
+        const profit = data.revenue - data.cost;
+        const margin = data.revenue > 0 ? (profit / data.revenue) * 100 : 0;
+        return {
+          vendorId,
+          vendorName: vendor?.name || "Unknown",
+          revenue: data.revenue,
+          cost: data.cost,
+          profit,
+          margin,
+        };
+      })
+      .sort((a, b) => b.profit - a.profit);
+
+    return {
+      dailySales,
+      topCustomers,
+      topAgents,
+      topRoutes,
+      vendorComparison,
+      profitByVendor,
+    };
+  }
+
+  // Currency
+  async getCurrencyRates(): Promise<CurrencyRate[]> {
+    return this.currencyRates;
+  }
+
+  // Users management
+  async getUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
+  }
+
+  async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    const updated = { ...user, ...updates };
+    if (updates.password) {
+      updated.password = bcrypt.hashSync(updates.password, 10);
+    }
+    this.users.set(id, updated);
+    return updated;
+  }
+
+  // Invoices by customer/agent
+  async getInvoicesByCustomer(customerId: string): Promise<Invoice[]> {
+    return Array.from(this.invoices.values()).filter(
+      (inv) => inv.customerId === customerId && inv.customerType === "customer"
+    );
+  }
+
+  async getInvoicesByAgent(agentId: string): Promise<Invoice[]> {
+    return Array.from(this.invoices.values()).filter(
+      (inv) => inv.customerId === agentId && inv.customerType === "agent"
+    );
   }
 }
 

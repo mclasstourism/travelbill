@@ -275,6 +275,9 @@ export type User = {
   email?: string;
   phone?: string;
   passwordHint?: string;
+  role?: "admin" | "manager" | "staff";
+  twoFactorEnabled?: boolean;
+  twoFactorSecret?: string;
 };
 
 // Password reset token
@@ -284,4 +287,124 @@ export type PasswordResetToken = {
   token: string;
   expiresAt: number;
   used: boolean;
+};
+
+// User roles for role-based permissions
+export const userRoles = ["admin", "manager", "staff"] as const;
+export type UserRole = typeof userRoles[number];
+
+// Activity log actions
+export const activityActions = [
+  "create", "update", "delete", "login", "logout", "view", "export", "email"
+] as const;
+export type ActivityAction = typeof activityActions[number];
+
+// Activity log entity types
+export const activityEntities = [
+  "invoice", "ticket", "customer", "agent", "vendor", "deposit", "user", "report"
+] as const;
+export type ActivityEntity = typeof activityEntities[number];
+
+// Activity log entry
+export type ActivityLog = {
+  id: string;
+  userId: string;
+  userName: string;
+  action: ActivityAction;
+  entity: ActivityEntity;
+  entityId: string;
+  entityName: string;
+  details: string;
+  ipAddress?: string;
+  createdAt: string;
+};
+
+export const insertActivityLogSchema = z.object({
+  userId: z.string(),
+  userName: z.string(),
+  action: z.enum(activityActions),
+  entity: z.enum(activityEntities),
+  entityId: z.string(),
+  entityName: z.string(),
+  details: z.string(),
+  ipAddress: z.string().optional(),
+});
+
+export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
+
+// Supported currencies
+export const currencies = ["AED", "USD", "EUR", "GBP", "SAR", "INR", "PKR"] as const;
+export type Currency = typeof currencies[number];
+
+// Currency exchange rates (base: AED)
+export type CurrencyRate = {
+  code: Currency;
+  name: string;
+  rate: number; // Rate to convert to AED
+  symbol: string;
+};
+
+// Document attachments
+export const documentTypes = ["passport", "visa", "e_ticket", "id_card", "other"] as const;
+export type DocumentType = typeof documentTypes[number];
+
+export type DocumentAttachment = {
+  id: string;
+  entityType: "customer" | "agent" | "ticket" | "invoice";
+  entityId: string;
+  documentType: DocumentType;
+  fileName: string;
+  fileUrl: string;
+  uploadedBy: string;
+  uploadedAt: string;
+};
+
+export const insertDocumentAttachmentSchema = z.object({
+  entityType: z.enum(["customer", "agent", "ticket", "invoice"]),
+  entityId: z.string(),
+  documentType: z.enum(documentTypes),
+  fileName: z.string(),
+  fileUrl: z.string(),
+  uploadedBy: z.string(),
+});
+
+export type InsertDocumentAttachment = z.infer<typeof insertDocumentAttachmentSchema>;
+
+// Payment reminder
+export type PaymentReminder = {
+  id: string;
+  invoiceId: string;
+  customerId: string;
+  customerEmail: string;
+  amount: number;
+  dueDate: string;
+  reminderSent: boolean;
+  reminderSentAt?: string;
+  createdAt: string;
+};
+
+// Enhanced dashboard metrics with analytics
+export type SalesAnalytics = {
+  dailySales: { date: string; amount: number; count: number }[];
+  topCustomers: { id: string; name: string; totalSpent: number; invoiceCount: number }[];
+  topAgents: { id: string; name: string; totalSales: number; ticketCount: number }[];
+  topRoutes: { route: string; count: number; revenue: number }[];
+  vendorComparison: { id: string; name: string; totalCost: number; ticketCount: number; avgCost: number }[];
+  profitByVendor: { vendorId: string; vendorName: string; revenue: number; cost: number; profit: number; margin: number }[];
+};
+
+// Bulk import result
+export type BulkImportResult = {
+  success: number;
+  failed: number;
+  errors: { row: number; error: string }[];
+};
+
+// 2FA settings
+export type TwoFactorAuth = {
+  userId: string;
+  enabled: boolean;
+  secret?: string;
+  backupCodes?: string[];
+  verifiedAt?: string;
 };

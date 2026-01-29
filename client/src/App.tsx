@@ -21,6 +21,10 @@ import DepositsPage from "@/pages/deposits";
 import VendorCreditsPage from "@/pages/vendor-credits";
 import BillCreatorsPage from "@/pages/bill-creators";
 import ReportsPage from "@/pages/reports";
+import AnalyticsPage from "@/pages/analytics";
+import ActivityLogsPage from "@/pages/activity-logs";
+import UserManagementPage from "@/pages/user-management";
+import CalendarPage from "@/pages/calendar";
 import LoginPage from "@/pages/login";
 import { Loader2, LogOut } from "lucide-react";
 
@@ -36,7 +40,11 @@ function Router() {
       <Route path="/deposits" component={DepositsPage} />
       <Route path="/vendor-credits" component={VendorCreditsPage} />
       <Route path="/reports" component={ReportsPage} />
+      <Route path="/analytics" component={AnalyticsPage} />
+      <Route path="/calendar" component={CalendarPage} />
+      <Route path="/activity-logs" component={ActivityLogsPage} />
       <Route path="/settings/bill-creators" component={BillCreatorsPage} />
+      <Route path="/settings/users" component={UserManagementPage} />
       <Route component={NotFound} />
     </Switch>
   );
