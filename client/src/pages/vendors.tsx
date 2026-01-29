@@ -607,38 +607,6 @@ export default function VendorsPage() {
                     </Command>
                   </PopoverContent>
                 </Popover>
-                
-                {selectedAirlineIds.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {selectedAirlineIds.map((airlineId) => {
-                      const airline = airlines.find(a => a.id === airlineId);
-                      if (!airline) return null;
-                      return (
-                        <Badge
-                          key={airline.id}
-                          variant="secondary"
-                          className="flex items-center gap-2 py-1 px-2"
-                          data-testid={`badge-airline-${airline.id}`}
-                        >
-                          <img 
-                            src={airline.logo} 
-                            alt={airline.name} 
-                            className="w-5 h-4 object-contain rounded-sm"
-                          />
-                          <span>{airline.name}</span>
-                          <button
-                            type="button"
-                            onClick={() => toggleAirline(airline.id)}
-                            className="ml-1 hover:text-destructive"
-                            data-testid={`button-remove-airline-${airline.id}`}
-                          >
-                            &times;
-                          </button>
-                        </Badge>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
 
               <div className="flex justify-end gap-2 pt-4">
@@ -840,38 +808,6 @@ export default function VendorsPage() {
                     </Command>
                   </PopoverContent>
                 </Popover>
-                
-                {editSelectedAirlineIds.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {editSelectedAirlineIds.map((airlineId) => {
-                      const airline = airlines.find(a => a.id === airlineId);
-                      if (!airline) return null;
-                      return (
-                        <Badge
-                          key={airline.id}
-                          variant="secondary"
-                          className="flex items-center gap-2 py-1 px-2"
-                          data-testid={`badge-edit-airline-${airline.id}`}
-                        >
-                          <img 
-                            src={airline.logo} 
-                            alt={airline.name} 
-                            className="w-5 h-4 object-contain rounded-sm"
-                          />
-                          <span>{airline.name}</span>
-                          <button
-                            type="button"
-                            onClick={() => toggleEditAirline(airline.id)}
-                            className="ml-1 hover:text-destructive"
-                            data-testid={`button-edit-remove-airline-${airline.id}`}
-                          >
-                            &times;
-                          </button>
-                        </Badge>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
 
               <div className="flex justify-end gap-2 pt-4">
