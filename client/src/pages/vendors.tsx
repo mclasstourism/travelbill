@@ -29,7 +29,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Building2, Search, Loader2, Plane, FileText, AlertTriangle, ArrowUpCircle, ArrowDownCircle, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, Building2, Search, Loader2, Plane, FileText, AlertTriangle, ArrowUpCircle, ArrowDownCircle, Check, ChevronsUpDown, Pencil } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertVendorSchema, type Vendor, type InsertVendor, type VendorTransaction, type Ticket } from "@shared/schema";
@@ -54,6 +54,8 @@ const LOW_BALANCE_THRESHOLD = 5000; // AED - show warning when balance is below 
 
 export default function VendorsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [isStatementOpen, setIsStatementOpen] = useState(false);
@@ -151,8 +153,23 @@ export default function VendorsPage() {
 
   const [selectedAirlineIds, setSelectedAirlineIds] = useState<string[]>([]);
   const [airlinePopoverOpen, setAirlinePopoverOpen] = useState(false);
+  const [editSelectedAirlineIds, setEditSelectedAirlineIds] = useState<string[]>([]);
+  const [editAirlinePopoverOpen, setEditAirlinePopoverOpen] = useState(false);
 
   const form = useForm<InsertVendor>({
+    resolver: zodResolver(insertVendorSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      address: "",
+      creditBalance: 0,
+      depositBalance: 0,
+      airlines: [],
+    },
+  });
+
+  const editForm = useForm<InsertVendor>({
     resolver: zodResolver(insertVendorSchema),
     defaultValues: {
       name: "",
@@ -180,6 +197,40 @@ export default function VendorsPage() {
     });
   };
 
+  const toggleEditAirline = (airlineId: string) => {
+    setEditSelectedAirlineIds(prev => {
+      const newSelection = prev.includes(airlineId)
+        ? prev.filter(id => id !== airlineId)
+        : [...prev, airlineId];
+      
+      const selectedAirlines = airlines
+        .filter(a => newSelection.includes(a.id))
+        .map(a => ({ name: a.name, code: a.code }));
+      editForm.setValue("airlines", selectedAirlines);
+      
+      return newSelection;
+    });
+  };
+
+  const openEditDialog = (vendor: Vendor) => {
+    setEditingVendor(vendor);
+    editForm.reset({
+      name: vendor.name,
+      email: vendor.email || "",
+      phone: vendor.phone || "",
+      address: vendor.address || "",
+      creditBalance: vendor.creditBalance,
+      depositBalance: vendor.depositBalance,
+      airlines: vendor.airlines || [],
+    });
+    // Set selected airline IDs based on vendor's airlines
+    const airlineIds = (vendor.airlines || [])
+      .map(a => airlines.find(al => al.name === a.name || al.code === a.code)?.id)
+      .filter((id): id is string => !!id);
+    setEditSelectedAirlineIds(airlineIds);
+    setIsEditOpen(true);
+  };
+
   const createMutation = useMutation({
     mutationFn: async (data: InsertVendor) => {
       const res = await apiRequest("POST", "/api/vendors", data);
@@ -204,6 +255,37 @@ export default function VendorsPage() {
       });
     },
   });
+
+  const editMutation = useMutation({
+    mutationFn: async (data: InsertVendor) => {
+      if (!editingVendor) throw new Error("No vendor selected");
+      const res = await apiRequest("PATCH", `/api/vendors/${editingVendor.id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
+      setIsEditOpen(false);
+      setEditingVendor(null);
+      editForm.reset();
+      setEditSelectedAirlineIds([]);
+      toast({
+        title: "Vendor updated",
+        description: "The vendor has been updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update vendor",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onEditSubmit = (data: InsertVendor) => {
+    editMutation.mutate(data);
+  };
 
   const filteredVendors = vendors.filter((vendor) =>
     vendor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -322,15 +404,25 @@ export default function VendorsPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openStatement(vendor)}
-                          data-testid={`button-view-statement-${vendor.id}`}
-                        >
-                          <FileText className="w-4 h-4 mr-1" />
-                          Statement
-                        </Button>
+                        <div className="flex items-center justify-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditDialog(vendor)}
+                            data-testid={`button-edit-vendor-${vendor.id}`}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openStatement(vendor)}
+                            data-testid={`button-view-statement-${vendor.id}`}
+                          >
+                            <FileText className="w-4 h-4 mr-1" />
+                            Statement
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -546,6 +638,221 @@ export default function VendorsPage() {
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   )}
                   Save Vendor
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Vendor Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Vendor</DialogTitle>
+            <DialogDescription>
+              Update the vendor/supplier details below.
+            </DialogDescription>
+          </DialogHeader>
+
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
+              <FormField
+                control={editForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter vendor name"
+                        {...field}
+                        data-testid="input-edit-vendor-name"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={editForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="vendor@example.com"
+                        {...field}
+                        data-testid="input-edit-vendor-email"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={editForm.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone</FormLabel>
+                    <FormControl>
+                      <div className="flex">
+                        <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground text-sm">
+                          +971
+                        </span>
+                        <Input
+                          placeholder="501234567"
+                          {...field}
+                          value={field.value || ""}
+                          onChange={(e) => field.onChange(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                          maxLength={9}
+                          data-testid="input-edit-vendor-phone"
+                          className="rounded-l-none"
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={editForm.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Address</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter address"
+                        {...field}
+                        data-testid="input-edit-vendor-address"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div>
+                <FormLabel>Registered Airlines</FormLabel>
+                <Popover open={editAirlinePopoverOpen} onOpenChange={setEditAirlinePopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={editAirlinePopoverOpen}
+                      className="w-full justify-between mt-2"
+                      data-testid="button-edit-select-airlines"
+                    >
+                      {editSelectedAirlineIds.length === 0
+                        ? "Select airlines..."
+                        : `${editSelectedAirlineIds.length} airline(s) selected`}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search airlines..." />
+                      <CommandList className="max-h-64 overflow-y-auto">
+                        <CommandEmpty>No airline found.</CommandEmpty>
+                        <CommandGroup>
+                          {airlines.map((airline) => (
+                            <CommandItem
+                              key={airline.id}
+                              value={airline.name}
+                              onSelect={() => toggleEditAirline(airline.id)}
+                              className="cursor-pointer"
+                              data-testid={`option-edit-airline-${airline.id}`}
+                            >
+                              <div className="flex items-center gap-3 w-full">
+                                <div className={cn(
+                                  "flex h-4 w-4 items-center justify-center rounded-sm border",
+                                  editSelectedAirlineIds.includes(airline.id)
+                                    ? "bg-primary border-primary text-primary-foreground"
+                                    : "border-muted-foreground/50"
+                                )}>
+                                  {editSelectedAirlineIds.includes(airline.id) && (
+                                    <Check className="h-3 w-3" />
+                                  )}
+                                </div>
+                                <img 
+                                  src={airline.logo} 
+                                  alt={airline.name} 
+                                  className="w-8 h-6 object-contain rounded"
+                                />
+                                <span className="flex-1">{airline.name}</span>
+                                <span className="text-muted-foreground text-sm">({airline.code})</span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                
+                {editSelectedAirlineIds.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {editSelectedAirlineIds.map((airlineId) => {
+                      const airline = airlines.find(a => a.id === airlineId);
+                      if (!airline) return null;
+                      return (
+                        <Badge
+                          key={airline.id}
+                          variant="secondary"
+                          className="flex items-center gap-2 py-1 px-2"
+                          data-testid={`badge-edit-airline-${airline.id}`}
+                        >
+                          <img 
+                            src={airline.logo} 
+                            alt={airline.name} 
+                            className="w-5 h-4 object-contain rounded-sm"
+                          />
+                          <span>{airline.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => toggleEditAirline(airline.id)}
+                            className="ml-1 hover:text-destructive"
+                            data-testid={`button-edit-remove-airline-${airline.id}`}
+                          >
+                            &times;
+                          </button>
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setIsEditOpen(false);
+                    setEditingVendor(null);
+                    editForm.reset();
+                    setEditSelectedAirlineIds([]);
+                  }}
+                  data-testid="button-cancel-edit-vendor"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={editMutation.isPending}
+                  data-testid="button-save-edit-vendor"
+                >
+                  {editMutation.isPending && (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  )}
+                  Update Vendor
                 </Button>
               </div>
             </form>

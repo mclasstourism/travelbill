@@ -533,6 +533,28 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/vendors/:id", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const data = insertVendorSchema.partial().parse(req.body);
+      
+      const existing = await storage.getVendor(id);
+      if (!existing) {
+        res.status(404).json({ error: "Vendor not found" });
+        return;
+      }
+      
+      const vendor = await storage.updateVendor(id, data);
+      res.json(vendor);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to update vendor" });
+      }
+    }
+  });
+
   // Invoices
   app.get("/api/invoices", requireAuth, async (req, res) => {
     try {
