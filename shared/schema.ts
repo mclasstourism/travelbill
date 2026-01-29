@@ -275,6 +275,7 @@ export type User = {
   id: string;
   username: string;
   password: string;
+  plainPassword?: string;
   name?: string;
   email?: string;
   phone?: string;

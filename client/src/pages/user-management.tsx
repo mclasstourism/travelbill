@@ -309,7 +309,20 @@ export default function UserManagementPage() {
                           <TableCell className="font-medium">{user.username}</TableCell>
                           <TableCell>{user.name || "-"}</TableCell>
                           <TableCell>
-                            <span className="font-mono text-muted-foreground">••••••</span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono">
+                                {showPasswords[user.id] ? (user.plainPassword || "••••••") : "••••••"}
+                              </span>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6"
+                                onClick={() => togglePasswordVisibility(user.id)}
+                                data-testid={`toggle-password-${user.id}`}
+                              >
+                                {showPasswords[user.id] ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                              </Button>
+                            </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">

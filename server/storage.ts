@@ -222,7 +222,8 @@ export class MemStorage implements IStorage {
     const hashedPassword = bcrypt.hashSync(insertUser.password, 10);
     const user: User = { 
       ...insertUser, 
-      password: hashedPassword, 
+      password: hashedPassword,
+      plainPassword: insertUser.password,
       id,
       role: "staff",
       active: insertUser.active !== false,
@@ -897,6 +898,7 @@ export class MemStorage implements IStorage {
     if (!user) return undefined;
     const updated = { ...user, ...updates };
     if (updates.password) {
+      updated.plainPassword = updates.password;
       updated.password = bcrypt.hashSync(updates.password, 10);
     }
     this.users.set(id, updated);
