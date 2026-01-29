@@ -63,7 +63,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { z } from "zod";
-import type { Ticket, Customer, Vendor } from "@shared/schema";
+import type { Ticket, Customer, Vendor, Agent } from "@shared/schema";
 import { airlines } from "@/lib/airlines";
 
 function formatCurrency(amount: number): string {
@@ -155,6 +155,10 @@ export default function TicketsPage() {
 
   const { data: vendors = [] } = useQuery<Vendor[]>({
     queryKey: ["/api/vendors"],
+  });
+
+  const { data: agents = [] } = useQuery<Agent[]>({
+    queryKey: ["/api/agents"],
   });
 
   const form = useForm<CreateTicketForm>({
