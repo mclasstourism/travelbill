@@ -1237,7 +1237,9 @@ export default function TicketsPage() {
                 <Label className="text-sm font-medium">
                   Passenger Details ({passengerCount} {passengerCount === 1 ? 'ticket' : 'tickets'})
                 </Label>
-                <div className="border rounded-md overflow-hidden">
+                
+                {/* Desktop/Tablet Table View */}
+                <div className="hidden md:block border rounded-md overflow-hidden">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
@@ -1316,6 +1318,91 @@ export default function TicketsPage() {
                       ))}
                     </TableBody>
                   </Table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-3">
+                  {ticketNumbersList.map((ticketNum, index) => (
+                    <div key={index} className="border rounded-lg p-3 bg-muted/30 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-muted-foreground">Passenger {index + 1}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {ticketClassesList[index] === "first" ? "First" : 
+                           ticketClassesList[index] === "business" ? "Business" : "Economy"}
+                        </Badge>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Input
+                          placeholder="Passenger name"
+                          value={passengerNamesList[index] || ""}
+                          onChange={(e) => {
+                            const newNames = [...passengerNamesList];
+                            newNames[index] = e.target.value;
+                            setPassengerNamesList(newNames);
+                          }}
+                          className="h-9"
+                          data-testid={`input-passenger-name-mobile-${index}`}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">Ticket #</Label>
+                          <Input
+                            placeholder="Ticket number"
+                            value={ticketNum}
+                            onChange={(e) => {
+                              const newList = [...ticketNumbersList];
+                              newList[index] = e.target.value;
+                              setTicketNumbersList(newList);
+                            }}
+                            className="font-mono text-sm h-9"
+                            data-testid={`input-ticket-number-mobile-${index}`}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">Price (AED)</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="any"
+                            placeholder="0"
+                            value={ticketPricesList[index] || ""}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value) || 0;
+                              const newPrices = [...ticketPricesList];
+                              newPrices[index] = val;
+                              setTicketPricesList(newPrices);
+                            }}
+                            className="text-right h-9"
+                            data-testid={`input-ticket-price-mobile-${index}`}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Class</Label>
+                        <Select
+                          value={ticketClassesList[index] || "economy"}
+                          onValueChange={(value) => {
+                            const newClasses = [...ticketClassesList];
+                            newClasses[index] = value;
+                            setTicketClassesList(newClasses);
+                          }}
+                        >
+                          <SelectTrigger className="h-9" data-testid={`select-ticket-class-mobile-${index}`}>
+                            <SelectValue placeholder="Class" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="economy">Economy</SelectItem>
+                            <SelectItem value="business">Business</SelectItem>
+                            <SelectItem value="first">First</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
