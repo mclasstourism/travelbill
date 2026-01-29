@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useUpload } from "@/hooks/use-upload";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +30,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Building2, Search, Loader2, Plane, FileText, AlertTriangle, ArrowUpCircle, ArrowDownCircle, Check, ChevronsUpDown, Pencil, ChevronDown, Image } from "lucide-react";
+import { Plus, Building2, Search, Loader2, Plane, FileText, AlertTriangle, ArrowUpCircle, ArrowDownCircle, Check, ChevronsUpDown, Pencil, ChevronDown, Image, Upload } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertVendorSchema, type Vendor, type InsertVendor, type VendorTransaction, type Ticket } from "@shared/schema";
@@ -596,33 +597,66 @@ export default function VendorsPage() {
               <FormField
                 control={form.control}
                 name="logo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Logo URL (optional)</FormLabel>
-                    <FormControl>
-                      <div className="flex gap-2">
-                        <div className="relative flex-1">
-                          <Image className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                          <Input
-                            placeholder="https://example.com/logo.png"
-                            className="pl-10"
-                            {...field}
-                            value={field.value || ""}
-                            data-testid="input-vendor-logo"
+                render={({ field }) => {
+                  const fileInputRef = useRef<HTMLInputElement>(null);
+                  const { uploadFile, isUploading } = useUpload({
+                    onSuccess: (response) => {
+                      field.onChange(response.objectPath);
+                    },
+                  });
+                  
+                  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      await uploadFile(file);
+                    }
+                  };
+                  
+                  return (
+                    <FormItem>
+                      <FormLabel>Logo (optional)</FormLabel>
+                      <FormControl>
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <Image className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                            <Input
+                              placeholder="Enter URL or upload file"
+                              className="pl-10"
+                              {...field}
+                              value={field.value || ""}
+                              data-testid="input-vendor-logo"
+                            />
+                          </div>
+                          <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            accept="image/*"
+                            className="hidden"
                           />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isUploading}
+                            data-testid="button-upload-vendor-logo"
+                          >
+                            {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                          </Button>
+                          {field.value && (
+                            <img
+                              src={field.value}
+                              alt="Preview"
+                              className="w-10 h-10 object-contain rounded border"
+                            />
+                          )}
                         </div>
-                        {field.value && (
-                          <img
-                            src={field.value}
-                            alt="Preview"
-                            className="w-10 h-10 object-contain rounded border"
-                          />
-                        )}
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               <div className="space-y-3">
@@ -829,33 +863,66 @@ export default function VendorsPage() {
               <FormField
                 control={editForm.control}
                 name="logo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Logo URL (optional)</FormLabel>
-                    <FormControl>
-                      <div className="flex gap-2">
-                        <div className="relative flex-1">
-                          <Image className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                          <Input
-                            placeholder="https://example.com/logo.png"
-                            className="pl-10"
-                            {...field}
-                            value={field.value || ""}
-                            data-testid="input-edit-vendor-logo"
+                render={({ field }) => {
+                  const fileInputRef = useRef<HTMLInputElement>(null);
+                  const { uploadFile, isUploading } = useUpload({
+                    onSuccess: (response) => {
+                      field.onChange(response.objectPath);
+                    },
+                  });
+                  
+                  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      await uploadFile(file);
+                    }
+                  };
+                  
+                  return (
+                    <FormItem>
+                      <FormLabel>Logo (optional)</FormLabel>
+                      <FormControl>
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <Image className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                            <Input
+                              placeholder="Enter URL or upload file"
+                              className="pl-10"
+                              {...field}
+                              value={field.value || ""}
+                              data-testid="input-edit-vendor-logo"
+                            />
+                          </div>
+                          <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            accept="image/*"
+                            className="hidden"
                           />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isUploading}
+                            data-testid="button-edit-upload-vendor-logo"
+                          >
+                            {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                          </Button>
+                          {field.value && (
+                            <img
+                              src={field.value}
+                              alt="Preview"
+                              className="w-10 h-10 object-contain rounded border"
+                            />
+                          )}
                         </div>
-                        {field.value && (
-                          <img
-                            src={field.value}
-                            alt="Preview"
-                            className="w-10 h-10 object-contain rounded border"
-                          />
-                        )}
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               <div>
