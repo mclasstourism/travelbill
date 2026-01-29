@@ -13,7 +13,7 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
@@ -34,10 +34,6 @@ export default function LoginPage() {
     setIsLoading(false);
 
     if (success) {
-      toast({
-        title: "Welcome back!",
-        description: "You have successfully logged in.",
-      });
       setLocation("/");
     } else {
       toast({
@@ -47,6 +43,17 @@ export default function LoginPage() {
       });
     }
   };
+
+  // Show welcome toast when user state updates after successful login
+  const [hasShownWelcome, setHasShownWelcome] = useState(false);
+  if (user && !hasShownWelcome) {
+    setHasShownWelcome(true);
+    const displayName = user.name || user.username;
+    toast({
+      title: `Welcome back, ${displayName}!`,
+      description: "You have successfully logged in.",
+    });
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted p-4">
