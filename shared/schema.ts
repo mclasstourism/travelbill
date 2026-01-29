@@ -161,7 +161,7 @@ export type TripType = typeof tripTypes[number];
 
 export const insertTicketSchema = z.object({
   customerId: z.string().min(1, "Customer is required"),
-  vendorId: z.string().min(1, "Vendor is required"),
+  vendorId: z.string().optional(), // Optional - "direct" or empty means direct from airline
   invoiceId: z.string().optional(),
   tripType: z.enum(tripTypes).default("one_way"),
   ticketType: z.string().min(1, "Ticket type is required"),

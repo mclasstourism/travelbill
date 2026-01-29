@@ -40,7 +40,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Ticket as TicketIcon, Search, Loader2, Lock, Calendar, Plane, Upload, Download } from "lucide-react";
+import { Plus, Ticket as TicketIcon, Search, Loader2, Lock, Calendar, Plane, Upload, Download, UserPlus, Building2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -72,7 +72,7 @@ function getStatusBadgeVariant(status: string): "default" | "secondary" | "destr
 
 const createTicketFormSchema = z.object({
   customerId: z.string().min(1, "Customer is required"),
-  vendorId: z.string().min(1, "Vendor is required"),
+  vendorId: z.string().optional(), // Optional - "direct" means direct from airline
   tripType: z.enum(["one_way", "round_trip"]).default("one_way"),
   ticketType: z.string().min(1, "Ticket type is required"),
   route: z.string().min(1, "Route is required"),
@@ -94,6 +94,9 @@ export default function TicketsPage() {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [importData, setImportData] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
+  const [newCustomerName, setNewCustomerName] = useState("");
+  const [newCustomerPhone, setNewCustomerPhone] = useState("");
   const { toast } = useToast();
   const { isAuthenticated, session } = usePin();
 
@@ -149,6 +152,36 @@ export default function TicketsPage() {
     return { faceValue, depositDeducted, amountDue };
   }, [watchFaceValue, watchDeductFromDeposit, selectedCustomer]);
 
+  // Quick add customer mutation
+  const createCustomerMutation = useMutation({
+    mutationFn: async (data: { name: string; phone: string }) => {
+      const res = await apiRequest("POST", "/api/customers", data);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: "Failed to add customer" }));
+        throw new Error(errorData.error || "Failed to add customer");
+      }
+      return res.json();
+    },
+    onSuccess: (newCustomer) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      form.setValue("customerId", newCustomer.id);
+      setShowNewCustomerForm(false);
+      setNewCustomerName("");
+      setNewCustomerPhone("");
+      toast({
+        title: "Customer added",
+        description: `${newCustomer.name} has been added and selected.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add customer",
+        variant: "destructive",
+      });
+    },
+  });
+
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
       const res = await apiRequest("POST", "/api/tickets", data);
@@ -173,6 +206,21 @@ export default function TicketsPage() {
       });
     },
   });
+
+  const handleAddNewCustomer = () => {
+    if (!newCustomerName.trim() || !newCustomerPhone.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter customer name and phone",
+        variant: "destructive",
+      });
+      return;
+    }
+    createCustomerMutation.mutate({
+      name: newCustomerName.trim(),
+      phone: newCustomerPhone.trim(),
+    });
+  };
 
   const bulkImportMutation = useMutation({
     mutationFn: async (tickets: any[]) => {
@@ -267,8 +315,12 @@ export default function TicketsPage() {
       depositDeducted = Math.min(selectedCustomer.depositBalance, faceValue);
     }
 
+    // Normalize vendorId - "direct" or empty means no vendor (direct from airline)
+    const vendorId = data.vendorId === "direct" || !data.vendorId ? undefined : data.vendorId;
+
     const ticketData = {
       ...data,
+      vendorId, // Normalized - undefined means direct from airline
       faceValue,
       depositDeducted,
       issuedBy: session.billCreatorId,
@@ -395,20 +447,77 @@ export default function TicketsPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Customer *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-ticket-customer">
-                            <SelectValue placeholder="Select customer" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {customers.map((customer) => (
-                            <SelectItem key={customer.id} value={customer.id}>
-                              {customer.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {!showNewCustomerForm ? (
+                        <div className="space-y-2">
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-ticket-customer">
+                                <SelectValue placeholder="Select customer" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {customers.map((customer) => (
+                                <SelectItem key={customer.id} value={customer.id}>
+                                  {customer.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="w-full text-xs"
+                            onClick={() => setShowNewCustomerForm(true)}
+                            data-testid="button-add-new-customer"
+                          >
+                            <UserPlus className="w-3 h-3 mr-1" />
+                            Add New Customer
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2 p-2 border rounded-md bg-muted/30">
+                          <Input
+                            placeholder="Customer name"
+                            value={newCustomerName}
+                            onChange={(e) => setNewCustomerName(e.target.value)}
+                            data-testid="input-new-customer-name"
+                          />
+                          <Input
+                            placeholder="Phone number"
+                            value={newCustomerPhone}
+                            onChange={(e) => setNewCustomerPhone(e.target.value)}
+                            data-testid="input-new-customer-phone"
+                          />
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={handleAddNewCustomer}
+                              disabled={createCustomerMutation.isPending}
+                              data-testid="button-save-new-customer"
+                            >
+                              {createCustomerMutation.isPending ? (
+                                <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                              ) : null}
+                              Add
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setShowNewCustomerForm(false);
+                                setNewCustomerName("");
+                                setNewCustomerPhone("");
+                              }}
+                              data-testid="button-cancel-new-customer"
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -419,17 +528,26 @@ export default function TicketsPage() {
                   name="vendorId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Vendor *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <FormLabel>Vendor</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ""}>
                         <FormControl>
                           <SelectTrigger data-testid="select-ticket-vendor">
                             <SelectValue placeholder="Select vendor" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                          <SelectItem value="direct">
+                            <div className="flex items-center gap-2">
+                              <Plane className="w-4 h-4 text-blue-600" />
+                              Direct from Airline
+                            </div>
+                          </SelectItem>
                           {vendors.map((vendor) => (
                             <SelectItem key={vendor.id} value={vendor.id}>
-                              {vendor.name}
+                              <div className="flex items-center gap-2">
+                                <Building2 className="w-4 h-4 text-muted-foreground" />
+                                {vendor.name}
+                              </div>
                             </SelectItem>
                           ))}
                         </SelectContent>

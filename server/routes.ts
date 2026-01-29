@@ -984,7 +984,13 @@ export async function registerRoutes(
       
       for (let i = 0; i < tickets.length; i++) {
         try {
-          const data = insertTicketSchema.parse(tickets[i]);
+          // Normalize vendorId - "direct", "Direct", or empty string means direct from airline
+          const ticketData = { ...tickets[i] };
+          if (!ticketData.vendorId || ticketData.vendorId.toLowerCase() === "direct" || ticketData.vendorId.trim() === "") {
+            ticketData.vendorId = undefined;
+          }
+          
+          const data = insertTicketSchema.parse(ticketData);
           await storage.createTicket(data);
           results.success++;
         } catch (error) {
