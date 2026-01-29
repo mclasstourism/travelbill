@@ -209,11 +209,17 @@ export default function CustomersPage() {
                   <FormItem>
                     <FormLabel>Phone *</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="+971 50 123 4567"
-                        {...field}
-                        data-testid="input-customer-phone"
-                      />
+                      <div className="flex">
+                        <span className="inline-flex items-center px-3 text-sm border border-r-0 rounded-l-md bg-muted text-muted-foreground">
+                          +971
+                        </span>
+                        <Input
+                          placeholder="50 123 4567"
+                          {...field}
+                          data-testid="input-customer-phone"
+                          className="rounded-l-none"
+                        />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

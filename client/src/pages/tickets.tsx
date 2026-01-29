@@ -599,13 +599,18 @@ export default function TicketsPage() {
                       </div>
                       <div>
                         <label className="text-sm font-medium">Phone Number *</label>
-                        <Input
-                          placeholder="+971 XXXXXXXXX"
-                          value={newCustomerPhone}
-                          onChange={(e) => setNewCustomerPhone(e.target.value)}
-                          data-testid="input-walkin-phone"
-                          className="mt-1"
-                        />
+                        <div className="flex mt-1">
+                          <span className="inline-flex items-center px-3 text-sm border border-r-0 rounded-l-md bg-muted text-muted-foreground">
+                            +971
+                          </span>
+                          <Input
+                            placeholder="50 123 4567"
+                            value={newCustomerPhone}
+                            onChange={(e) => setNewCustomerPhone(e.target.value)}
+                            data-testid="input-walkin-phone"
+                            className="rounded-l-none"
+                          />
+                        </div>
                       </div>
                       <div>
                         <label className="text-sm font-medium">Address</label>
