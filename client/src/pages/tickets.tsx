@@ -664,8 +664,8 @@ export default function TicketsPage() {
                         </span>
                       )}
                     </div>
-                    <Badge variant={ticket.vendorId ? "secondary" : "outline"} className="shrink-0">
-                      {ticket.vendorId ? "Vendor" : "Airline"}
+                    <Badge variant={(ticket.passengerCount || 1) > 1 ? "default" : "outline"} className="shrink-0">
+                      {(ticket.passengerCount || 1) > 1 ? `Group (${ticket.passengerCount})` : "Per Person"}
                     </Badge>
                   </div>
                   
@@ -680,9 +680,13 @@ export default function TicketsPage() {
                   </div>
                   
                   <div className="flex items-center justify-between pt-2 border-t">
-                    <div className="text-sm">
-                      <span className="text-muted-foreground">Face Value: </span>
+                    <div className="flex flex-col">
                       <span className="font-mono font-semibold text-primary">{formatCurrency(ticket.faceValue)}</span>
+                      {(ticket.passengerCount || 1) > 1 && (
+                        <span className="text-xs text-muted-foreground">
+                          ({formatCurrency(ticket.faceValue / (ticket.passengerCount || 1))}/person)
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       {ticket.eticketImage && (
@@ -715,12 +719,10 @@ export default function TicketsPage() {
                   <TableRow>
                     <TableHead>Ticket #</TableHead>
                     <TableHead>Passenger</TableHead>
+                    <TableHead className="text-right">Ticket Price</TableHead>
+                    <TableHead>Type</TableHead>
                     <TableHead>Route</TableHead>
                     <TableHead>Travel Date</TableHead>
-                    <TableHead>Source</TableHead>
-                    <TableHead className="text-right">Cost Price</TableHead>
-                    <TableHead className="text-right">MC Addition</TableHead>
-                    <TableHead className="text-right">Face Value</TableHead>
                     <TableHead>E-Ticket</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -752,6 +754,23 @@ export default function TicketsPage() {
                           )}
                         </div>
                       </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex flex-col items-end">
+                          <span className="font-mono font-semibold text-primary">
+                            {formatCurrency(ticket.faceValue)}
+                          </span>
+                          {(ticket.passengerCount || 1) > 1 && (
+                            <span className="text-xs text-muted-foreground">
+                              ({formatCurrency(ticket.faceValue / (ticket.passengerCount || 1))}/person)
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={(ticket.passengerCount || 1) > 1 ? "default" : "outline"}>
+                          {(ticket.passengerCount || 1) > 1 ? `Group (${ticket.passengerCount})` : "Per Person"}
+                        </Badge>
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Plane className="w-4 h-4 text-muted-foreground" />
@@ -760,20 +779,6 @@ export default function TicketsPage() {
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {format(new Date(ticket.travelDate), "MMM d, yyyy")}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={ticket.vendorId ? "secondary" : "outline"}>
-                          {ticket.vendorId ? "Vendor" : "Airline"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-muted-foreground">
-                        {formatCurrency(ticket.vendorId ? (ticket.vendorPrice || 0) : (ticket.airlinePrice || 0))}
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-muted-foreground">
-                        {formatCurrency(ticket.middleClassPrice || 0)}
-                      </TableCell>
-                      <TableCell className="text-right font-mono font-semibold text-primary">
-                        {formatCurrency(ticket.faceValue)}
                       </TableCell>
                       <TableCell>
                         {ticket.eticketImage ? (
