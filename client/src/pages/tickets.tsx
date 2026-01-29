@@ -1334,14 +1334,13 @@ export default function TicketsPage() {
                           <FormLabel>Vendor Price (AED)</FormLabel>
                           <FormControl>
                             <Input
-                              type="number"
-                              min={0}
-                              step="0.01"
+                              type="text"
+                              inputMode="decimal"
                               placeholder="0.00"
-                              value={field.value || ""}
+                              value={field.value === 0 ? "" : field.value}
                               onChange={(e) => {
-                                const val = e.target.value;
-                                field.onChange(val === "" ? 0 : Number(val));
+                                const val = e.target.value.replace(/[^0-9.]/g, "");
+                                field.onChange(val === "" ? 0 : parseFloat(val) || 0);
                               }}
                               data-testid="input-vendor-price"
                             />
@@ -1359,14 +1358,13 @@ export default function TicketsPage() {
                           <FormLabel>Airline Price (AED)</FormLabel>
                           <FormControl>
                             <Input
-                              type="number"
-                              min={0}
-                              step="0.01"
+                              type="text"
+                              inputMode="decimal"
                               placeholder="0.00"
-                              value={field.value || ""}
+                              value={field.value === 0 ? "" : field.value}
                               onChange={(e) => {
-                                const val = e.target.value;
-                                field.onChange(val === "" ? 0 : Number(val));
+                                const val = e.target.value.replace(/[^0-9.]/g, "");
+                                field.onChange(val === "" ? 0 : parseFloat(val) || 0);
                               }}
                               data-testid="input-airline-price"
                             />
@@ -1384,14 +1382,13 @@ export default function TicketsPage() {
                         <FormLabel>Middle Class Addition (AED)</FormLabel>
                         <FormControl>
                           <Input
-                            type="number"
-                            min={0}
-                            step="0.01"
+                            type="text"
+                            inputMode="decimal"
                             placeholder="0.00"
-                            value={field.value || ""}
+                            value={field.value === 0 ? "" : field.value}
                             onChange={(e) => {
-                              const val = e.target.value;
-                              field.onChange(val === "" ? 0 : Number(val));
+                              const val = e.target.value.replace(/[^0-9.]/g, "");
+                              field.onChange(val === "" ? 0 : parseFloat(val) || 0);
                             }}
                             data-testid="input-middle-class-price"
                           />
