@@ -67,7 +67,6 @@ export default function CustomersPage() {
       phone: "",
       address: "",
       email: "",
-      depositBalance: 0,
     },
   });
 
@@ -78,7 +77,6 @@ export default function CustomersPage() {
       phone: "",
       address: "",
       email: "",
-      depositBalance: 0,
     },
   });
 
@@ -177,7 +175,6 @@ export default function CustomersPage() {
       phone: customer.phone,
       address: customer.address || "",
       email: customer.email || "",
-      depositBalance: customer.depositBalance,
     });
     setIsEditOpen(true);
   };
@@ -195,7 +192,7 @@ export default function CustomersPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      <div className="flex items-center justify-between gap-4 flex-wrap w-full">
         <div>
           <h1 className="text-2xl font-semibold" data-testid="text-customers-title">Customers</h1>
           <p className="text-sm text-muted-foreground">Manage your customer database</p>
@@ -532,7 +529,7 @@ export default function CustomersPage() {
             <AlertDialogCancel data-testid="button-cancel-delete-customer">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground"
               data-testid="button-confirm-delete-customer"
             >
               {deleteMutation.isPending && (
