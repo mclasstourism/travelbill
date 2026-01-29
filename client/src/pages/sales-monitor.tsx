@@ -172,12 +172,10 @@ export default function SalesMonitor() {
         </TableCell>
         <TableCell>
           {invoice ? (
-            <Link href={`/invoices?view=${invoice.id}`}>
-              <Button variant="ghost" size="sm" data-testid={`button-view-invoice-${ticket.id}`}>
-                <FileText className="w-4 h-4 mr-1" />
-                {invoice.invoiceNumber}
-              </Button>
-            </Link>
+            <Badge variant="outline" className="font-mono">
+              <FileText className="w-3 h-3 mr-1" />
+              {invoice.invoiceNumber}
+            </Badge>
           ) : (
             <span className="text-muted-foreground text-sm">No invoice</span>
           )}
@@ -207,10 +205,10 @@ export default function SalesMonitor() {
         <CardContent className="p-4">
           <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
             <DollarSign className="w-4 h-4" />
-            {type === "direct" ? "Airline Cost" : type === "vendor" ? "Vendor Cost" : "Our Price"}
+            {type === "direct" ? "Airline Cost" : type === "vendor" ? "Vendor Cost" : "Source Cost"}
           </div>
           <div className="text-2xl font-bold font-mono">
-            {formatCurrency(type === "direct" ? totals.airlineCost : totals.vendorCost || totals.faceValue - totals.mcAddition)}
+            {formatCurrency(type === "direct" ? totals.airlineCost : (totals.vendorCost + totals.airlineCost))}
           </div>
         </CardContent>
       </Card>
@@ -218,7 +216,7 @@ export default function SalesMonitor() {
         <CardContent className="p-4">
           <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
             <TrendingUp className="w-4 h-4" />
-            {type === "agent" ? "Agent Markup" : "MC Addition"}
+            MC Addition
           </div>
           <div className="text-2xl font-bold font-mono text-primary">
             {formatCurrency(totals.mcAddition)}
@@ -229,7 +227,7 @@ export default function SalesMonitor() {
         <CardContent className="p-4">
           <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
             <DollarSign className="w-4 h-4" />
-            Total Revenue
+            {type === "agent" ? "Price to Agent" : "Total Revenue"}
           </div>
           <div className="text-2xl font-bold font-mono text-green-600 dark:text-green-400">
             {formatCurrency(totals.faceValue)}
@@ -387,9 +385,9 @@ export default function SalesMonitor() {
                       <TableHead>Source</TableHead>
                       <TableHead>Client Type</TableHead>
                       <TableHead>Agent Name</TableHead>
-                      <TableHead className="text-right">Our Price</TableHead>
-                      <TableHead className="text-right">Agent Markup</TableHead>
-                      <TableHead className="text-right">Customer Price</TableHead>
+                      <TableHead className="text-right">Source Cost</TableHead>
+                      <TableHead className="text-right">MC Addition</TableHead>
+                      <TableHead className="text-right">Price to Agent</TableHead>
                       <TableHead>Invoice</TableHead>
                     </TableRow>
                   </TableHeader>
