@@ -722,45 +722,26 @@ export default function TicketsPage() {
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <FormField
-                  control={form.control}
-                  name="pnr"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>PNR / Booking Ref</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="e.g., ABC123"
-                          value={field.value}
-                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                          maxLength={6}
-                          className="uppercase"
-                          data-testid="input-pnr"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="ticketNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Invoice</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Invoice number"
-                          {...field}
-                          data-testid="input-invoice"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="pnr"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>PNR / Booking Ref</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g., ABC123"
+                        value={field.value}
+                        onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                        maxLength={6}
+                        className="uppercase"
+                        data-testid="input-pnr"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <div className="space-y-3">
                 <FormLabel>Select Client</FormLabel>
