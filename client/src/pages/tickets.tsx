@@ -321,7 +321,7 @@ export default function TicketsPage() {
           else if (header === 'traveldate') ticket.travelDate = values[i];
           else if (header === 'passengername') ticket.passengerName = values[i];
         });
-        ticket.issuedBy = session?.billCreatorId || '';
+        ticket.issuedBy = session?.staffId || '';
         ticket.deductFromDeposit = false;
         ticket.depositDeducted = 0;
         return ticket;
@@ -369,7 +369,7 @@ export default function TicketsPage() {
       vendorId, // Normalized - undefined means direct from airline
       faceValue,
       depositDeducted,
-      issuedBy: session.billCreatorId,
+      issuedBy: session.staffId,
     };
 
     createMutation.mutate(ticketData);
