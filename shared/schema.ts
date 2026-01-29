@@ -123,7 +123,10 @@ export const ticketsTable = pgTable("tickets", {
   travelDate: varchar("travel_date", { length: 20 }).notNull(),
   returnDate: varchar("return_date", { length: 20 }),
   passengerName: varchar("passenger_name", { length: 255 }).notNull(),
-  faceValue: doublePrecision("face_value").notNull(),
+  vendorPrice: doublePrecision("vendor_price").default(0), // Price from vendor
+  airlinePrice: doublePrecision("airline_price").default(0), // Airline's price
+  middleClassPrice: doublePrecision("middle_class_price").default(0), // Middle Class Tourism's price/margin
+  faceValue: doublePrecision("face_value").notNull(), // Final price to customer
   deductFromDeposit: boolean("deduct_from_deposit").default(false),
   depositDeducted: doublePrecision("deposit_deducted").default(0),
   eticketImage: varchar("eticket_image", { length: 500 }), // URL to e-ticket image (PNG/screenshot)
@@ -390,6 +393,9 @@ export const insertTicketSchema = z.object({
   travelDate: z.string().min(1, "Travel date is required"),
   returnDate: z.string().optional(), // Only for round trip
   passengerName: z.string().min(1, "Passenger name is required"),
+  vendorPrice: z.number().min(0).default(0), // Price from vendor
+  airlinePrice: z.number().min(0).default(0), // Airline's price
+  middleClassPrice: z.number().min(0).default(0), // Middle Class Tourism's price/margin
   faceValue: z.number().min(0, "Face value must be positive"),
   deductFromDeposit: z.boolean().default(false),
   depositDeducted: z.number().min(0).default(0),

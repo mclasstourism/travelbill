@@ -105,6 +105,9 @@ const createTicketFormSchema = z.object({
   travelDate: z.string().min(1, "Travel date is required"),
   returnDate: z.string().optional(),
   passengerName: z.string().min(1, "Passenger name is required"),
+  vendorPrice: z.coerce.number().min(0).default(0),
+  airlinePrice: z.coerce.number().min(0).default(0),
+  middleClassPrice: z.coerce.number().min(0).default(0),
   faceValue: z.coerce.number().min(0, "Face value must be positive"),
   deductFromDeposit: z.boolean().default(false),
 });
@@ -163,6 +166,9 @@ export default function TicketsPage() {
       travelDate: "",
       returnDate: "",
       passengerName: "",
+      vendorPrice: 0,
+      airlinePrice: 0,
+      middleClassPrice: 0,
       faceValue: 0,
       deductFromDeposit: false,
     },
@@ -1147,12 +1153,75 @@ export default function TicketsPage() {
                 />
               )}
 
+              <div className="grid grid-cols-3 gap-3">
+                <FormField
+                  control={form.control}
+                  name="vendorPrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Vendor Price</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          placeholder="0.00"
+                          {...field}
+                          data-testid="input-vendor-price"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="airlinePrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Airline Price</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          placeholder="0.00"
+                          {...field}
+                          data-testid="input-airline-price"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="middleClassPrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Middle Class Price</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          placeholder="0.00"
+                          {...field}
+                          data-testid="input-middle-class-price"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
               <FormField
                 control={form.control}
                 name="faceValue"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Face Value *</FormLabel>
+                    <FormLabel>Face Value (Customer Price) *</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
