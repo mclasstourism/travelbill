@@ -108,7 +108,7 @@ const createTicketFormSchema = z.object({
   flightNumber: z.string().optional(), // Optional at initial booking
   travelDate: z.string().min(1, "Travel date is required"),
   returnDate: z.string().optional(),
-  passengerName: z.string().min(1, "Lead passenger name is required"),
+  passengerName: z.string().optional(), // Now handled by passengerNamesList state
   vendorPrice: z.coerce.number().min(0).default(0),
   airlinePrice: z.coerce.number().min(0).default(0),
   middleClassPrice: z.coerce.number().min(0).default(0),
@@ -554,6 +554,26 @@ export default function TicketsPage() {
       toast({
         title: "Authentication required",
         description: "Please authenticate with PIN first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate passenger names - at least first passenger name is required
+    if (!passengerNamesList[0] || passengerNamesList[0].trim() === "") {
+      toast({
+        title: "Passenger name required",
+        description: "Please enter at least the first passenger name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate ticket numbers - at least first ticket number is required
+    if (!ticketNumbersList[0] || ticketNumbersList[0].trim() === "") {
+      toast({
+        title: "Ticket number required",
+        description: "Please enter at least the first ticket number",
         variant: "destructive",
       });
       return;
