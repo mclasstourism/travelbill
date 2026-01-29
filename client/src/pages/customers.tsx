@@ -189,10 +189,10 @@ export default function CustomersPage() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name *</FormLabel>
+                    <FormLabel>Name (as per passport) *</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Customer name"
+                        placeholder="Enter name..."
                         {...field}
                         data-testid="input-customer-name"
                       />

@@ -588,7 +588,7 @@ export default function TicketsPage() {
                   <div className="space-y-3 p-4 border rounded-md bg-muted/30">
                     <div className="space-y-3">
                       <div>
-                        <label className="text-sm font-medium">Customer Name *</label>
+                        <label className="text-sm font-medium">Name (as per passport) *</label>
                         <Input
                           placeholder="Enter name..."
                           value={newCustomerName}
