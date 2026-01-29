@@ -50,7 +50,6 @@ const partyItems = [
   { title: "Customers", url: "/customers", icon: Users },
   { title: "Agents", url: "/agents", icon: Briefcase },
   { title: "Vendors", url: "/vendors", icon: Building2 },
-  { title: "Airlines", url: "/airlines", icon: Plane },
 ];
 
 const financeItems = [
