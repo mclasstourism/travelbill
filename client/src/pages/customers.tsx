@@ -191,13 +191,13 @@ export default function CustomersPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap w-full">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 w-full">
         <div>
-          <h1 className="text-2xl font-semibold" data-testid="text-customers-title">Customers</h1>
+          <h1 className="text-xl md:text-2xl font-semibold" data-testid="text-customers-title">Customers</h1>
           <p className="text-sm text-muted-foreground">Manage your customer database</p>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)} data-testid="button-add-customer">
+        <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto" data-testid="button-add-customer">
           <Plus className="w-4 h-4 mr-2" />
           Add Customer
         </Button>
@@ -206,7 +206,7 @@ export default function CustomersPage() {
       <Card>
         <CardHeader className="pb-4">
           <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-sm">
+            <div className="relative flex-1 sm:max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search customers..."

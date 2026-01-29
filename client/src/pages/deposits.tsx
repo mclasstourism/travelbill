@@ -126,19 +126,19 @@ export default function DepositsPage() {
   const isLoading = isLoadingCustomers || isLoadingTransactions;
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-semibold" data-testid="text-deposits-title">Customer Deposits</h1>
+          <h1 className="text-xl md:text-2xl font-semibold" data-testid="text-deposits-title">Customer Deposits</h1>
           <p className="text-sm text-muted-foreground">Manage customer deposit balances</p>
         </div>
-        <Button onClick={() => setIsAddOpen(true)} data-testid="button-add-deposit">
+        <Button onClick={() => setIsAddOpen(true)} className="w-full sm:w-auto" data-testid="button-add-deposit">
           <Plus className="w-4 h-4 mr-2" />
           Add Deposit
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">

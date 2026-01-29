@@ -12,9 +12,9 @@ export default function AnalyticsPage() {
 
   if (isLoading) {
     return (
-      <div className="p-6 space-y-6">
-        <h1 className="text-2xl font-bold">Sales Analytics</h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+        <h1 className="text-xl md:text-2xl font-bold">Sales Analytics</h1>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <Card key={i}>
               <CardHeader>
@@ -31,16 +31,16 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <h1 className="text-2xl font-bold">Sales Analytics</h1>
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+        <h1 className="text-xl md:text-2xl font-bold">Sales Analytics</h1>
         <Badge variant="outline" className="text-sm">
           <TrendingUp className="w-4 h-4 mr-1" />
           Real-time Data
         </Badge>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
             <CardTitle className="text-sm font-medium">Top Customers</CardTitle>

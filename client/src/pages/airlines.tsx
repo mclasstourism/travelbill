@@ -156,17 +156,17 @@ export default function Airlines() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="container mx-auto p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Plane className="w-8 h-8" />
+          <h1 className="text-xl md:text-3xl font-bold flex items-center gap-2">
+            <Plane className="w-6 h-6 md:w-8 md:h-8" />
             Airlines
           </h1>
           <p className="text-muted-foreground">Manage your airline database</p>
         </div>
         {isSuperAdmin && (
-          <Button onClick={() => setIsCreateOpen(true)} data-testid="button-add-airline">
+          <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto" data-testid="button-add-airline">
             <Plus className="w-4 h-4 mr-2" />
             Add Airline
           </Button>
@@ -175,8 +175,8 @@ export default function Airlines() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-md">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+            <div className="relative flex-1 sm:max-w-md">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
                 placeholder="Search airlines..."

@@ -43,16 +43,16 @@ function MetricCard({
 }) {
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-4 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
+      <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
+        <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground truncate">
           {title}
         </CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
+        <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-semibold font-mono">{value}</div>
+        <div className="text-lg sm:text-2xl font-semibold font-mono truncate">{value}</div>
         {description && (
-          <p className="text-xs text-muted-foreground mt-1">{description}</p>
+          <p className="text-xs text-muted-foreground mt-1 hidden sm:block">{description}</p>
         )}
         {trend && (
           <div className="flex items-center gap-1 mt-2">
@@ -74,7 +74,7 @@ function MetricCard({
 function MetricCardSkeleton() {
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-4 pb-2">
+      <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
         <Skeleton className="h-4 w-24" />
         <Skeleton className="h-4 w-4" />
       </CardHeader>
@@ -108,13 +108,13 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold">Dashboard</h1>
+          <h1 className="text-xl md:text-2xl font-semibold">Dashboard</h1>
           <p className="text-sm text-muted-foreground">Overview of your travel agency billing</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {Array(8).fill(0).map((_, i) => (
             <MetricCardSkeleton key={i} />
           ))}
@@ -124,13 +124,13 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold" data-testid="text-dashboard-title">Dashboard</h1>
+        <h1 className="text-xl md:text-2xl font-semibold" data-testid="text-dashboard-title">Dashboard</h1>
         <p className="text-sm text-muted-foreground">Overview of your travel agency billing</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <MetricCard
           title="Total Revenue"
           value={formatCurrency(metrics?.totalRevenue || 0)}
@@ -175,7 +175,7 @@ export default function Dashboard() {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between gap-4">

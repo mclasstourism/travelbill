@@ -151,16 +151,14 @@ export default function UserManagementPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-3">
-          <Users className="w-6 h-6 text-primary" />
-          <h1 className="text-2xl font-bold">Staff Members</h1>
-        </div>
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex items-center gap-3">
+        <Users className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+        <h1 className="text-xl md:text-2xl font-bold">Staff Members</h1>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+        <TabsList className="grid w-full sm:max-w-md grid-cols-2">
           <TabsTrigger value="stats" className="flex items-center gap-2" data-testid="tab-user-stats">
             <BarChart3 className="w-4 h-4" />
             User Stats

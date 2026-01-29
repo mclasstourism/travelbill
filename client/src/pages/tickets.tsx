@@ -382,18 +382,18 @@ export default function TicketsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-semibold" data-testid="text-tickets-title">Tickets</h1>
+          <h1 className="text-xl md:text-2xl font-semibold" data-testid="text-tickets-title">Tickets</h1>
           <p className="text-sm text-muted-foreground">Issue and manage travel tickets</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setIsImportOpen(true)} data-testid="button-import-tickets">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+          <Button variant="outline" onClick={() => setIsImportOpen(true)} className="w-full sm:w-auto" data-testid="button-import-tickets">
             <Upload className="w-4 h-4 mr-2" />
             Bulk Import
           </Button>
-          <Button onClick={handleCreateClick} data-testid="button-issue-ticket">
+          <Button onClick={handleCreateClick} className="w-full sm:w-auto" data-testid="button-issue-ticket">
             {!isAuthenticated && <Lock className="w-4 h-4 mr-2" />}
             <Plus className="w-4 h-4 mr-2" />
             Issue Ticket
@@ -404,7 +404,7 @@ export default function TicketsPage() {
       <Card>
         <CardHeader className="pb-4">
           <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-sm">
+            <div className="relative flex-1 sm:max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search tickets..."

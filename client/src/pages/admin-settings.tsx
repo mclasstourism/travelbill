@@ -53,12 +53,12 @@ export default function AdminSettings() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-4xl mx-auto">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center gap-3">
-        <Settings className="w-8 h-8 text-primary" />
+        <Settings className="w-6 h-6 md:w-8 md:h-8 text-primary" />
         <div>
-          <h1 className="text-2xl font-bold" data-testid="text-admin-settings-title">Admin Settings</h1>
-          <p className="text-muted-foreground">System administration and data management</p>
+          <h1 className="text-xl md:text-2xl font-bold" data-testid="text-admin-settings-title">Admin Settings</h1>
+          <p className="text-sm text-muted-foreground">System administration and data management</p>
         </div>
       </div>
 

@@ -57,9 +57,9 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <h1 className="text-2xl font-bold">Booking Calendar</h1>
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+        <h1 className="text-xl md:text-2xl font-bold">Booking Calendar</h1>
         <Badge variant="outline" className="text-sm">
           <CalendarIcon className="w-4 h-4 mr-1" />
           Travel Schedule
@@ -67,7 +67,7 @@ export default function CalendarPage() {
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
+        <CardHeader className="flex flex-row items-center justify-between gap-2 md:gap-4 pb-4">
           <Button variant="outline" size="icon" onClick={prevMonth} data-testid="button-prev-month">
             <ChevronLeft className="w-4 h-4" />
           </Button>

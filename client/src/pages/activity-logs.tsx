@@ -34,8 +34,8 @@ export default function ActivityLogsPage() {
 
   if (isLoading) {
     return (
-      <div className="p-6 space-y-6">
-        <h1 className="text-2xl font-bold">Activity Logs</h1>
+      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+        <h1 className="text-xl md:text-2xl font-bold">Activity Logs</h1>
         <Card>
           <CardContent className="pt-6">
             {[1, 2, 3, 4, 5].map((i) => (
@@ -54,9 +54,9 @@ export default function ActivityLogsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <h1 className="text-2xl font-bold">Activity Logs</h1>
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+        <h1 className="text-xl md:text-2xl font-bold">Activity Logs</h1>
         <Badge variant="outline" className="text-sm">
           <Activity className="w-4 h-4 mr-1" />
           Audit Trail
