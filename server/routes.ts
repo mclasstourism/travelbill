@@ -722,11 +722,52 @@ export async function registerRoutes(
     try {
       const data = insertTicketSchema.parse(req.body);
       const ticket = await storage.createTicket(data);
+      
+      // Auto-create invoice for the ticket
+      // For direct airline tickets, use airlines field as description source
+      const ticketDescription = data.vendorId 
+        ? `Flight Ticket: ${data.passengerName} - ${data.route || ""}`.trim()
+        : `Direct Airline Ticket: ${data.passengerName} - ${data.route || ""} (${data.airlines || "Airline"})`.trim();
+      
+      const totalAmount = data.faceValue * (data.passengerCount || 1);
+      const invoiceData = {
+        customerType: "customer" as const,
+        customerId: data.customerId,
+        vendorId: data.vendorId || "direct-airline", // Placeholder for direct airline tickets
+        items: [{
+          description: ticketDescription,
+          quantity: data.passengerCount || 1,
+          unitPrice: data.faceValue,
+        }],
+        subtotal: totalAmount,
+        discountPercent: 0,
+        discountAmount: 0,
+        total: totalAmount,
+        vendorCost: data.vendorPrice || 0,
+        paymentMethod: data.depositDeducted > 0 ? "deposit" as const : "cash" as const,
+        amountPaid: data.depositDeducted > 0 ? data.depositDeducted : 0,
+        useCustomerDeposit: data.depositDeducted > 0,
+        depositUsed: data.depositDeducted > 0,
+        depositDeducted: data.depositDeducted || 0,
+        useVendorBalance: "none" as const,
+        vendorBalanceDeducted: 0,
+        notes: `Auto-generated from ticket ${ticket.id}`,
+        issuedBy: data.issuedBy,
+      };
+      
+      try {
+        await storage.createInvoice(invoiceData);
+      } catch (invoiceError) {
+        console.error("Failed to create auto-invoice:", invoiceError);
+        // Don't fail ticket creation if invoice fails
+      }
+      
       res.status(201).json(ticket);
     } catch (error) {
       if (error instanceof z.ZodError) {
         res.status(400).json({ error: error.errors });
       } else {
+        console.error("Failed to create ticket:", error);
         res.status(500).json({ error: "Failed to create ticket" });
       }
     }
