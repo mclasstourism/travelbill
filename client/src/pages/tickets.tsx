@@ -88,10 +88,12 @@ function getStatusBadgeVariant(status: string): "default" | "secondary" | "destr
 
 const createTicketFormSchema = z.object({
   ticketNumber: z.string().min(1, "Ticket number is required"),
+  pnr: z.string().optional(),
   customerId: z.string().min(1, "Customer is required"),
   vendorId: z.string().optional(), // Optional - "direct" means direct from airline
   tripType: z.enum(["one_way", "round_trip"]).default("one_way"),
   ticketType: z.string().min(1, "Ticket type is required"),
+  seatClass: z.enum(["economy", "business", "first"]).default("economy"),
   routeFrom: z.string().min(1, "Origin is required").max(4, "Max 4 characters"),
   routeTo: z.string().min(1, "Destination is required").max(4, "Max 4 characters"),
   airlines: z.string().min(1, "Airlines is required"),
@@ -100,6 +102,7 @@ const createTicketFormSchema = z.object({
   travelDate: z.string().min(1, "Travel date is required"),
   returnDate: z.string().optional(),
   passengerName: z.string().min(1, "Passenger name is required"),
+  baggageAllowance: z.string().optional(),
   faceValue: z.coerce.number().min(0, "Face value must be positive"),
   deductFromDeposit: z.boolean().default(false),
 });
@@ -139,10 +142,12 @@ export default function TicketsPage() {
     resolver: zodResolver(createTicketFormSchema),
     defaultValues: {
       ticketNumber: "",
+      pnr: "",
       customerId: "",
       vendorId: "",
       tripType: "one_way",
       ticketType: "",
+      seatClass: "economy",
       routeFrom: "",
       routeTo: "",
       airlines: "",
@@ -151,6 +156,7 @@ export default function TicketsPage() {
       travelDate: "",
       returnDate: "",
       passengerName: "",
+      baggageAllowance: "",
       faceValue: 0,
       deductFromDeposit: false,
     },
@@ -498,23 +504,44 @@ export default function TicketsPage() {
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="ticketNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Ticket Number</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Enter ticket number from airline/vendor..."
-                        {...field}
-                        data-testid="input-ticket-number"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-3">
+                <FormField
+                  control={form.control}
+                  name="ticketNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Ticket Number</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g., 157-1234567890"
+                          {...field}
+                          data-testid="input-ticket-number"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="pnr"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>PNR / Booking Ref</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g., ABC123"
+                          {...field}
+                          maxLength={10}
+                          className="uppercase"
+                          data-testid="input-pnr"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <div className="space-y-3">
                 <FormLabel>Select Client</FormLabel>
@@ -787,13 +814,13 @@ export default function TicketsPage() {
 
                 <FormField
                   control={form.control}
-                  name="ticketType"
+                  name="seatClass"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Class *</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <SelectTrigger data-testid="select-ticket-type">
+                          <SelectTrigger data-testid="select-seat-class">
                             <SelectValue placeholder="Select class" />
                           </SelectTrigger>
                         </FormControl>
@@ -803,6 +830,43 @@ export default function TicketsPage() {
                           <SelectItem value="first">First Class</SelectItem>
                         </SelectContent>
                       </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="ticketType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Ticket Type *</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g., E-Ticket, Paper"
+                          {...field}
+                          data-testid="input-ticket-type"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="baggageAllowance"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Baggage Allowance</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g., 23kg, 2 pieces"
+                          {...field}
+                          data-testid="input-baggage"
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

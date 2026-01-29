@@ -111,11 +111,13 @@ export const invoicesTable = pgTable("invoices", {
 export const ticketsTable = pgTable("tickets", {
   id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
   ticketNumber: varchar("ticket_number", { length: 50 }).notNull().unique(),
+  pnr: varchar("pnr", { length: 10 }), // Booking reference (6 chars typically)
   customerId: varchar("customer_id", { length: 36 }).notNull(),
   vendorId: varchar("vendor_id", { length: 36 }),
   invoiceId: varchar("invoice_id", { length: 36 }),
   tripType: varchar("trip_type", { length: 20 }).default("one_way"),
   ticketType: varchar("ticket_type", { length: 100 }).notNull(),
+  seatClass: varchar("seat_class", { length: 20 }).default("economy"), // economy, business, first
   route: varchar("route", { length: 255 }).notNull(),
   airlines: varchar("airlines", { length: 255 }).notNull(),
   flightNumber: varchar("flight_number", { length: 50 }).notNull(),
@@ -123,6 +125,7 @@ export const ticketsTable = pgTable("tickets", {
   travelDate: varchar("travel_date", { length: 20 }).notNull(),
   returnDate: varchar("return_date", { length: 20 }),
   passengerName: varchar("passenger_name", { length: 255 }).notNull(),
+  baggageAllowance: varchar("baggage_allowance", { length: 50 }), // e.g., "23kg", "2 pieces"
   faceValue: doublePrecision("face_value").notNull(),
   deductFromDeposit: boolean("deduct_from_deposit").default(false),
   depositDeducted: doublePrecision("deposit_deducted").default(0),
@@ -372,13 +375,18 @@ export type TicketStatus = typeof ticketStatuses[number];
 export const tripTypes = ["one_way", "round_trip"] as const;
 export type TripType = typeof tripTypes[number];
 
+export const seatClasses = ["economy", "business", "first"] as const;
+export type SeatClass = typeof seatClasses[number];
+
 export const insertTicketSchema = z.object({
   ticketNumber: z.string().min(1, "Ticket number is required"),
+  pnr: z.string().optional(), // Booking reference
   customerId: z.string().min(1, "Customer is required"),
   vendorId: z.string().optional(), // Optional - "direct" or empty means direct from airline
   invoiceId: z.string().optional(),
   tripType: z.enum(tripTypes).default("one_way"),
   ticketType: z.string().min(1, "Ticket type is required"),
+  seatClass: z.enum(seatClasses).default("economy"),
   route: z.string().min(1, "Route is required"),
   airlines: z.string().min(1, "Airlines is required"),
   flightNumber: z.string().min(1, "Flight number is required"),
@@ -386,6 +394,7 @@ export const insertTicketSchema = z.object({
   travelDate: z.string().min(1, "Travel date is required"),
   returnDate: z.string().optional(), // Only for round trip
   passengerName: z.string().min(1, "Passenger name is required"),
+  baggageAllowance: z.string().optional(), // e.g., "23kg", "2 pieces"
   faceValue: z.number().min(0, "Face value must be positive"),
   deductFromDeposit: z.boolean().default(false),
   depositDeducted: z.number().min(0).default(0),
