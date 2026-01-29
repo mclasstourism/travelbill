@@ -95,9 +95,12 @@ export default function TicketsPage() {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [importData, setImportData] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
+  const [customerType, setCustomerType] = useState<"existing" | "walkin">("existing");
   const [newCustomerName, setNewCustomerName] = useState("");
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
+  const [newCustomerCompany, setNewCustomerCompany] = useState("");
+  const [newCustomerAddress, setNewCustomerAddress] = useState("");
+  const [newCustomerEmail, setNewCustomerEmail] = useState("");
   const [ticketSource, setTicketSource] = useState<"direct" | "vendor">("direct");
   const { toast } = useToast();
   const { isAuthenticated, session } = usePin();
@@ -156,7 +159,7 @@ export default function TicketsPage() {
 
   // Quick add customer mutation
   const createCustomerMutation = useMutation({
-    mutationFn: async (data: { name: string; phone: string }) => {
+    mutationFn: async (data: { name: string; phone: string; company?: string; address?: string; email?: string }) => {
       const res = await apiRequest("POST", "/api/customers", data);
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: "Failed to add customer" }));
@@ -167,9 +170,12 @@ export default function TicketsPage() {
     onSuccess: (newCustomer) => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       form.setValue("customerId", newCustomer.id);
-      setShowNewCustomerForm(false);
+      setCustomerType("existing");
       setNewCustomerName("");
       setNewCustomerPhone("");
+      setNewCustomerCompany("");
+      setNewCustomerAddress("");
+      setNewCustomerEmail("");
       toast({
         title: "Customer added",
         description: `${newCustomer.name} has been added and selected.`,
@@ -221,6 +227,9 @@ export default function TicketsPage() {
     createCustomerMutation.mutate({
       name: newCustomerName.trim(),
       phone: newCustomerPhone.trim(),
+      company: newCustomerCompany.trim() || undefined,
+      address: newCustomerAddress.trim() || undefined,
+      email: newCustomerEmail.trim() || undefined,
     });
   };
 
@@ -445,91 +454,134 @@ export default function TicketsPage() {
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="customerId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Customer *</FormLabel>
-                      {!showNewCustomerForm ? (
-                        <div className="space-y-2">
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger data-testid="select-ticket-customer">
-                                <SelectValue placeholder="Select customer" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {customers.map((customer) => (
-                                <SelectItem key={customer.id} value={customer.id}>
-                                  {customer.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="w-full text-xs"
-                            onClick={() => setShowNewCustomerForm(true)}
-                            data-testid="button-add-new-customer"
-                          >
-                            <UserPlus className="w-3 h-3 mr-1" />
-                            Add New Customer
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="space-y-2 p-2 border rounded-md bg-muted/30">
-                          <Input
-                            placeholder="Customer name"
-                            value={newCustomerName}
-                            onChange={(e) => setNewCustomerName(e.target.value)}
-                            data-testid="input-new-customer-name"
-                          />
-                          <Input
-                            placeholder="Phone number"
-                            value={newCustomerPhone}
-                            onChange={(e) => setNewCustomerPhone(e.target.value)}
-                            data-testid="input-new-customer-phone"
-                          />
-                          <div className="flex gap-2">
-                            <Button
-                              type="button"
-                              size="sm"
-                              onClick={handleAddNewCustomer}
-                              disabled={createCustomerMutation.isPending}
-                              data-testid="button-save-new-customer"
-                            >
-                              {createCustomerMutation.isPending ? (
-                                <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                              ) : null}
-                              Add
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setShowNewCustomerForm(false);
-                                setNewCustomerName("");
-                                setNewCustomerPhone("");
-                              }}
-                              data-testid="button-cancel-new-customer"
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <div className="space-y-3">
+                <FormLabel>Customer Type</FormLabel>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={customerType === "existing" ? "default" : "outline"}
+                    className="flex-1 gap-2"
+                    onClick={() => {
+                      setCustomerType("existing");
+                    }}
+                    data-testid="button-customer-existing"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    Existing Customer
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={customerType === "walkin" ? "default" : "outline"}
+                    className="flex-1 gap-2"
+                    onClick={() => {
+                      setCustomerType("walkin");
+                      form.setValue("customerId", "");
+                    }}
+                    data-testid="button-customer-walkin"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    Walk-in Customer
+                  </Button>
+                </div>
 
-                <div className="space-y-3">
-                  <FormLabel>Ticket Source</FormLabel>
+                {customerType === "existing" ? (
+                  <FormField
+                    control={form.control}
+                    name="customerId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-ticket-customer">
+                              <SelectValue placeholder="Select customer" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {customers.map((customer) => (
+                              <SelectItem key={customer.id} value={customer.id}>
+                                {customer.name} - {customer.phone}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : (
+                  <div className="space-y-3 p-4 border rounded-md bg-muted/30">
+                    <p className="text-sm text-muted-foreground">Enter the walk-in customer details below.</p>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-sm font-medium">Name *</label>
+                        <Input
+                          placeholder="Customer name"
+                          value={newCustomerName}
+                          onChange={(e) => setNewCustomerName(e.target.value)}
+                          data-testid="input-walkin-name"
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">Phone *</label>
+                        <Input
+                          placeholder="+971 50 123 4567"
+                          value={newCustomerPhone}
+                          onChange={(e) => setNewCustomerPhone(e.target.value)}
+                          data-testid="input-walkin-phone"
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">Company</label>
+                        <Input
+                          placeholder="Company name"
+                          value={newCustomerCompany}
+                          onChange={(e) => setNewCustomerCompany(e.target.value)}
+                          data-testid="input-walkin-company"
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">Address</label>
+                        <Input
+                          placeholder="Street address"
+                          value={newCustomerAddress}
+                          onChange={(e) => setNewCustomerAddress(e.target.value)}
+                          data-testid="input-walkin-address"
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">Email</label>
+                        <Input
+                          placeholder="email@example.com"
+                          type="email"
+                          value={newCustomerEmail}
+                          onChange={(e) => setNewCustomerEmail(e.target.value)}
+                          data-testid="input-walkin-email"
+                          className="mt-1"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        onClick={handleAddNewCustomer}
+                        disabled={createCustomerMutation.isPending}
+                        className="w-full"
+                        data-testid="button-save-walkin-customer"
+                      >
+                        {createCustomerMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        ) : null}
+                        Save Customer
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <FormLabel>Ticket Source</FormLabel>
                   <div className="flex gap-2">
                     <Button
                       type="button"
@@ -589,7 +641,6 @@ export default function TicketsPage() {
                       )}
                     />
                   )}
-                </div>
               </div>
 
               <FormField
