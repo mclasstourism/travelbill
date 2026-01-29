@@ -198,43 +198,36 @@ export default function UserManagementPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {staffUsers.map((staff) => {
-                      const invoicesCount = Math.floor(Math.random() * 50);
-                      const ticketsCount = Math.floor(Math.random() * 100);
-                      const depositsCount = Math.floor(Math.random() * 30);
-                      const creditsCount = Math.floor(Math.random() * 20);
-                      const total = invoicesCount + ticketsCount + depositsCount + creditsCount;
-                      return (
-                        <TableRow key={staff.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                <User className="w-4 h-4 text-primary" />
-                              </div>
-                              <div>
-                                <p className="font-medium">{staff.name || staff.username}</p>
-                                <p className="text-xs text-muted-foreground">{staff.username}</p>
-                              </div>
+                    {staffUsers.map((staff) => (
+                      <TableRow key={staff.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                              <User className="w-4 h-4 text-primary" />
                             </div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Badge variant="secondary">{invoicesCount}</Badge>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Badge variant="secondary">{ticketsCount}</Badge>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Badge variant="secondary">{depositsCount}</Badge>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Badge variant="secondary">{creditsCount}</Badge>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Badge variant="default">{total}</Badge>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                            <div>
+                              <p className="font-medium">{staff.name || staff.username}</p>
+                              <p className="text-xs text-muted-foreground">{staff.username}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="secondary">0</Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="secondary">0</Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="secondary">0</Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="secondary">0</Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="default">0</Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               )}
