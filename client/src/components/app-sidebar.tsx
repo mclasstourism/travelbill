@@ -62,6 +62,7 @@ const reportsItems = [
 
 const settingsItems = [
   { title: "User Management", url: "/settings/users", icon: UserCog },
+  { title: "Admin Settings", url: "/settings/admin", icon: Settings },
 ];
 
 export function AppSidebar() {
@@ -189,54 +190,40 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4 border-t border-sidebar-border space-y-3">
-        {isAuthenticated && (
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <Badge variant="secondary" className="text-xs">
-                <Lock className="w-3 h-3 mr-1" />
-                {staffName}
-              </Badge>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={pinLogout}
-              data-testid="button-pin-logout"
-              title="End PIN session"
-            >
-              <Lock className="w-4 h-4" />
-            </Button>
-          </div>
-        )}
+      <SidebarFooter className="p-4 border-t border-sidebar-border">
         {user && (
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <Badge variant="outline" className="text-xs">
-                <User className="w-3 h-3 mr-1" />
-                {user.username}
-              </Badge>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <User className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex flex-col">
+                <span className="font-medium text-sm">{user.name || user.username}</span>
+                <Badge variant="secondary" className="text-xs w-fit">
+                  {user.role === "superadmin" ? "Admin" : "Staff"}
+                </Badge>
+              </div>
             </div>
-            <div className="flex items-center gap-1">
-              <Link href="/settings/account">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={authLogout}
+                data-testid="button-logout"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </Button>
+              <Link href="/settings/admin">
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="icon"
-                  data-testid="button-account-settings"
-                  title="Account Settings"
+                  data-testid="button-admin-settings"
+                  title="Admin Settings"
                 >
                   <Settings className="w-4 h-4" />
                 </Button>
               </Link>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={authLogout}
-                data-testid="button-logout"
-                title="Sign out"
-              >
-                <LogOut className="w-4 h-4" />
-              </Button>
             </div>
           </div>
         )}
