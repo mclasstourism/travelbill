@@ -124,6 +124,7 @@ export const ticketsTable = pgTable("tickets", {
   travelDate: varchar("travel_date", { length: 20 }).notNull(),
   returnDate: varchar("return_date", { length: 20 }),
   passengerName: varchar("passenger_name", { length: 255 }).notNull(), // Primary/lead passenger
+  passengerNames: text("passenger_names").array(), // All passenger names (array for each ticket)
   passengers: text("passengers").array(), // Additional passengers (JSON array of names)
   passengerCount: integer("passenger_count").default(1), // Total number of passengers
   vendorPrice: doublePrecision("vendor_price").default(0), // Price from vendor

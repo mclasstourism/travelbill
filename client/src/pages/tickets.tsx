@@ -143,6 +143,7 @@ export default function TicketsPage() {
   const [ticketNumbersList, setTicketNumbersList] = useState<string[]>([""]);
   const [ticketPricesList, setTicketPricesList] = useState<number[]>([0]);
   const [ticketClassesList, setTicketClassesList] = useState<string[]>(["economy"]);
+  const [passengerNamesList, setPassengerNamesList] = useState<string[]>([""]);
   const [createEticketFile, setCreateEticketFile] = useState<File | null>(null);
   const [createEticketPreview, setCreateEticketPreview] = useState<string | null>(null);
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
@@ -241,6 +242,14 @@ export default function TicketsPage() {
     setTicketClassesList(prev => {
       if (passengerCount > prev.length) {
         return [...prev, ...Array(passengerCount - prev.length).fill("economy")];
+      } else if (passengerCount < prev.length) {
+        return prev.slice(0, passengerCount);
+      }
+      return prev;
+    });
+    setPassengerNamesList(prev => {
+      if (passengerCount > prev.length) {
+        return [...prev, ...Array(passengerCount - prev.length).fill("")];
       } else if (passengerCount < prev.length) {
         return prev.slice(0, passengerCount);
       }
@@ -587,9 +596,13 @@ export default function TicketsPage() {
 
     // Filter out empty ticket numbers and use the list
     const validTicketNumbers = ticketNumbersList.filter(t => t.trim() !== "");
+    // Use the first passenger name for the main passengerName field
+    const leadPassengerName = passengerNamesList[0] || "";
     
     const ticketData = {
       ...data,
+      passengerName: leadPassengerName,
+      passengerNames: passengerNamesList, // All passenger names
       route, // Combined route
       vendorId, // Normalized - undefined means direct from airline
       faceValue,
@@ -607,6 +620,7 @@ export default function TicketsPage() {
     setTicketNumbersList([""]); // Reset ticket numbers list
     setTicketPricesList([0]); // Reset ticket prices list
     setTicketClassesList(["economy"]); // Reset ticket classes list
+    setPassengerNamesList([""]); // Reset passenger names list
   };
 
   return (
@@ -1269,30 +1283,17 @@ export default function TicketsPage() {
                             </Select>
                           </TableCell>
                           <TableCell className="p-2">
-                            {index === 0 ? (
-                              <FormField
-                                control={form.control}
-                                name="passengerName"
-                                render={({ field }) => (
-                                  <FormItem className="space-y-0">
-                                    <FormControl>
-                                      <Input
-                                        placeholder="Name as per passport"
-                                        {...field}
-                                        className="h-8"
-                                        data-testid="input-passenger-name"
-                                      />
-                                    </FormControl>
-                                  </FormItem>
-                                )}
-                              />
-                            ) : (
-                              <Input
-                                placeholder={`Passenger ${index + 1} name`}
-                                disabled
-                                className="text-muted-foreground h-8"
-                              />
-                            )}
+                            <Input
+                              placeholder={`Passenger ${index + 1} name`}
+                              value={passengerNamesList[index] || ""}
+                              onChange={(e) => {
+                                const newNames = [...passengerNamesList];
+                                newNames[index] = e.target.value;
+                                setPassengerNamesList(newNames);
+                              }}
+                              className="h-8"
+                              data-testid={`input-passenger-name-${index}`}
+                            />
                           </TableCell>
                           <TableCell className="p-2">
                             <Input
