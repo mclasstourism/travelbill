@@ -122,7 +122,9 @@ export const ticketsTable = pgTable("tickets", {
   flightNumber: varchar("flight_number", { length: 50 }), // Optional at initial booking
   travelDate: varchar("travel_date", { length: 20 }).notNull(),
   returnDate: varchar("return_date", { length: 20 }),
-  passengerName: varchar("passenger_name", { length: 255 }).notNull(),
+  passengerName: varchar("passenger_name", { length: 255 }).notNull(), // Primary/lead passenger
+  passengers: text("passengers").array(), // Additional passengers (JSON array of names)
+  passengerCount: integer("passenger_count").default(1), // Total number of passengers
   vendorPrice: doublePrecision("vendor_price").default(0), // Price from vendor
   airlinePrice: doublePrecision("airline_price").default(0), // Airline's price
   middleClassPrice: doublePrecision("middle_class_price").default(0), // Middle Class Tourism's price/margin
@@ -393,6 +395,8 @@ export const insertTicketSchema = z.object({
   travelDate: z.string().min(1, "Travel date is required"),
   returnDate: z.string().optional(), // Only for round trip
   passengerName: z.string().min(1, "Passenger name is required"),
+  passengers: z.array(z.string()).optional(), // Additional passengers
+  passengerCount: z.number().min(1).default(1), // Total number of passengers
   vendorPrice: z.number().min(0).default(0), // Price from vendor
   airlinePrice: z.number().min(0).default(0), // Airline's price
   middleClassPrice: z.number().min(0).default(0), // Middle Class Tourism's price/margin

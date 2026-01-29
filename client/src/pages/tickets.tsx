@@ -7,6 +7,7 @@ import { PinModal } from "@/components/pin-modal";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
@@ -40,7 +41,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Ticket as TicketIcon, Search, Loader2, Lock, Calendar, Plane, Upload, Download, UserPlus, Building2, Check, ChevronsUpDown, Edit, Image, Eye, X } from "lucide-react";
+import { Plus, Ticket as TicketIcon, Search, Loader2, Lock, Calendar, Plane, Upload, Download, UserPlus, Building2, Check, ChevronsUpDown, Edit, Image, Eye, X, Users } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
   Popover,
@@ -104,7 +105,7 @@ const createTicketFormSchema = z.object({
   flightNumber: z.string().optional(), // Optional at initial booking
   travelDate: z.string().min(1, "Travel date is required"),
   returnDate: z.string().optional(),
-  passengerName: z.string().min(1, "Passenger name is required"),
+  passengerName: z.string().min(1, "Lead passenger name is required"),
   vendorPrice: z.coerce.number().min(0).default(0),
   airlinePrice: z.coerce.number().min(0).default(0),
   middleClassPrice: z.coerce.number().min(0).default(0),
@@ -135,6 +136,8 @@ export default function TicketsPage() {
   const [newCustomerAddress, setNewCustomerAddress] = useState("");
   const [newCustomerEmail, setNewCustomerEmail] = useState("");
   const [ticketSource, setTicketSource] = useState<"direct" | "vendor">("direct");
+  const [additionalPassengers, setAdditionalPassengers] = useState<string[]>([]);
+  const [newPassengerName, setNewPassengerName] = useState("");
   const { toast } = useToast();
   const { isAuthenticated, session } = usePin();
 
@@ -502,10 +505,14 @@ export default function TicketsPage() {
       vendorId, // Normalized - undefined means direct from airline
       faceValue,
       depositDeducted,
+      passengers: additionalPassengers.length > 0 ? additionalPassengers : undefined,
+      passengerCount: 1 + additionalPassengers.length,
       issuedBy: session.staffId,
     };
 
     createMutation.mutate(ticketData);
+    setAdditionalPassengers([]); // Reset for next ticket
+    setNewPassengerName("");
   };
 
   return (
@@ -586,7 +593,17 @@ export default function TicketsPage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>{ticket.passengerName}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span>{ticket.passengerName}</span>
+                          {(ticket.passengerCount || 1) > 1 && (
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Users className="w-3 h-3" />
+                              +{(ticket.passengerCount || 1) - 1} more
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Plane className="w-4 h-4 text-muted-foreground" />
@@ -903,23 +920,86 @@ export default function TicketsPage() {
                   )}
               </div>
 
-              <FormField
-                control={form.control}
-                name="passengerName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Passenger Name *</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Full name as on ID"
-                        {...field}
-                        data-testid="input-passenger-name"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+              <div className="space-y-3">
+                <FormField
+                  control={form.control}
+                  name="passengerName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Lead Passenger Name *</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Full name as on ID"
+                          {...field}
+                          data-testid="input-passenger-name"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {additionalPassengers.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Additional Passengers</Label>
+                    {additionalPassengers.map((passenger, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <div className="flex-1 flex items-center gap-2 p-2 bg-muted rounded-md">
+                          <Users className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm">{passenger}</span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setAdditionalPassengers(prev => prev.filter((_, i) => i !== index));
+                          }}
+                          data-testid={`button-remove-passenger-${index}`}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
                 )}
-              />
+
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="Add family member name"
+                    value={newPassengerName}
+                    onChange={(e) => setNewPassengerName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && newPassengerName.trim()) {
+                        e.preventDefault();
+                        setAdditionalPassengers(prev => [...prev, newPassengerName.trim()]);
+                        setNewPassengerName("");
+                      }
+                    }}
+                    data-testid="input-additional-passenger"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      if (newPassengerName.trim()) {
+                        setAdditionalPassengers(prev => [...prev, newPassengerName.trim()]);
+                        setNewPassengerName("");
+                      }
+                    }}
+                    data-testid="button-add-passenger"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add
+                  </Button>
+                </div>
+
+                {(1 + additionalPassengers.length) > 1 && (
+                  <p className="text-sm text-muted-foreground">
+                    Total passengers: {1 + additionalPassengers.length}
+                  </p>
+                )}
+              </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField
