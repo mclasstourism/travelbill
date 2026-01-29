@@ -604,9 +604,10 @@ export default function TicketsPage() {
                             +971
                           </span>
                           <Input
-                            placeholder="50 123 4567"
+                            placeholder="501234567"
                             value={newCustomerPhone}
-                            onChange={(e) => setNewCustomerPhone(e.target.value)}
+                            onChange={(e) => setNewCustomerPhone(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                            maxLength={9}
                             data-testid="input-walkin-phone"
                             className="rounded-l-none"
                           />

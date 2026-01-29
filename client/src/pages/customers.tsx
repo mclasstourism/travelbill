@@ -328,8 +328,10 @@ export default function CustomersPage() {
                           +971
                         </span>
                         <Input
-                          placeholder="50 123 4567"
+                          placeholder="501234567"
                           {...field}
+                          onChange={(e) => field.onChange(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                          maxLength={9}
                           data-testid="input-customer-phone"
                           className="rounded-l-none"
                         />
@@ -443,8 +445,10 @@ export default function CustomersPage() {
                           +971
                         </span>
                         <Input
-                          placeholder="50 123 4567"
+                          placeholder="501234567"
                           {...field}
+                          onChange={(e) => field.onChange(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                          maxLength={9}
                           data-testid="input-edit-customer-phone"
                           className="rounded-l-none"
                         />

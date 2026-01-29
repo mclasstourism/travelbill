@@ -216,11 +216,19 @@ export default function AgentsPage() {
                   <FormItem>
                     <FormLabel>Phone *</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="+971 50 123 4567"
-                        {...field}
-                        data-testid="input-agent-phone"
-                      />
+                      <div className="flex">
+                        <span className="inline-flex items-center px-3 text-sm border border-r-0 rounded-l-md bg-muted text-muted-foreground">
+                          +971
+                        </span>
+                        <Input
+                          placeholder="501234567"
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                          maxLength={9}
+                          data-testid="input-agent-phone"
+                          className="rounded-l-none"
+                        />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
