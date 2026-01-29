@@ -846,59 +846,60 @@ export default function TicketsPage() {
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="pnr"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>PNR / Booking Ref</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="e.g., ABC123"
-                        value={field.value}
-                        onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                        maxLength={6}
-                        className="uppercase font-mono"
-                        data-testid="input-pnr"
-                      />
-                    </FormControl>
-                    <FormDescription className="text-xs">6-character booking reference</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Row 1: PNR and Number of Passengers */}
+              <div className="grid grid-cols-2 gap-3">
+                <FormField
+                  control={form.control}
+                  name="pnr"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>PNR / Booking Ref</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g., ABC123"
+                          value={field.value}
+                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                          maxLength={6}
+                          className="uppercase font-mono"
+                          data-testid="input-pnr"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="quantity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>How many tickets in this PNR?</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min="1"
-                        placeholder="1"
-                        defaultValue={field.value || 1}
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value);
-                          if (!isNaN(val) && val >= 1) {
-                            field.onChange(val);
-                          }
-                        }}
-                        onBlur={(e) => {
-                          const val = parseInt(e.target.value) || 1;
-                          field.onChange(Math.max(1, val));
-                          e.target.value = String(Math.max(1, val));
-                        }}
-                        data-testid="input-quantity"
-                      />
-                    </FormControl>
-                    <FormDescription className="text-xs">Number of passengers/tickets being booked</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="quantity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>No. of Passengers</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="1"
+                          placeholder="1"
+                          defaultValue={field.value || 1}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            if (!isNaN(val) && val >= 1) {
+                              field.onChange(val);
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const val = parseInt(e.target.value) || 1;
+                            field.onChange(Math.max(1, val));
+                            e.target.value = String(Math.max(1, val));
+                          }}
+                          data-testid="input-quantity"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <div className="space-y-3">
                 <FormLabel>Select Client</FormLabel>
@@ -1194,54 +1195,121 @@ export default function TicketsPage() {
                   
               </div>
 
-              <div className="space-y-3">
-                <FormField
-                  control={form.control}
-                  name="passengerName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Lead Passenger Name *</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Full name as on ID"
-                          {...field}
-                          data-testid="input-passenger-name"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Ticket Numbers Section - One per passenger */}
+              {/* Row 4: Ticket #, Passenger Name, Ticket Price */}
               <div className="space-y-3">
                 <Label className="text-sm font-medium">
-                  Ticket Numbers * ({passengerCount} {passengerCount === 1 ? 'ticket' : 'tickets'})
+                  Passenger Details ({passengerCount} {passengerCount === 1 ? 'ticket' : 'tickets'})
                 </Label>
                 <div className="space-y-2">
                   {ticketNumbersList.map((ticketNum, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground w-6">{index + 1}.</span>
-                      <Input
-                        placeholder={`Ticket #${index + 1}`}
-                        value={ticketNum}
-                        onChange={(e) => {
-                          const newList = [...ticketNumbersList];
-                          newList[index] = e.target.value;
-                          setTicketNumbersList(newList);
-                        }}
-                        className="font-mono flex-1"
-                        data-testid={`input-ticket-number-${index}`}
-                      />
+                    <div key={index} className="grid grid-cols-12 gap-2 items-center">
+                      <div className="col-span-3">
+                        <Input
+                          placeholder={`Ticket #${index + 1}`}
+                          value={ticketNum}
+                          onChange={(e) => {
+                            const newList = [...ticketNumbersList];
+                            newList[index] = e.target.value;
+                            setTicketNumbersList(newList);
+                          }}
+                          className="font-mono text-sm"
+                          data-testid={`input-ticket-number-${index}`}
+                        />
+                      </div>
+                      <div className="col-span-6">
+                        {index === 0 ? (
+                          <FormField
+                            control={form.control}
+                            name="passengerName"
+                            render={({ field }) => (
+                              <FormItem className="space-y-0">
+                                <FormControl>
+                                  <Input
+                                    placeholder="Passenger name as per passport"
+                                    {...field}
+                                    data-testid="input-passenger-name"
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        ) : (
+                          <Input
+                            placeholder={`Passenger ${index + 1} name`}
+                            disabled
+                            className="text-muted-foreground"
+                          />
+                        )}
+                      </div>
+                      <div className="col-span-3">
+                        {index === 0 ? (
+                          ticketSource === "vendor" ? (
+                            <FormField
+                              control={form.control}
+                              name="vendorPrice"
+                              render={({ field }) => (
+                                <FormItem className="space-y-0">
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      step="any"
+                                      placeholder="Price"
+                                      defaultValue=""
+                                      onChange={(e) => {
+                                        const val = parseFloat(e.target.value) || 0;
+                                        field.onChange(val);
+                                      }}
+                                      className="text-right"
+                                      data-testid="input-ticket-price"
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+                          ) : (
+                            <FormField
+                              control={form.control}
+                              name="airlinePrice"
+                              render={({ field }) => (
+                                <FormItem className="space-y-0">
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      step="any"
+                                      placeholder="Price"
+                                      defaultValue=""
+                                      onChange={(e) => {
+                                        const val = parseFloat(e.target.value) || 0;
+                                        field.onChange(val);
+                                      }}
+                                      className="text-right"
+                                      data-testid="input-ticket-price"
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+                          )
+                        ) : (
+                          <Input
+                            placeholder="—"
+                            disabled
+                            className="text-right text-muted-foreground"
+                          />
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Enter ticket number for each passenger in this booking
+                  Ticket # | Passenger Name | Price per person (AED)
                 </p>
               </div>
 
+              {/* Separator and Trip Details */}
+              <div className="border-t pt-4 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -1347,68 +1415,10 @@ export default function TicketsPage() {
                   />
                 </div>
               </div>
+              </div>
 
-              {/* Pricing Section */}
+              {/* MC Addition */}
               <div className="grid grid-cols-2 gap-3">
-                {ticketSource === "vendor" ? (
-                  <FormField
-                    control={form.control}
-                    name="vendorPrice"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Price/Person (AED)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="any"
-                            placeholder="0"
-                            defaultValue=""
-                            onBlur={(e) => {
-                              const val = parseFloat(e.target.value) || 0;
-                              field.onChange(val);
-                            }}
-                            onChange={(e) => {
-                              const val = parseFloat(e.target.value) || 0;
-                              field.onChange(val);
-                            }}
-                            data-testid="input-vendor-price-inline"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                ) : (
-                  <FormField
-                    control={form.control}
-                    name="airlinePrice"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Price/Person (AED)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="any"
-                            placeholder="0"
-                            defaultValue=""
-                            onBlur={(e) => {
-                              const val = parseFloat(e.target.value) || 0;
-                              field.onChange(val);
-                            }}
-                            onChange={(e) => {
-                              const val = parseFloat(e.target.value) || 0;
-                              field.onChange(val);
-                            }}
-                            data-testid="input-airline-price-inline"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
                 <FormField
                   control={form.control}
                   name="middleClassPrice"
