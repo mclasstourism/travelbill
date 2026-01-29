@@ -267,14 +267,14 @@ export default function UserManagementPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="pin">PIN (8 digits)</Label>
+                      <Label htmlFor="pin">PIN (5 digits)</Label>
                       <Input
                         id="pin"
                         type="password"
                         value={newUser.pin}
-                        onChange={(e) => setNewUser({ ...newUser, pin: e.target.value.replace(/\D/g, '').slice(0, 8) })}
-                        placeholder="Enter 8-digit PIN"
-                        maxLength={8}
+                        onChange={(e) => setNewUser({ ...newUser, pin: e.target.value.replace(/\D/g, '').slice(0, 5) })}
+                        placeholder="Enter 5-digit PIN"
+                        maxLength={5}
                         data-testid="input-new-pin"
                       />
                     </div>
@@ -309,20 +309,7 @@ export default function UserManagementPage() {
                           <TableCell className="font-medium">{user.username}</TableCell>
                           <TableCell>{user.name || "-"}</TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono">
-                                {showPasswords[user.id] ? (user.password?.slice(0, 8) || "••••••") : "••••••"}
-                              </span>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-6 w-6"
-                                onClick={() => togglePasswordVisibility(user.id)}
-                                data-testid={`toggle-password-${user.id}`}
-                              >
-                                {showPasswords[user.id] ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                              </Button>
-                            </div>
+                            <span className="font-mono text-muted-foreground">••••••</span>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
@@ -440,14 +427,14 @@ export default function UserManagementPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="edit-pin">PIN (8 digits)</Label>
+                  <Label htmlFor="edit-pin">PIN (5 digits)</Label>
                   <Input
                     id="edit-pin"
                     type="password"
                     value={editUser.pin}
-                    onChange={(e) => setEditUser({ ...editUser, pin: e.target.value.replace(/\D/g, '').slice(0, 8) })}
-                    placeholder="Enter 8-digit PIN"
-                    maxLength={8}
+                    onChange={(e) => setEditUser({ ...editUser, pin: e.target.value.replace(/\D/g, '').slice(0, 5) })}
+                    placeholder="Enter 5-digit PIN"
+                    maxLength={5}
                     data-testid="input-edit-pin"
                   />
                 </div>
