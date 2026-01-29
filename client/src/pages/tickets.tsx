@@ -732,7 +732,7 @@ export default function TicketsPage() {
                         <Input
                           placeholder="e.g., ABC123"
                           {...field}
-                          maxLength={10}
+                          maxLength={6}
                           className="uppercase"
                           data-testid="input-pnr"
                         />
