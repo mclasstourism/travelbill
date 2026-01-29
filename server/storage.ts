@@ -172,7 +172,7 @@ export class DatabaseStorage implements IStorage {
       
       if (tickets.length > 0) {
         const maxTicketNum = Math.max(...tickets.map(t => {
-          const num = parseInt(t.ticketNumber.replace('TKT-', ''));
+          const num = parseInt((t.ticketNumber || '').replace('TKT-', ''));
           return isNaN(num) ? 0 : num;
         }));
         this.ticketCounter = Math.max(this.ticketCounter, maxTicketNum + 1);
@@ -647,8 +647,9 @@ export class DatabaseStorage implements IStorage {
     const id = randomUUID();
     const result = await db.insert(ticketsTable).values({
       id,
-      ticketNumber: ticket.ticketNumber,
+      ticketNumber: ticket.ticketNumber || null,
       pnr: ticket.pnr || null,
+      passportNumber: ticket.passportNumber,
       customerId: ticket.customerId,
       vendorId: ticket.vendorId || null,
       invoiceId: ticket.invoiceId || null,
@@ -657,8 +658,8 @@ export class DatabaseStorage implements IStorage {
       seatClass: ticket.seatClass || "economy",
       route: ticket.route,
       airlines: ticket.airlines,
-      flightNumber: ticket.flightNumber,
-      flightTime: ticket.flightTime,
+      flightNumber: ticket.flightNumber || null,
+      flightTime: ticket.flightTime || null,
       travelDate: ticket.travelDate,
       returnDate: ticket.returnDate || null,
       passengerName: ticket.passengerName,
@@ -1095,6 +1096,7 @@ export class DatabaseStorage implements IStorage {
       id: row.id,
       ticketNumber: row.ticketNumber,
       pnr: row.pnr,
+      passportNumber: row.passportNumber,
       customerId: row.customerId,
       vendorId: row.vendorId,
       invoiceId: row.invoiceId,
@@ -1114,7 +1116,7 @@ export class DatabaseStorage implements IStorage {
       depositDeducted: row.depositDeducted || 0,
       eticketImage: row.eticketImage,
       issuedBy: row.issuedBy,
-      status: row.status as "pending" | "processing" | "issued" | "used" | "cancelled" | "refunded",
+      status: row.status as "pending" | "processing" | "approved" | "issued" | "used" | "cancelled" | "refunded",
       createdAt: row.createdAt?.toISOString() || new Date().toISOString(),
     };
   }

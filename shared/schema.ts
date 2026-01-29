@@ -110,8 +110,9 @@ export const invoicesTable = pgTable("invoices", {
 // Tickets table
 export const ticketsTable = pgTable("tickets", {
   id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
-  ticketNumber: varchar("ticket_number", { length: 50 }).notNull().unique(),
+  ticketNumber: varchar("ticket_number", { length: 50 }), // Optional - added later after e-ticket upload
   pnr: varchar("pnr", { length: 10 }), // Booking reference (6 chars typically)
+  passportNumber: varchar("passport_number", { length: 50 }).notNull(), // Customer passport number
   customerId: varchar("customer_id", { length: 36 }).notNull(),
   vendorId: varchar("vendor_id", { length: 36 }),
   invoiceId: varchar("invoice_id", { length: 36 }),
@@ -120,8 +121,8 @@ export const ticketsTable = pgTable("tickets", {
   seatClass: varchar("seat_class", { length: 20 }).default("economy"), // economy, business, first
   route: varchar("route", { length: 255 }).notNull(),
   airlines: varchar("airlines", { length: 255 }).notNull(),
-  flightNumber: varchar("flight_number", { length: 50 }).notNull(),
-  flightTime: varchar("flight_time", { length: 10 }).notNull(),
+  flightNumber: varchar("flight_number", { length: 50 }), // Optional at initial booking
+  flightTime: varchar("flight_time", { length: 10 }), // Optional at initial booking
   travelDate: varchar("travel_date", { length: 20 }).notNull(),
   returnDate: varchar("return_date", { length: 20 }),
   passengerName: varchar("passenger_name", { length: 255 }).notNull(),
@@ -131,7 +132,7 @@ export const ticketsTable = pgTable("tickets", {
   depositDeducted: doublePrecision("deposit_deducted").default(0),
   eticketImage: varchar("eticket_image", { length: 500 }), // URL to e-ticket image (PNG/screenshot)
   issuedBy: varchar("issued_by", { length: 36 }).notNull(),
-  status: varchar("status", { length: 20 }).default("pending"), // pending, processing, issued
+  status: varchar("status", { length: 20 }).default("pending"), // pending, processing, approved, issued, used, cancelled, refunded
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -370,7 +371,7 @@ export type Invoice = InsertInvoice & {
 };
 
 // Tickets (for travel tickets)
-export const ticketStatuses = ["pending", "processing", "issued", "used", "cancelled", "refunded"] as const;
+export const ticketStatuses = ["pending", "processing", "approved", "issued", "used", "cancelled", "refunded"] as const;
 export type TicketStatus = typeof ticketStatuses[number];
 
 export const tripTypes = ["one_way", "round_trip"] as const;
@@ -380,8 +381,9 @@ export const seatClasses = ["economy", "business", "first"] as const;
 export type SeatClass = typeof seatClasses[number];
 
 export const insertTicketSchema = z.object({
-  ticketNumber: z.string().min(1, "Ticket number is required"),
+  ticketNumber: z.string().optional(), // Optional - added later after e-ticket upload
   pnr: z.string().optional(), // Booking reference
+  passportNumber: z.string().min(1, "Passport number is required"), // Customer passport
   customerId: z.string().min(1, "Customer is required"),
   vendorId: z.string().optional(), // Optional - "direct" or empty means direct from airline
   invoiceId: z.string().optional(),
@@ -390,8 +392,8 @@ export const insertTicketSchema = z.object({
   seatClass: z.enum(seatClasses).default("economy"),
   route: z.string().min(1, "Route is required"),
   airlines: z.string().min(1, "Airlines is required"),
-  flightNumber: z.string().min(1, "Flight number is required"),
-  flightTime: z.string().min(1, "Flight time is required"), // 24hr format HH:MM
+  flightNumber: z.string().optional(), // Optional at initial booking
+  flightTime: z.string().optional(), // Optional at initial booking (24hr format HH:MM)
   travelDate: z.string().min(1, "Travel date is required"),
   returnDate: z.string().optional(), // Only for round trip
   passengerName: z.string().min(1, "Passenger name is required"),

@@ -74,6 +74,7 @@ function formatCurrency(amount: number): string {
 
 function getStatusBadgeVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
   switch (status) {
+    case "approved":
     case "issued":
       return "default";
     case "processing":
@@ -91,8 +92,9 @@ function getStatusBadgeVariant(status: string): "default" | "secondary" | "destr
 }
 
 const createTicketFormSchema = z.object({
-  ticketNumber: z.string().min(1, "Ticket number is required"),
+  ticketNumber: z.string().optional(), // Optional - added later after e-ticket upload
   pnr: z.string().optional(),
+  passportNumber: z.string().min(1, "Passport number is required"),
   customerId: z.string().min(1, "Customer is required"),
   vendorId: z.string().optional(), // Optional - "direct" means direct from airline
   tripType: z.enum(["one_way", "round_trip"]).default("one_way"),
@@ -101,8 +103,8 @@ const createTicketFormSchema = z.object({
   routeFrom: z.string().min(1, "Origin is required").max(4, "Max 4 characters"),
   routeTo: z.string().min(1, "Destination is required").max(4, "Max 4 characters"),
   airlines: z.string().min(1, "Airlines is required"),
-  flightNumber: z.string().min(1, "Flight number is required"),
-  flightTime: z.string().min(1, "Flight time is required"),
+  flightNumber: z.string().optional(), // Optional at initial booking
+  flightTime: z.string().optional(), // Optional at initial booking
   travelDate: z.string().min(1, "Travel date is required"),
   returnDate: z.string().optional(),
   passengerName: z.string().min(1, "Passenger name is required"),
@@ -120,6 +122,7 @@ export default function TicketsPage() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
   const [editStatus, setEditStatus] = useState<string>("pending");
+  const [editTicketNumber, setEditTicketNumber] = useState<string>("");
   const [eticketFile, setEticketFile] = useState<File | null>(null);
   const [eticketPreview, setEticketPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -153,6 +156,7 @@ export default function TicketsPage() {
     defaultValues: {
       ticketNumber: "",
       pnr: "",
+      passportNumber: "",
       customerId: "",
       vendorId: "",
       tripType: "one_way",
@@ -312,7 +316,7 @@ export default function TicketsPage() {
   });
 
   const updateTicketMutation = useMutation({
-    mutationFn: async (data: { id: string; status?: string; eticketImage?: string }) => {
+    mutationFn: async (data: { id: string; status?: string; ticketNumber?: string; eticketImage?: string }) => {
       const res = await apiRequest("PATCH", `/api/tickets/${data.id}`, data);
       return res.json();
     },
@@ -340,6 +344,7 @@ export default function TicketsPage() {
   const handleEditTicket = (ticket: Ticket) => {
     setEditingTicket(ticket);
     setEditStatus(ticket.status);
+    setEditTicketNumber(ticket.ticketNumber || "");
     setEticketPreview(ticket.eticketImage || null);
     setEticketFile(null);
     setIsEditOpen(true);
@@ -404,6 +409,7 @@ export default function TicketsPage() {
       updateTicketMutation.mutate({
         id: editingTicket.id,
         status: editStatus,
+        ticketNumber: editTicketNumber || undefined,
         eticketImage: eticketImageUrl,
       });
     } catch (error) {
@@ -418,7 +424,8 @@ export default function TicketsPage() {
   };
 
   const filteredTickets = tickets.filter((ticket) =>
-    ticket.ticketNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (ticket.ticketNumber?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+    (ticket.passportNumber?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
     ticket.passengerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     ticket.route.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -562,7 +569,7 @@ export default function TicketsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Ticket #</TableHead>
+                    <TableHead>Passport / Ticket #</TableHead>
                     <TableHead>Passenger</TableHead>
                     <TableHead>Route</TableHead>
                     <TableHead>Travel Date</TableHead>
@@ -575,8 +582,17 @@ export default function TicketsPage() {
                 <TableBody>
                   {filteredTickets.map((ticket) => (
                     <TableRow key={ticket.id} data-testid={`row-ticket-${ticket.id}`}>
-                      <TableCell className="font-medium font-mono">
-                        {ticket.ticketNumber}
+                      <TableCell className="font-medium">
+                        <div className="flex flex-col">
+                          <span className="text-xs text-muted-foreground">Passport:</span>
+                          <span className="font-mono">{ticket.passportNumber || "-"}</span>
+                          {ticket.ticketNumber && (
+                            <>
+                              <span className="text-xs text-muted-foreground mt-1">Ticket:</span>
+                              <span className="font-mono text-sm">{ticket.ticketNumber}</span>
+                            </>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>{ticket.passengerName}</TableCell>
                       <TableCell>
@@ -648,15 +664,15 @@ export default function TicketsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <FormField
                   control={form.control}
-                  name="ticketNumber"
+                  name="passportNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Ticket Number</FormLabel>
+                      <FormLabel>Passport Number</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="e.g., 157-1234567890"
+                          placeholder="e.g., AB1234567"
                           {...field}
-                          data-testid="input-ticket-number"
+                          data-testid="input-passport-number"
                         />
                       </FormControl>
                       <FormMessage />
@@ -1380,6 +1396,19 @@ export default function TicketsPage() {
               </div>
 
               <div className="space-y-2">
+                <label className="text-sm font-medium">Ticket Number</label>
+                <Input
+                  placeholder="Enter ticket number from airline (e.g., 157-1234567890)"
+                  value={editTicketNumber}
+                  onChange={(e) => setEditTicketNumber(e.target.value)}
+                  data-testid="input-edit-ticket-number"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Enter the ticket number after receiving the e-ticket from airline
+                </p>
+              </div>
+
+              <div className="space-y-2">
                 <label className="text-sm font-medium">Status</label>
                 <Select value={editStatus} onValueChange={setEditStatus}>
                   <SelectTrigger data-testid="select-ticket-status">
@@ -1388,6 +1417,7 @@ export default function TicketsPage() {
                   <SelectContent>
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="processing">Processing</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
                     <SelectItem value="issued">Issued</SelectItem>
                     <SelectItem value="used">Used</SelectItem>
                     <SelectItem value="cancelled">Cancelled</SelectItem>
