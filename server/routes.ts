@@ -315,6 +315,7 @@ export async function registerRoutes(
   });
 
   // PIN Authentication for staff users
+  // Admin PIN (00000) works as a universal PIN for all transactions
   app.post("/api/auth/verify-user-pin", async (req, res) => {
     try {
       const { userId, pin } = req.body;
@@ -323,11 +324,29 @@ export async function registerRoutes(
         return;
       }
       const user = await storage.getUser(userId);
-      if (!user || user.pin !== pin || user.active === false) {
+      if (!user || user.active === false) {
         res.status(401).json({ success: false, error: "Invalid PIN" });
         return;
       }
-      const { password, twoFactorSecret, ...safeUser } = user;
+      
+      // Check if PIN matches user's own PIN
+      let pinValid = user.pin === pin;
+      
+      // If not, check if it's the admin universal PIN (00000)
+      if (!pinValid) {
+        const users = await storage.getUsers();
+        const adminUser = users.find(u => u.role === "superadmin");
+        if (adminUser && adminUser.pin === pin) {
+          pinValid = true;
+        }
+      }
+      
+      if (!pinValid) {
+        res.status(401).json({ success: false, error: "Invalid PIN" });
+        return;
+      }
+      
+      const { password, twoFactorSecret, plainPassword, ...safeUser } = user;
       res.json({ success: true, user: safeUser });
     } catch (error) {
       res.status(500).json({ error: "Authentication failed" });
