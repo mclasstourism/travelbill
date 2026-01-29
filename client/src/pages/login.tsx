@@ -63,9 +63,9 @@ export default function LoginPage() {
             <img src={companyLogo} alt="Company Logo" className="h-16 w-auto" />
           </div>
           <div>
-            <CardTitle className="text-2xl">Billing Application</CardTitle>
+            <CardTitle className="text-2xl">Agency Management Platform</CardTitle>
             <CardDescription className="mt-2">
-              Sign in to access the billing system
+              Sign in to access the management system
             </CardDescription>
           </div>
         </CardHeader>
