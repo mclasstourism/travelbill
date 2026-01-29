@@ -41,7 +41,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Ticket as TicketIcon, Search, Loader2, Lock, Calendar, Plane, Upload, Download, UserPlus, Building2, Check, ChevronsUpDown, Edit, Image, Eye, X, Users, FileText, Printer } from "lucide-react";
+import { Plus, Ticket as TicketIcon, Search, Loader2, Lock, Calendar, Plane, Upload, Download, UserPlus, Building2, Check, ChevronsUpDown, Edit, Image, Eye, X, Users, FileText, Printer, Briefcase } from "lucide-react";
 import companyLogo from "@assets/Updated_Logo_1769092146053.png";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
@@ -136,7 +136,7 @@ export default function TicketsPage() {
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
   const [newCustomerAddress, setNewCustomerAddress] = useState("");
   const [newCustomerEmail, setNewCustomerEmail] = useState("");
-  const [ticketSource, setTicketSource] = useState<"direct" | "vendor">("direct");
+  const [ticketSource, setTicketSource] = useState<"direct" | "vendor" | "agent">("direct");
   const [additionalPassengers, setAdditionalPassengers] = useState<string[]>([]);
   const [newPassengerName, setNewPassengerName] = useState("");
   const [showGroupSection, setShowGroupSection] = useState(false);
@@ -220,6 +220,7 @@ export default function TicketsPage() {
     if (ticketSource === "direct") {
       basePrice = Number(watchAirlinePrice) || 0;
     } else {
+      // For vendor or agent sources, use vendor/agent price
       basePrice = Number(watchVendorPrice) || 0;
     }
     const total = basePrice + middleClass;
@@ -928,45 +929,50 @@ export default function TicketsPage() {
 
               <div className="space-y-3">
                 <FormLabel>Ticket Source</FormLabel>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant={ticketSource === "direct" ? "default" : "outline"}
-                      className="flex-1 gap-2"
-                      onClick={() => {
-                        setTicketSource("direct");
-                        form.setValue("vendorId", "direct");
-                        form.setValue("airlines", "");
+                  <Select 
+                    value={ticketSource} 
+                    onValueChange={(value: "direct" | "vendor" | "agent") => {
+                      setTicketSource(value);
+                      form.setValue("vendorId", value === "direct" ? "direct" : "");
+                      form.setValue("airlines", "");
+                      if (value === "direct") {
                         form.setValue("vendorPrice", 0);
-                      }}
-                      data-testid="button-source-direct"
-                    >
-                      <Plane className="w-4 h-4" />
-                      Direct from Airline
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={ticketSource === "vendor" ? "default" : "outline"}
-                      className="flex-1 gap-2"
-                      onClick={() => {
-                        setTicketSource("vendor");
-                        form.setValue("vendorId", "");
-                        form.setValue("airlines", "");
+                      } else {
                         form.setValue("airlinePrice", 0);
-                      }}
-                      data-testid="button-source-vendor"
-                    >
-                      <Building2 className="w-4 h-4" />
-                      Via Vendor
-                    </Button>
-                  </div>
+                      }
+                    }}
+                  >
+                    <SelectTrigger data-testid="select-ticket-source">
+                      <SelectValue placeholder="Select source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="direct">
+                        <div className="flex items-center gap-2">
+                          <Plane className="w-4 h-4 text-muted-foreground" />
+                          Airlines (direct)
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="vendor">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-muted-foreground" />
+                          Vendor
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="agent">
+                        <div className="flex items-center gap-2">
+                          <Briefcase className="w-4 h-4 text-muted-foreground" />
+                          Agent
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                   
                   {ticketSource === "vendor" && (
                     <FormField
                       control={form.control}
                       name="vendorId"
                       render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="mt-3">
                           <Select onValueChange={field.onChange} value={field.value || ""}>
                             <FormControl>
                               <SelectTrigger data-testid="select-ticket-vendor">
@@ -979,6 +985,35 @@ export default function TicketsPage() {
                                   <div className="flex items-center gap-2">
                                     <Building2 className="w-4 h-4 text-muted-foreground" />
                                     {vendor.name}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                  
+                  {ticketSource === "agent" && (
+                    <FormField
+                      control={form.control}
+                      name="vendorId"
+                      render={({ field }) => (
+                        <FormItem className="mt-3">
+                          <Select onValueChange={field.onChange} value={field.value || ""}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-ticket-agent">
+                                <SelectValue placeholder="Select agent" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {agents.map((agent) => (
+                                <SelectItem key={agent.id} value={agent.id}>
+                                  <div className="flex items-center gap-2">
+                                    <Briefcase className="w-4 h-4 text-muted-foreground" />
+                                    {agent.name}
                                   </div>
                                 </SelectItem>
                               ))}
@@ -1345,13 +1380,13 @@ export default function TicketsPage() {
               <div className="space-y-3">
                 <Label className="text-sm font-medium">Pricing</Label>
                 <div className="grid grid-cols-2 gap-3">
-                  {ticketSource === "vendor" ? (
+                  {(ticketSource === "vendor" || ticketSource === "agent") ? (
                     <FormField
                       control={form.control}
                       name="vendorPrice"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Vendor Price (AED)</FormLabel>
+                          <FormLabel>{ticketSource === "agent" ? "Agent" : "Vendor"} Price (AED)</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
@@ -1443,7 +1478,7 @@ export default function TicketsPage() {
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Auto-calculated: {ticketSource === "vendor" ? "Vendor" : "Airline"} Price + Middle Class Addition
+                  Auto-calculated: {ticketSource === "direct" ? "Airline" : ticketSource === "agent" ? "Agent" : "Vendor"} Price + Middle Class Addition
                 </p>
               </div>
 
