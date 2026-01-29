@@ -186,11 +186,28 @@ export class MemStorage implements IStorage {
       id: defaultUserId,
       username: "admin",
       password: hashedPassword,
+      plainPassword: "admin123",
       email: "admin@example.com",
       passwordHint: "Default password is admin followed by 123",
       pin: "00000",
       active: true,
       role: "superadmin",
+      name: "Administrator",
+    });
+
+    // Seed with a default staff user (password: staff123, PIN: 11111)
+    const defaultStaffId = randomUUID();
+    const staffHashedPassword = bcrypt.hashSync("staff123", 10);
+    this.users.set(defaultStaffId, {
+      id: defaultStaffId,
+      username: "staff1",
+      password: staffHashedPassword,
+      plainPassword: "staff123",
+      email: "staff1@example.com",
+      pin: "11111",
+      active: true,
+      role: "staff",
+      name: "staff1username",
     });
   }
 
