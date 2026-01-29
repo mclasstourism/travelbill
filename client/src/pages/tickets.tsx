@@ -756,6 +756,16 @@ export default function TicketsPage() {
                           E-Ticket
                         </Badge>
                       )}
+                      {ticket.invoiceId && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => window.open(`/print-invoice/${ticket.invoiceId}`, '_blank')}
+                          data-testid={`button-print-invoice-mobile-${ticket.id}`}
+                        >
+                          <Printer className="w-4 h-4" />
+                        </Button>
+                      )}
                       <Button
                         size="icon"
                         variant="ghost"
@@ -856,20 +866,32 @@ export default function TicketsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {ticket.status === "issued" && (
+                          {ticket.invoiceId && (
                             <Button
                               size="icon"
                               variant="ghost"
                               onClick={() => {
-                                setInvoiceTicket(ticket);
-                                setIsInvoiceOpen(true);
+                                // Open print invoice in new window
+                                window.open(`/print-invoice/${ticket.invoiceId}`, '_blank');
                               }}
-                              data-testid={`button-invoice-ticket-${ticket.id}`}
-                              title="View Invoice"
+                              data-testid={`button-print-invoice-${ticket.id}`}
+                              title="Print Invoice"
                             >
-                              <FileText className="w-4 h-4" />
+                              <Printer className="w-4 h-4" />
                             </Button>
                           )}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => {
+                              setInvoiceTicket(ticket);
+                              setIsInvoiceOpen(true);
+                            }}
+                            data-testid={`button-invoice-ticket-${ticket.id}`}
+                            title="View Invoice"
+                          >
+                            <FileText className="w-4 h-4" />
+                          </Button>
                           <Button
                             size="icon"
                             variant="ghost"

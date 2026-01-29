@@ -741,6 +741,7 @@ export async function registerRoutes(
       }
       
       // Only create invoice if we have a valid vendor
+      let createdInvoice = null;
       if (invoiceVendorId) {
         const invoiceData = {
           customerType: "customer" as const,
@@ -756,11 +757,9 @@ export async function registerRoutes(
           discountAmount: 0,
           total: totalAmount,
           vendorCost: data.vendorPrice || 0,
-          paymentMethod: data.depositDeducted > 0 ? "deposit" as const : "cash" as const,
-          amountPaid: data.depositDeducted > 0 ? data.depositDeducted : 0,
+          paymentMethod: "cash" as const,
           useCustomerDeposit: data.depositDeducted > 0,
-          depositUsed: data.depositDeducted > 0,
-          depositDeducted: data.depositDeducted || 0,
+          depositUsed: data.depositDeducted || 0,
           useVendorBalance: "none" as const,
           vendorBalanceDeducted: 0,
           notes: `Auto-generated from ticket ${ticket.id}${!data.vendorId ? ' (Direct Airline)' : ''}`,
@@ -768,13 +767,18 @@ export async function registerRoutes(
         };
         
         try {
-          await storage.createInvoice(invoiceData);
+          createdInvoice = await storage.createInvoice(invoiceData);
+          // Link invoice to ticket
+          if (createdInvoice) {
+            await storage.updateTicket(ticket.id, { invoiceId: createdInvoice.id });
+            ticket.invoiceId = createdInvoice.id;
+          }
         } catch (invoiceError) {
           console.error("Failed to create auto-invoice:", invoiceError);
         }
       }
       
-      res.status(201).json(ticket);
+      res.status(201).json({ ...ticket, invoice: createdInvoice });
     } catch (error) {
       if (error instanceof z.ZodError) {
         res.status(400).json({ error: error.errors });

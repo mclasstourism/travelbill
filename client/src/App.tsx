@@ -26,6 +26,7 @@ import AdminSettingsPage from "@/pages/admin-settings";
 import CalendarPage from "@/pages/calendar";
 import AirlinesPage from "@/pages/airlines";
 import SalesMonitorPage from "@/pages/sales-monitor";
+import PrintInvoicePage from "@/pages/print-invoice";
 import LoginPage from "@/pages/login";
 import { Loader2 } from "lucide-react";
 
@@ -49,6 +50,7 @@ function Router() {
       <Route path="/settings/users" component={UserManagementPage} />
       <Route path="/settings/admin" component={AdminSettingsPage} />
       <Route path="/settings/account" component={AccountSettingsPage} />
+      <Route path="/print-invoice/:id" component={PrintInvoicePage} />
       <Route component={NotFound} />
     </Switch>
   );
