@@ -95,7 +95,7 @@ function getStatusBadgeVariant(status: string): "default" | "secondary" | "destr
 }
 
 const createTicketFormSchema = z.object({
-  ticketNumber: z.string().min(1, "Ticket number is required"),
+  ticketNumber: z.string().optional(), // Validated separately via ticketNumbersList state
   pnr: z.string().optional(),
   customerId: z.string().min(1, "Customer is required"),
   vendorId: z.string().optional(), // Optional - "direct" means direct from airline
