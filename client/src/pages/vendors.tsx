@@ -29,14 +29,18 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Building2, Search, Loader2, Trash2, Plane, FileText, AlertTriangle, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
-import { useForm, useFieldArray } from "react-hook-form";
+import { Plus, Building2, Search, Loader2, Plane, FileText, AlertTriangle, ArrowUpCircle, ArrowDownCircle, Check, ChevronsUpDown } from "lucide-react";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertVendorSchema, type Vendor, type InsertVendor, type VendorTransaction, type Ticket } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { airlines } from "@/lib/airlines";
+import { cn } from "@/lib/utils";
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("en-AE", {
@@ -145,6 +149,9 @@ export default function VendorsPage() {
     setIsStatementOpen(true);
   };
 
+  const [selectedAirlineIds, setSelectedAirlineIds] = useState<string[]>([]);
+  const [airlinePopoverOpen, setAirlinePopoverOpen] = useState(false);
+
   const form = useForm<InsertVendor>({
     resolver: zodResolver(insertVendorSchema),
     defaultValues: {
@@ -158,10 +165,20 @@ export default function VendorsPage() {
     },
   });
 
-  const { fields: airlineFields, append: appendAirline, remove: removeAirline } = useFieldArray({
-    control: form.control,
-    name: "airlines",
-  });
+  const toggleAirline = (airlineId: string) => {
+    setSelectedAirlineIds(prev => {
+      const newSelection = prev.includes(airlineId)
+        ? prev.filter(id => id !== airlineId)
+        : [...prev, airlineId];
+      
+      const selectedAirlines = airlines
+        .filter(a => newSelection.includes(a.id))
+        .map(a => ({ name: a.name, code: a.code }));
+      form.setValue("airlines", selectedAirlines);
+      
+      return newSelection;
+    });
+  };
 
   const createMutation = useMutation({
     mutationFn: async (data: InsertVendor) => {
@@ -173,6 +190,7 @@ export default function VendorsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
       setIsCreateOpen(false);
       form.reset();
+      setSelectedAirlineIds([]);
       toast({
         title: "Vendor created",
         description: "The vendor has been added successfully.",
@@ -408,47 +426,92 @@ export default function VendorsPage() {
               />
 
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <FormLabel>Airlines</FormLabel>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => appendAirline({ name: "", code: "" })}
-                    data-testid="button-add-airline"
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Add Airline
-                  </Button>
-                </div>
-                {airlineFields.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No airlines registered. Click "Add Airline" to add one.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {airlineFields.map((field, index) => (
-                      <div key={field.id} className="flex items-center gap-2">
-                        <Input
-                          placeholder="Airline name (e.g., Emirates)"
-                          {...form.register(`airlines.${index}.name`)}
-                          data-testid={`input-airline-name-${index}`}
-                        />
-                        <Input
-                          placeholder="Code (e.g., EK)"
-                          className="w-24"
-                          {...form.register(`airlines.${index}.code`)}
-                          data-testid={`input-airline-code-${index}`}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeAirline(index)}
-                          data-testid={`button-remove-airline-${index}`}
+                <FormLabel>Airlines</FormLabel>
+                <Popover open={airlinePopoverOpen} onOpenChange={setAirlinePopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={airlinePopoverOpen}
+                      className="w-full justify-between"
+                      data-testid="button-select-airlines"
+                    >
+                      {selectedAirlineIds.length === 0
+                        ? "Select airlines..."
+                        : `${selectedAirlineIds.length} airline${selectedAirlineIds.length > 1 ? "s" : ""} selected`}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search airlines..." />
+                      <CommandList>
+                        <CommandEmpty>No airline found.</CommandEmpty>
+                        <CommandGroup className="max-h-64 overflow-y-auto">
+                          {airlines.map((airline) => (
+                            <CommandItem
+                              key={airline.id}
+                              value={airline.name}
+                              onSelect={() => toggleAirline(airline.id)}
+                              className="cursor-pointer"
+                              data-testid={`option-airline-${airline.id}`}
+                            >
+                              <div className="flex items-center gap-3 w-full">
+                                <div className={cn(
+                                  "flex h-4 w-4 items-center justify-center rounded-sm border",
+                                  selectedAirlineIds.includes(airline.id)
+                                    ? "bg-primary border-primary text-primary-foreground"
+                                    : "border-muted-foreground/50"
+                                )}>
+                                  {selectedAirlineIds.includes(airline.id) && (
+                                    <Check className="h-3 w-3" />
+                                  )}
+                                </div>
+                                <img 
+                                  src={airline.logo} 
+                                  alt={airline.name} 
+                                  className="w-8 h-6 object-contain rounded"
+                                />
+                                <span className="flex-1">{airline.name}</span>
+                                <span className="text-muted-foreground text-sm">({airline.code})</span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                
+                {selectedAirlineIds.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {selectedAirlineIds.map((airlineId) => {
+                      const airline = airlines.find(a => a.id === airlineId);
+                      if (!airline) return null;
+                      return (
+                        <Badge
+                          key={airline.id}
+                          variant="secondary"
+                          className="flex items-center gap-2 py-1 px-2"
+                          data-testid={`badge-airline-${airline.id}`}
                         >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </div>
-                    ))}
+                          <img 
+                            src={airline.logo} 
+                            alt={airline.name} 
+                            className="w-5 h-4 object-contain rounded-sm"
+                          />
+                          <span>{airline.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => toggleAirline(airline.id)}
+                            className="ml-1 hover:text-destructive"
+                            data-testid={`button-remove-airline-${airline.id}`}
+                          >
+                            &times;
+                          </button>
+                        </Badge>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -457,7 +520,11 @@ export default function VendorsPage() {
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={() => setIsCreateOpen(false)}
+                  onClick={() => {
+                    setIsCreateOpen(false);
+                    form.reset();
+                    setSelectedAirlineIds([]);
+                  }}
                   data-testid="button-cancel-vendor"
                 >
                   Cancel
