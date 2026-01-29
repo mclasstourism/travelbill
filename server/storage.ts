@@ -121,6 +121,10 @@ export interface IStorage {
   // Invoices by customer
   getInvoicesByCustomer(customerId: string): Promise<Invoice[]>;
   getInvoicesByAgent(agentId: string): Promise<Invoice[]>;
+  
+  // Admin: Reset functions
+  resetUsers(): Promise<void>;
+  resetAllData(): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -901,6 +905,51 @@ export class MemStorage implements IStorage {
     return Array.from(this.invoices.values()).filter(
       (inv) => inv.customerId === agentId && inv.customerType === "agent"
     );
+  }
+
+  // Admin: Reset users to defaults
+  async resetUsers(): Promise<void> {
+    // Clear all users except recreate default admin
+    this.users.clear();
+    
+    const defaultUserId = randomUUID();
+    const hashedPassword = bcrypt.hashSync("admin123", 10);
+    this.users.set(defaultUserId, {
+      id: defaultUserId,
+      username: "admin",
+      password: hashedPassword,
+      email: "admin@example.com",
+      passwordHint: "Default password is admin followed by 123",
+      role: "superadmin",
+    });
+  }
+
+  // Admin: Reset all data
+  async resetAllData(): Promise<void> {
+    // Reset users
+    await this.resetUsers();
+    
+    // Clear all bill creators
+    this.billCreators.clear();
+    const defaultCreatorId = randomUUID();
+    this.billCreators.set(defaultCreatorId, {
+      id: defaultCreatorId,
+      name: "Admin",
+      pin: "12345678",
+      active: true,
+    });
+    
+    // Clear all other data
+    this.customers.clear();
+    this.agents.clear();
+    this.vendors.clear();
+    this.invoices.clear();
+    this.tickets.clear();
+    this.depositTransactions.clear();
+    this.vendorTransactions.clear();
+    this.activityLogs.clear();
+    this.documents.clear();
+    this.passwordResetTokens.clear();
   }
 }
 

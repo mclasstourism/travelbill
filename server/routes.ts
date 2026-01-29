@@ -715,6 +715,122 @@ export async function registerRoutes(
     }
   });
 
+  // Admin: Reset data
+  app.post("/api/admin/reset-data", requireAuth, requireRole("superadmin"), async (req, res) => {
+    try {
+      const { type } = req.body;
+      if (type === "users") {
+        await storage.resetUsers();
+        res.json({ success: true, message: "Users reset to defaults" });
+      } else if (type === "all") {
+        await storage.resetAllData();
+        res.json({ success: true, message: "All data has been reset" });
+      } else {
+        res.status(400).json({ error: "Invalid reset type" });
+      }
+    } catch (error) {
+      console.error("Reset data error:", error);
+      res.status(500).json({ error: "Failed to reset data" });
+    }
+  });
+
+  // Admin: Logout all users
+  app.post("/api/admin/logout-all-users", requireAuth, requireRole("superadmin"), async (req, res) => {
+    try {
+      const currentUserId = (req as any).user?.id;
+      // Clear all sessions except current user
+      const sessionEntries = Array.from(sessions.entries());
+      for (const [token, session] of sessionEntries) {
+        if (session.userId !== currentUserId) {
+          sessions.delete(token);
+        }
+      }
+      res.json({ success: true, message: "All user sessions terminated" });
+    } catch (error) {
+      console.error("Logout all users error:", error);
+      res.status(500).json({ error: "Failed to logout users" });
+    }
+  });
+
+  // Admin: Send sales report
+  app.post("/api/admin/send-report", requireAuth, requireRole("superadmin"), async (req, res) => {
+    try {
+      const { type } = req.body;
+      const user = await storage.getUser((req as any).user?.id);
+      
+      if (!user?.email) {
+        res.status(400).json({ error: "No email address configured for admin account" });
+        return;
+      }
+
+      // Get report data based on type
+      const now = new Date();
+      let startDate: Date;
+      let reportTitle: string;
+
+      switch (type) {
+        case "daily":
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          reportTitle = "Daily Sales Report";
+          break;
+        case "weekly":
+          const dayOfWeek = now.getDay();
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek);
+          reportTitle = "Weekly Sales Report";
+          break;
+        case "monthly":
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          reportTitle = "Monthly Sales Report";
+          break;
+        case "yearly":
+          startDate = new Date(now.getFullYear(), 0, 1);
+          reportTitle = "Yearly Sales Report";
+          break;
+        default:
+          res.status(400).json({ error: "Invalid report type" });
+          return;
+      }
+
+      // Get invoices and tickets for the period
+      const invoices = await storage.getInvoices();
+      const tickets = await storage.getTickets();
+      
+      const periodInvoices = invoices.filter(inv => new Date(inv.createdAt || "") >= startDate);
+      const periodTickets = tickets.filter(t => new Date(t.createdAt || "") >= startDate);
+
+      const totalRevenue = periodInvoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
+      const ticketCount = periodTickets.length;
+      const invoiceCount = periodInvoices.length;
+
+      // Send email report
+      const { Resend } = await import("resend");
+      const resend = new Resend(process.env.RESEND_API_KEY);
+
+      await resend.emails.send({
+        from: "Billing System <onboarding@resend.dev>",
+        to: user.email,
+        subject: `${reportTitle} - ${now.toLocaleDateString()}`,
+        html: `
+          <h1>${reportTitle}</h1>
+          <p>Report generated on ${now.toLocaleString()}</p>
+          <hr>
+          <h2>Summary</h2>
+          <ul>
+            <li><strong>Total Revenue:</strong> AED ${totalRevenue.toLocaleString()}</li>
+            <li><strong>Invoices Created:</strong> ${invoiceCount}</li>
+            <li><strong>Tickets Issued:</strong> ${ticketCount}</li>
+          </ul>
+          <p>For detailed reports, please log in to the billing system.</p>
+        `,
+      });
+
+      res.json({ success: true, message: `${reportTitle} sent to ${user.email}` });
+    } catch (error) {
+      console.error("Send report error:", error);
+      res.status(500).json({ error: "Failed to send report" });
+    }
+  });
+
   // Documents
   app.get("/api/documents/:entityType/:entityId", requireAuth, async (req, res) => {
     try {
