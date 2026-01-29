@@ -871,6 +871,31 @@ export default function TicketsPage() {
                 )}
               />
 
+              <FormField
+                control={form.control}
+                name="quantity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>How many tickets in this PNR?</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="1"
+                        placeholder="1"
+                        {...field}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value) || 1;
+                          field.onChange(Math.max(1, val));
+                        }}
+                        data-testid="input-quantity"
+                      />
+                    </FormControl>
+                    <FormDescription className="text-xs">Number of passengers/tickets being booked</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <div className="space-y-3">
                 <FormLabel>Select Client</FormLabel>
                 <div className="flex gap-2 mb-2">
@@ -1319,31 +1344,8 @@ export default function TicketsPage() {
                 </div>
               </div>
 
-              {/* Quantity and Pricing Section */}
-              <div className="grid grid-cols-3 gap-3">
-                <FormField
-                  control={form.control}
-                  name="quantity"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Quantity (Tickets)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min="1"
-                          placeholder="1"
-                          {...field}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value) || 1;
-                            field.onChange(Math.max(1, val));
-                          }}
-                          data-testid="input-quantity"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              {/* Pricing Section */}
+              <div className="grid grid-cols-2 gap-3">
                 {ticketSource === "vendor" ? (
                   <FormField
                     control={form.control}
