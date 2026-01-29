@@ -66,7 +66,7 @@ function AuthenticatedApp() {
       <SidebarProvider style={sidebarStyle as React.CSSProperties}>
         <div className="flex h-screen w-full">
           <AppSidebar />
-          <main className="flex-1 overflow-auto bg-muted/30 touch-scroll">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden bg-muted/30" style={{ WebkitOverflowScrolling: 'touch' }}>
             <Router />
           </main>
         </div>

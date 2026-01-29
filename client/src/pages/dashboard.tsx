@@ -109,33 +109,41 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
-        <div className="flex items-center gap-3">
-          <SidebarTrigger className="lg:hidden" data-testid="button-sidebar-toggle" />
-          <div>
-            <h1 className="text-xl md:text-2xl font-semibold">Dashboard</h1>
-            <p className="text-sm text-muted-foreground">Overview of your travel agency billing</p>
+      <div className="min-h-full">
+        <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b p-4 md:p-6 md:pb-4">
+          <div className="flex items-center gap-3">
+            <SidebarTrigger className="lg:hidden flex-shrink-0" data-testid="button-sidebar-toggle" />
+            <div className="min-w-0">
+              <h1 className="text-xl md:text-2xl font-semibold truncate">Dashboard</h1>
+              <p className="text-sm text-muted-foreground truncate">Overview of your travel agency</p>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          {Array(8).fill(0).map((_, i) => (
-            <MetricCardSkeleton key={i} />
-          ))}
+        <div className="p-4 md:p-6">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+            {Array(8).fill(0).map((_, i) => (
+              <MetricCardSkeleton key={i} />
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
-      <div className="flex items-center gap-3">
-        <SidebarTrigger className="lg:hidden" data-testid="button-sidebar-toggle" />
-        <div>
-          <h1 className="text-xl md:text-2xl font-semibold" data-testid="text-dashboard-title">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Overview of your travel agency billing</p>
+    <div className="min-h-full">
+      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b p-4 md:p-6 md:pb-4">
+        <div className="flex items-center gap-3">
+          <SidebarTrigger className="lg:hidden flex-shrink-0" data-testid="button-sidebar-toggle" />
+          <div className="min-w-0">
+            <h1 className="text-xl md:text-2xl font-semibold truncate" data-testid="text-dashboard-title">Dashboard</h1>
+            <p className="text-sm text-muted-foreground truncate">Overview of your travel agency</p>
+          </div>
         </div>
       </div>
+      
+      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
 
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <MetricCard
@@ -223,7 +231,7 @@ export default function Dashboard() {
                       <span className="text-sm font-mono font-semibold">
                         {formatCurrency(invoice.total)}
                       </span>
-                      <Badge variant={getStatusBadgeVariant(invoice.status)} size="sm">
+                      <Badge variant={getStatusBadgeVariant(invoice.status)} className="text-xs">
                         {invoice.status}
                       </Badge>
                     </div>
@@ -274,7 +282,7 @@ export default function Dashboard() {
                       <span className="text-sm font-mono font-semibold">
                         {formatCurrency(ticket.faceValue)}
                       </span>
-                      <Badge variant={getStatusBadgeVariant(ticket.status)} size="sm">
+                      <Badge variant={getStatusBadgeVariant(ticket.status)} className="text-xs">
                         {ticket.status}
                       </Badge>
                     </div>
@@ -284,6 +292,7 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
+      </div>
       </div>
     </div>
   );
