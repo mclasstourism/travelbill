@@ -555,6 +555,16 @@ export async function registerRoutes(
     }
   });
 
+  // Vendor-specific tickets
+  app.get("/api/vendors/:id/tickets", requireAuth, async (req, res) => {
+    try {
+      const tickets = await storage.getTicketsByVendor(req.params.id);
+      res.json(tickets);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch vendor tickets" });
+    }
+  });
+
   app.get("/api/tickets/:id", requireAuth, async (req, res) => {
     try {
       const ticket = await storage.getTicket(req.params.id);

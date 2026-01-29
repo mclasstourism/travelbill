@@ -29,11 +29,14 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Building2, Search, Loader2, Trash2, Plane } from "lucide-react";
+import { Plus, Building2, Search, Loader2, Trash2, Plane, FileText, AlertTriangle, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertVendorSchema, type Vendor, type InsertVendor } from "@shared/schema";
+import { insertVendorSchema, type Vendor, type InsertVendor, type VendorTransaction, type Ticket } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("en-AE", {
@@ -43,14 +46,104 @@ function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
+const LOW_BALANCE_THRESHOLD = 5000; // AED - show warning when balance is below this
+
 export default function VendorsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
+  const [isStatementOpen, setIsStatementOpen] = useState(false);
   const { toast } = useToast();
 
   const { data: vendors = [], isLoading } = useQuery<Vendor[]>({
     queryKey: ["/api/vendors"],
   });
+
+  // Fetch vendor transactions when a vendor is selected (using vendor-specific endpoint)
+  const { data: vendorTransactions = [], isLoading: transactionsLoading } = useQuery<VendorTransaction[]>({
+    queryKey: [`/api/vendors/${selectedVendor?.id}/transactions`],
+    enabled: !!selectedVendor && isStatementOpen,
+  });
+
+  // Fetch tickets for this vendor (using vendor-specific endpoint)
+  const { data: vendorTickets = [], isLoading: ticketsLoading } = useQuery<Ticket[]>({
+    queryKey: [`/api/vendors/${selectedVendor?.id}/tickets`],
+    enabled: !!selectedVendor && isStatementOpen,
+  });
+
+  // Combined loading state
+  const statementLoading = transactionsLoading || ticketsLoading;
+
+  // Build unified chronological ledger combining deposits/credits and ticket purchases
+  const buildLedger = () => {
+    if (!selectedVendor) return [];
+    
+    const ledgerItems: {
+      date: Date;
+      description: string;
+      type: 'deposit' | 'credit' | 'ticket' | 'deduction';
+      debit: number;
+      credit: number;
+    }[] = [];
+
+    // Add deposit transactions
+    vendorTransactions.forEach(t => {
+      ledgerItems.push({
+        date: new Date(t.createdAt),
+        description: t.description,
+        type: t.transactionType === 'deposit' 
+          ? (t.type === 'credit' ? 'deposit' : 'deduction')
+          : 'credit',
+        debit: t.type === 'debit' ? t.amount : 0,
+        credit: t.type === 'credit' ? t.amount : 0,
+      });
+    });
+
+    // Add ticket purchases as deductions
+    vendorTickets.forEach(ticket => {
+      ledgerItems.push({
+        date: new Date(ticket.createdAt),
+        description: `Ticket #${ticket.ticketNumber} - ${ticket.passengerName} (${ticket.route})`,
+        type: 'ticket',
+        debit: ticket.faceValue,
+        credit: 0,
+      });
+    });
+
+    // Sort by date
+    ledgerItems.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    // Calculate running balance
+    let balance = 0;
+    return ledgerItems.map(item => {
+      balance += item.credit - item.debit;
+      return { ...item, balance };
+    });
+  };
+
+  const ledger = buildLedger();
+
+  // Calculate totals for reconciliation
+  const totalDeposits = vendorTransactions
+    .filter(t => t.transactionType === 'deposit' && t.type === 'credit')
+    .reduce((sum, t) => sum + t.amount, 0);
+  
+  const totalTicketPurchases = vendorTickets.reduce((sum, t) => sum + t.faceValue, 0);
+  
+  const otherDeductions = vendorTransactions
+    .filter(t => t.type === 'debit')
+    .reduce((sum, t) => sum + t.amount, 0);
+  
+  const calculatedDepositBalance = totalDeposits - totalTicketPurchases - otherDeductions;
+
+  // Vendors with low balance (includes zero and negative)
+  const lowBalanceVendors = vendors.filter(v => v.depositBalance <= LOW_BALANCE_THRESHOLD);
+
+  // Open vendor statement
+  const openStatement = (vendor: Vendor) => {
+    setSelectedVendor(vendor);
+    setIsStatementOpen(true);
+  };
 
   const form = useForm<InsertVendor>({
     resolver: zodResolver(insertVendorSchema),
@@ -117,6 +210,20 @@ export default function VendorsPage() {
         </Button>
       </div>
 
+      {/* Low Balance Alert */}
+      {lowBalanceVendors.length > 0 && (
+        <Alert variant="destructive" className="border-amber-500 bg-amber-50 dark:bg-amber-950/20">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertTitle className="text-amber-800 dark:text-amber-400">Low Balance Warning</AlertTitle>
+          <AlertDescription className="text-amber-700 dark:text-amber-300">
+            {lowBalanceVendors.length} vendor(s) have balance below {formatCurrency(LOW_BALANCE_THRESHOLD)}:{" "}
+            <span className="font-medium">
+              {lowBalanceVendors.map(v => `${v.name} (${formatCurrency(v.depositBalance)})`).join(", ")}
+            </span>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Card>
         <CardHeader className="pb-4">
           <div className="flex items-center gap-4">
@@ -155,6 +262,7 @@ export default function VendorsPage() {
                     <TableHead>Airlines</TableHead>
                     <TableHead className="text-right">Credit Balance</TableHead>
                     <TableHead className="text-right">Deposit Balance</TableHead>
+                    <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -184,9 +292,27 @@ export default function VendorsPage() {
                         </span>
                       </TableCell>
                       <TableCell className="text-right font-mono font-semibold">
-                        <span className="text-green-600 dark:text-green-400">
-                          {formatCurrency(vendor.depositBalance)}
-                        </span>
+                        <div className="flex items-center justify-end gap-2">
+                          <span className="text-green-600 dark:text-green-400">
+                            {formatCurrency(vendor.depositBalance)}
+                          </span>
+                          {vendor.depositBalance <= LOW_BALANCE_THRESHOLD && (
+                            <span title="Low balance">
+                              <AlertTriangle className="w-4 h-4 text-amber-500" />
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openStatement(vendor)}
+                          data-testid={`button-view-statement-${vendor.id}`}
+                        >
+                          <FileText className="w-4 h-4 mr-1" />
+                          Statement
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -349,6 +475,235 @@ export default function VendorsPage() {
               </div>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Vendor Statement Dialog */}
+      <Dialog open={isStatementOpen} onOpenChange={setIsStatementOpen}>
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Vendor Statement: {selectedVendor?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Complete transaction history and balance reconciliation
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedVendor && (
+            <Tabs defaultValue="statement" className="mt-4">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="statement">Transaction Statement</TabsTrigger>
+                <TabsTrigger value="reconciliation">Balance Reconciliation</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="statement" className="space-y-4">
+                {/* Current Balance Summary */}
+                <div className="grid grid-cols-2 gap-4">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <p className="text-sm text-muted-foreground">Deposit Balance</p>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold text-green-600 dark:text-green-400 font-mono">
+                        {formatCurrency(selectedVendor.depositBalance)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <p className="text-sm text-muted-foreground">Credit Balance</p>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 font-mono">
+                        {formatCurrency(selectedVendor.creditBalance)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <Separator />
+
+                {/* Transaction History - Unified Chronological Ledger */}
+                <div>
+                  <h3 className="font-semibold mb-3">Transaction History</h3>
+                  {statementLoading ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+                      Loading transactions...
+                    </div>
+                  ) : ledger.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">No transactions found</div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Description</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead className="text-right">Debit (-)</TableHead>
+                          <TableHead className="text-right">Credit (+)</TableHead>
+                          <TableHead className="text-right">Balance</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {ledger.map((item, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="text-sm">
+                              {item.date.toLocaleDateString()}
+                            </TableCell>
+                            <TableCell>{item.description}</TableCell>
+                            <TableCell>
+                              <Badge variant={item.credit > 0 ? "secondary" : "outline"}>
+                                {item.type === 'deposit' && (
+                                  <>
+                                    <ArrowUpCircle className="w-3 h-3 mr-1 text-green-600" />
+                                    Deposit
+                                  </>
+                                )}
+                                {item.type === 'credit' && (
+                                  <>
+                                    <ArrowUpCircle className="w-3 h-3 mr-1 text-blue-600" />
+                                    Credit
+                                  </>
+                                )}
+                                {item.type === 'ticket' && (
+                                  <>
+                                    <Plane className="w-3 h-3 mr-1" />
+                                    Ticket
+                                  </>
+                                )}
+                                {item.type === 'deduction' && (
+                                  <>
+                                    <ArrowDownCircle className="w-3 h-3 mr-1 text-red-600" />
+                                    Deduction
+                                  </>
+                                )}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-red-600">
+                              {item.debit > 0 ? formatCurrency(item.debit) : "-"}
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-green-600">
+                              {item.credit > 0 ? formatCurrency(item.credit) : "-"}
+                            </TableCell>
+                            <TableCell className="text-right font-mono font-semibold">
+                              <span className={item.balance < 0 ? "text-red-600" : ""}>
+                                {formatCurrency(item.balance)}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="reconciliation" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <h3 className="font-semibold">Balance Reconciliation</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Compare your calculated balance with the vendor's records
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {statementLoading ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+                        Loading data for reconciliation...
+                      </div>
+                    ) : (
+                      <>
+                        {/* Calculated Summary */}
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center py-2 border-b">
+                            <span className="text-muted-foreground">Total Deposits Made:</span>
+                            <span className="font-mono font-semibold text-green-600">
+                              {formatCurrency(totalDeposits)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center py-2 border-b">
+                            <span className="text-muted-foreground">Total Ticket Purchases (Face Value):</span>
+                            <span className="font-mono font-semibold text-red-600">
+                              {formatCurrency(totalTicketPurchases)}
+                            </span>
+                          </div>
+                          {otherDeductions > 0 && (
+                            <div className="flex justify-between items-center py-2 border-b">
+                              <span className="text-muted-foreground">Other Deductions:</span>
+                              <span className="font-mono font-semibold text-red-600">
+                                {formatCurrency(otherDeductions)}
+                              </span>
+                            </div>
+                          )}
+                          <Separator />
+                          <div className="flex justify-between items-center py-2 bg-muted/50 px-3 rounded-md">
+                            <span className="font-semibold">Calculated Deposit Balance:</span>
+                            <span className={`font-mono font-bold text-lg ${calculatedDepositBalance < 0 ? 'text-red-600' : ''}`}>
+                              {formatCurrency(calculatedDepositBalance)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center py-2 bg-primary/10 px-3 rounded-md">
+                            <span className="font-semibold">Current System Balance:</span>
+                            <span className={`font-mono font-bold text-lg ${selectedVendor.depositBalance < 0 ? 'text-red-600' : 'text-green-600 dark:text-green-400'}`}>
+                              {formatCurrency(selectedVendor.depositBalance)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Discrepancy Alert */}
+                        {(() => {
+                          const difference = selectedVendor.depositBalance - calculatedDepositBalance;
+                          
+                          if (Math.abs(difference) > 0.01) {
+                            return (
+                              <Alert variant="destructive">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertTitle>Balance Discrepancy Detected</AlertTitle>
+                                <AlertDescription>
+                                  There is a difference of <strong>{formatCurrency(Math.abs(difference))}</strong> between 
+                                  the calculated balance and the current system balance. 
+                                  This may indicate missing transactions or data entry errors.
+                                </AlertDescription>
+                              </Alert>
+                            );
+                          }
+                          return (
+                            <Alert className="border-green-500 bg-green-50 dark:bg-green-950/20">
+                              <AlertTitle className="text-green-700 dark:text-green-400">Balance Verified</AlertTitle>
+                              <AlertDescription className="text-green-600 dark:text-green-300">
+                                The calculated balance matches the current system balance. No discrepancies found.
+                              </AlertDescription>
+                            </Alert>
+                          );
+                        })()}
+
+                        {/* Transaction Summary */}
+                        <div className="pt-4">
+                          <h4 className="font-medium mb-2">Transaction Summary</h4>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div className="flex justify-between py-1">
+                              <span className="text-muted-foreground">Total Deposits:</span>
+                              <Badge variant="secondary">
+                                {vendorTransactions.filter(t => t.transactionType === "deposit" && t.type === "credit").length}
+                              </Badge>
+                            </div>
+                            <div className="flex justify-between py-1">
+                              <span className="text-muted-foreground">Total Tickets Purchased:</span>
+                              <Badge variant="secondary">{vendorTickets.length}</Badge>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          )}
         </DialogContent>
       </Dialog>
     </div>

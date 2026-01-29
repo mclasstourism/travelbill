@@ -83,6 +83,7 @@ export interface IStorage {
 
   // Tickets
   getTickets(): Promise<Ticket[]>;
+  getTicketsByVendor(vendorId: string): Promise<Ticket[]>;
   getTicket(id: string): Promise<Ticket | undefined>;
   createTicket(ticket: InsertTicket): Promise<Ticket>;
   updateTicket(id: string, updates: Partial<Ticket>): Promise<Ticket | undefined>;
@@ -552,6 +553,12 @@ export class MemStorage implements IStorage {
     return Array.from(this.tickets.values()).sort((a, b) => 
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
+  }
+
+  async getTicketsByVendor(vendorId: string): Promise<Ticket[]> {
+    return Array.from(this.tickets.values())
+      .filter(ticket => ticket.vendorId === vendorId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
   async getTicket(id: string): Promise<Ticket | undefined> {
