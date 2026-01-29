@@ -234,13 +234,12 @@ export default function UserManagementPage() {
                   </DialogHeader>
                   <form onSubmit={handleCreateUser} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="username">Username</Label>
+                      <Label htmlFor="username">Username (Auto-generated)</Label>
                       <Input
                         id="username"
-                        value={newUser.username}
-                        onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                        placeholder="Enter username"
-                        required
+                        value={generateUsername()}
+                        disabled
+                        className="bg-muted"
                         data-testid="input-new-username"
                       />
                     </div>
