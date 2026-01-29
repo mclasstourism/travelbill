@@ -86,7 +86,19 @@ export default function AccountSettingsPage() {
       return res.json();
     },
     onSuccess: (_, type) => {
-      toast({ title: type === "all" ? "All data has been reset" : "Users have been reset to defaults" });
+      // Invalidate all relevant queries
+      queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/activity-logs"] });
+      
+      toast({ 
+        title: type === "all" ? "All ticket issuance data has been reset" : "Users have been reset to defaults",
+        description: type === "all" ? "Tickets, invoices, and transactions cleared. Balances reset to zero." : undefined
+      });
     },
     onError: (error: Error) => {
       toast({ title: "Failed to reset data", description: error.message, variant: "destructive" });
@@ -361,7 +373,7 @@ export default function AccountSettingsPage() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Reset All Data?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will permanently delete ALL data including invoices, tickets, customers, agents, vendors, and transactions. This action cannot be undone.
+                    This will delete all tickets, invoices, and transactions. Customer/vendor balances will be reset to zero. Customers, vendors, agents, and airlines will be preserved.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

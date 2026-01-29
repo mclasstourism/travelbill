@@ -17,11 +17,14 @@ import {
   Trash2,
   LogOut,
   FileText,
-  Calendar
+  Calendar,
+  Loader2
 } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   Dialog,
   DialogContent,
@@ -39,18 +42,55 @@ export default function AdminSettings() {
   const [reportFrequency, setReportFrequency] = useState("daily");
   const [resetDialog, setResetDialog] = useState<"users" | "data" | null>(null);
 
+  const resetDataMutation = useMutation({
+    mutationFn: async (type: "users" | "all") => {
+      const res = await apiRequest("POST", "/api/admin/reset-data", { type });
+      return res.json();
+    },
+    onSuccess: (_, type) => {
+      // Invalidate all relevant queries
+      queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/activity-logs"] });
+      
+      toast({ 
+        title: type === "all" ? "All ticket issuance data has been reset" : "Users have been reset to defaults",
+        description: type === "all" ? "Tickets, invoices, and transactions cleared. Balances reset to zero." : undefined
+      });
+      setResetDialog(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to reset data", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const logoutAllMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/logout-all-users");
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "All user sessions have been terminated" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to logout users", description: error.message, variant: "destructive" });
+    },
+  });
+
   const handleResetUsers = () => {
-    toast({ title: "Default users have been reset" });
-    setResetDialog(null);
+    resetDataMutation.mutate("users");
   };
 
   const handleResetData = () => {
-    toast({ title: "All data has been reset", variant: "destructive" });
-    setResetDialog(null);
+    resetDataMutation.mutate("all");
   };
 
   const handleLogoutAllUsers = () => {
-    toast({ title: "All user sessions have been terminated" });
+    logoutAllMutation.mutate();
   };
 
   return (
@@ -235,18 +275,20 @@ export default function AdminSettings() {
             <DialogDescription>
               {resetDialog === "users" 
                 ? "This will reset all users to their default state. This action cannot be undone."
-                : "This will permanently delete all data including invoices, tickets, customers, agents, vendors, and transactions. This action cannot be undone."
+                : "This will delete all tickets, invoices, and transactions. Customer/vendor balances will be reset to zero. Customers, vendors, agents, and airlines will be preserved."
               }
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setResetDialog(null)}>
+            <Button variant="outline" onClick={() => setResetDialog(null)} disabled={resetDataMutation.isPending}>
               Cancel
             </Button>
             <Button 
               variant="destructive" 
               onClick={resetDialog === "users" ? handleResetUsers : handleResetData}
+              disabled={resetDataMutation.isPending}
             >
+              {resetDataMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {resetDialog === "users" ? "Reset Users" : "Reset All Data"}
             </Button>
           </DialogFooter>
