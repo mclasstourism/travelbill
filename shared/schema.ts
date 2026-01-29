@@ -65,6 +65,7 @@ export const vendorsTable = pgTable("vendors", {
   phone: varchar("phone", { length: 50 }).default(""),
   telephone: varchar("telephone", { length: 50 }).default(""),
   address: text("address").default(""),
+  logo: varchar("logo", { length: 500 }).default(""),
   creditBalance: doublePrecision("credit_balance").default(0),
   depositBalance: doublePrecision("deposit_balance").default(0),
   airlines: json("airlines").default([]),
@@ -277,6 +278,7 @@ export const insertVendorSchema = z.object({
   phone: z.string().optional().or(z.literal("")),
   telephone: z.string().optional().or(z.literal("")),
   address: z.string().optional().or(z.literal("")),
+  logo: z.string().optional().or(z.literal("")),
   creditBalance: z.number().default(0), // Credit given by vendor
   depositBalance: z.number().default(0), // Deposit made to vendor
   airlines: z.array(insertVendorAirlineSchema).default([]), // Airlines registered with this vendor
@@ -290,6 +292,7 @@ export type Vendor = {
   phone: string;
   telephone: string;
   address: string;
+  logo: string;
   creditBalance: number;
   depositBalance: number;
   airlines: VendorAirline[];

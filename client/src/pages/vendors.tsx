@@ -29,7 +29,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Building2, Search, Loader2, Plane, FileText, AlertTriangle, ArrowUpCircle, ArrowDownCircle, Check, ChevronsUpDown, Pencil, ChevronDown } from "lucide-react";
+import { Plus, Building2, Search, Loader2, Plane, FileText, AlertTriangle, ArrowUpCircle, ArrowDownCircle, Check, ChevronsUpDown, Pencil, ChevronDown, Image } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertVendorSchema, type Vendor, type InsertVendor, type VendorTransaction, type Ticket } from "@shared/schema";
@@ -372,7 +372,22 @@ export default function VendorsPage() {
                 <TableBody>
                   {filteredVendors.map((vendor) => (
                     <TableRow key={vendor.id} data-testid={`row-vendor-${vendor.id}`}>
-                      <TableCell className="font-medium">{vendor.name}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-3">
+                          {vendor.logo ? (
+                            <img 
+                              src={vendor.logo} 
+                              alt={vendor.name} 
+                              className="w-8 h-8 object-contain rounded border"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded border bg-muted flex items-center justify-center">
+                              <Building2 className="w-4 h-4 text-muted-foreground" />
+                            </div>
+                          )}
+                          <span>{vendor.name}</span>
+                        </div>
+                      </TableCell>
                       <TableCell className="text-muted-foreground">
                         {vendor.phone ? `+971 ${vendor.phone}` : "-"}
                       </TableCell>
@@ -578,6 +593,38 @@ export default function VendorsPage() {
                 )}
               />
 
+              <FormField
+                control={form.control}
+                name="logo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Logo URL (optional)</FormLabel>
+                    <FormControl>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Image className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                          <Input
+                            placeholder="https://example.com/logo.png"
+                            className="pl-10"
+                            {...field}
+                            value={field.value || ""}
+                            data-testid="input-vendor-logo"
+                          />
+                        </div>
+                        {field.value && (
+                          <img
+                            src={field.value}
+                            alt="Preview"
+                            className="w-10 h-10 object-contain rounded border"
+                          />
+                        )}
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <div className="space-y-3">
                 <FormLabel>Airlines</FormLabel>
                 <Popover open={airlinePopoverOpen} onOpenChange={setAirlinePopoverOpen} modal={false}>
@@ -773,6 +820,38 @@ export default function VendorsPage() {
                         {...field}
                         data-testid="input-edit-vendor-address"
                       />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={editForm.control}
+                name="logo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Logo URL (optional)</FormLabel>
+                    <FormControl>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Image className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                          <Input
+                            placeholder="https://example.com/logo.png"
+                            className="pl-10"
+                            {...field}
+                            value={field.value || ""}
+                            data-testid="input-edit-vendor-logo"
+                          />
+                        </div>
+                        {field.value && (
+                          <img
+                            src={field.value}
+                            alt="Preview"
+                            className="w-10 h-10 object-contain rounded border"
+                          />
+                        )}
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
