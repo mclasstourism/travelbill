@@ -5,8 +5,6 @@ import {
   Users,
   Building2,
   Ticket,
-  Wallet,
-  CreditCard,
   Settings,
   Lock,
   LogOut,
@@ -52,11 +50,6 @@ const partyItems = [
   { title: "Customers", url: "/customers", icon: Users },
   { title: "Agents", url: "/agents", icon: Briefcase },
   { title: "Vendors", url: "/vendors", icon: Building2 },
-];
-
-const financeItems = [
-  { title: "Customer Deposits", url: "/deposits", icon: Wallet },
-  { title: "Vendor Credits", url: "/vendor-credits", icon: CreditCard },
 ];
 
 const reportsItems = [
@@ -123,27 +116,6 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {partyItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location === item.url}
-                  >
-                    <Link href={item.url} onClick={handleNavClick} data-testid={`link-nav-${item.title.toLowerCase().replace(" ", "-")}`}>
-                      <item.icon className="w-4 h-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Finance</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {financeItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
