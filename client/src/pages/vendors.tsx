@@ -29,7 +29,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Building2, Search, Loader2, Plane, FileText, AlertTriangle, ArrowUpCircle, ArrowDownCircle, Check, ChevronsUpDown, Pencil } from "lucide-react";
+import { Plus, Building2, Search, Loader2, Plane, FileText, AlertTriangle, ArrowUpCircle, ArrowDownCircle, Check, ChevronsUpDown, Pencil, ChevronDown } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertVendorSchema, type Vendor, type InsertVendor, type VendorTransaction, type Ticket } from "@shared/schema";
