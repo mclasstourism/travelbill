@@ -731,7 +731,8 @@ export default function TicketsPage() {
                       <FormControl>
                         <Input
                           placeholder="e.g., ABC123"
-                          {...field}
+                          value={field.value}
+                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                           maxLength={6}
                           className="uppercase"
                           data-testid="input-pnr"
