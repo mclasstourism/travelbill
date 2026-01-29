@@ -16,6 +16,10 @@ import {
   DollarSign,
   Users,
   Calendar,
+  Wallet,
+  CreditCard,
+  Banknote,
+  ArrowDownCircle,
 } from "lucide-react";
 import type { Ticket, Invoice, Customer, Vendor, Agent } from "@shared/schema";
 
@@ -76,9 +80,28 @@ export default function SalesMonitor() {
         mcAddition: acc.mcAddition + (t.middleClassPrice || 0),
         faceValue: acc.faceValue + (t.faceValue || 0),
         profit: acc.profit + (t.middleClassPrice || 0),
+        depositUsed: acc.depositUsed + (t.depositDeducted || 0),
       }),
-      { count: 0, vendorCost: 0, airlineCost: 0, mcAddition: 0, faceValue: 0, profit: 0 }
+      { count: 0, vendorCost: 0, airlineCost: 0, mcAddition: 0, faceValue: 0, profit: 0, depositUsed: 0 }
     );
+  };
+
+  const getPaymentMethod = (invoice: Invoice | null | undefined) => {
+    if (!invoice) return null;
+    return invoice.paymentMethod;
+  };
+
+  const getPaymentIcon = (method: string | null) => {
+    switch (method) {
+      case "cash":
+        return <Banknote className="w-3 h-3" />;
+      case "card":
+        return <CreditCard className="w-3 h-3" />;
+      case "credit":
+        return <Wallet className="w-3 h-3" />;
+      default:
+        return <DollarSign className="w-3 h-3" />;
+    }
   };
 
   const directTotals = calculateTotals(directAirlineTickets);
@@ -115,10 +138,12 @@ export default function SalesMonitor() {
     );
   }
 
-  const TicketRow = ({ ticket, showSource = false }: { ticket: Ticket; showSource?: boolean }) => {
+  const TicketRow = ({ ticket, showSource = false, showDeposit = false }: { ticket: Ticket; showSource?: boolean; showDeposit?: boolean }) => {
     const invoice = getInvoice(ticket.invoiceId || null);
     const isAgentSale = isAgent(ticket.customerId);
     const source = ticket.vendorId === "direct" || !ticket.vendorId ? "Direct" : "Vendor";
+    const paymentMethod = getPaymentMethod(invoice);
+    const depositUsed = ticket.depositDeducted || 0;
     
     return (
       <TableRow key={ticket.id} data-testid={`row-ticket-${ticket.id}`}>
@@ -170,12 +195,32 @@ export default function SalesMonitor() {
         <TableCell className="text-right font-mono font-semibold">
           {formatCurrency(ticket.faceValue)}
         </TableCell>
+        {showDeposit && (
+          <TableCell className="text-right">
+            {depositUsed > 0 ? (
+              <Badge variant="outline" className="bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 font-mono">
+                <ArrowDownCircle className="w-3 h-3 mr-1" />
+                {formatCurrency(depositUsed)}
+              </Badge>
+            ) : (
+              <span className="text-muted-foreground text-sm">-</span>
+            )}
+          </TableCell>
+        )}
         <TableCell>
           {invoice ? (
-            <Badge variant="outline" className="font-mono">
-              <FileText className="w-3 h-3 mr-1" />
-              {invoice.invoiceNumber}
-            </Badge>
+            <div className="flex flex-col gap-1">
+              <Badge variant="outline" className="font-mono">
+                <FileText className="w-3 h-3 mr-1" />
+                {invoice.invoiceNumber}
+              </Badge>
+              {paymentMethod && (
+                <Badge variant="secondary" className="text-xs">
+                  {getPaymentIcon(paymentMethod)}
+                  <span className="ml-1 capitalize">{paymentMethod}</span>
+                </Badge>
+              )}
+            </div>
           ) : (
             <span className="text-muted-foreground text-sm">No invoice</span>
           )}
@@ -188,10 +233,10 @@ export default function SalesMonitor() {
     totals,
     type,
   }: {
-    totals: { count: number; vendorCost: number; airlineCost: number; mcAddition: number; faceValue: number; profit: number };
+    totals: { count: number; vendorCost: number; airlineCost: number; mcAddition: number; faceValue: number; profit: number; depositUsed: number };
     type: "direct" | "vendor" | "agent";
   }) => (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
       <Card>
         <CardContent className="p-4">
           <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
@@ -231,6 +276,17 @@ export default function SalesMonitor() {
           </div>
           <div className="text-2xl font-bold font-mono text-green-600 dark:text-green-400">
             {formatCurrency(totals.faceValue)}
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+            <Wallet className="w-4 h-4" />
+            Deposit Used
+          </div>
+          <div className="text-2xl font-bold font-mono text-orange-600 dark:text-orange-400">
+            {formatCurrency(totals.depositUsed)}
           </div>
         </CardContent>
       </Card>
@@ -341,19 +397,20 @@ export default function SalesMonitor() {
                       <TableHead className="text-right">Airline Price</TableHead>
                       <TableHead className="text-right">MC Addition</TableHead>
                       <TableHead className="text-right">Face Value</TableHead>
-                      <TableHead>Invoice</TableHead>
+                      <TableHead className="text-right">Deposit Used</TableHead>
+                      <TableHead>Invoice / Payment</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {directAirlineTickets.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                           No direct airline sales yet
                         </TableCell>
                       </TableRow>
                     ) : (
                       directAirlineTickets.map((ticket) => (
-                        <TicketRow key={ticket.id} ticket={ticket} />
+                        <TicketRow key={ticket.id} ticket={ticket} showDeposit />
                       ))
                     )}
                   </TableBody>
@@ -388,19 +445,20 @@ export default function SalesMonitor() {
                       <TableHead className="text-right">Source Cost</TableHead>
                       <TableHead className="text-right">MC Addition</TableHead>
                       <TableHead className="text-right">Price to Agent</TableHead>
-                      <TableHead>Invoice</TableHead>
+                      <TableHead className="text-right">Deposit Used</TableHead>
+                      <TableHead>Invoice / Payment</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {agentSales.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
                           No agent sales yet
                         </TableCell>
                       </TableRow>
                     ) : (
                       agentSales.map((ticket) => (
-                        <TicketRow key={ticket.id} ticket={ticket} showSource />
+                        <TicketRow key={ticket.id} ticket={ticket} showSource showDeposit />
                       ))
                     )}
                   </TableBody>
@@ -434,19 +492,20 @@ export default function SalesMonitor() {
                       <TableHead className="text-right">Vendor Price</TableHead>
                       <TableHead className="text-right">MC Addition</TableHead>
                       <TableHead className="text-right">Face Value</TableHead>
-                      <TableHead>Invoice</TableHead>
+                      <TableHead className="text-right">Deposit Used</TableHead>
+                      <TableHead>Invoice / Payment</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {vendorTickets.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                           No vendor sales yet
                         </TableCell>
                       </TableRow>
                     ) : (
                       vendorTickets.map((ticket) => (
-                        <TicketRow key={ticket.id} ticket={ticket} />
+                        <TicketRow key={ticket.id} ticket={ticket} showDeposit />
                       ))
                     )}
                   </TableBody>
