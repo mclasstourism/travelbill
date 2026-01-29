@@ -90,7 +90,8 @@ const createTicketFormSchema = z.object({
   vendorId: z.string().optional(), // Optional - "direct" means direct from airline
   tripType: z.enum(["one_way", "round_trip"]).default("one_way"),
   ticketType: z.string().min(1, "Ticket type is required"),
-  route: z.string().min(1, "Route is required"),
+  routeFrom: z.string().min(1, "Origin is required").max(4, "Max 4 characters"),
+  routeTo: z.string().min(1, "Destination is required").max(4, "Max 4 characters"),
   airlines: z.string().min(1, "Airlines is required"),
   flightNumber: z.string().min(1, "Flight number is required"),
   flightTime: z.string().min(1, "Flight time is required"),
@@ -139,7 +140,8 @@ export default function TicketsPage() {
       vendorId: "",
       tripType: "one_way",
       ticketType: "",
-      route: "",
+      routeFrom: "",
+      routeTo: "",
       airlines: "",
       flightNumber: "",
       flightTime: "",
@@ -364,8 +366,12 @@ export default function TicketsPage() {
     // Normalize vendorId - ticketSource "direct" or empty vendorId means no vendor (direct from airline)
     const vendorId = ticketSource === "direct" || !data.vendorId ? undefined : data.vendorId;
 
+    // Combine route fields
+    const route = `${data.routeFrom} - ${data.routeTo}`;
+
     const ticketData = {
       ...data,
+      route, // Combined route
       vendorId, // Normalized - undefined means direct from airline
       faceValue,
       depositDeducted,
@@ -779,46 +785,64 @@ export default function TicketsPage() {
                 />
               </div>
 
-              <FormField
-                control={form.control}
-                name="route"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Route *</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Input
-                          {...field}
-                          value={field.value}
-                          onChange={(e) => {
-                            // Auto-capitalize all text
-                            const upperValue = e.target.value.toUpperCase();
-                            field.onChange(upperValue);
-                          }}
-                          className="font-mono tracking-wider text-transparent caret-foreground bg-transparent"
-                          style={{ caretColor: 'hsl(var(--foreground))' }}
-                          data-testid="input-route"
-                        />
-                        {/* Overlay to show highlighted separator */}
-                        <div className="absolute inset-y-0 left-0 right-0 flex items-center px-3 pointer-events-none font-mono tracking-wider overflow-hidden">
-                          {field.value ? (
-                            field.value.split(/(-+)/).map((part, i) => (
-                              part.match(/^-+$/) ? (
-                                <span key={i} className="text-primary font-bold bg-primary/20 px-1 rounded">{part}</span>
-                              ) : (
-                                <span key={i} className="text-foreground">{part}</span>
-                              )
-                            ))
-                          ) : (
-                            <span className="text-muted-foreground">e.g., DXB - LHR</span>
-                          )}
-                        </div>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div>
+                <FormLabel>Route *</FormLabel>
+                <div className="flex items-center gap-2 mt-2">
+                  <FormField
+                    control={form.control}
+                    name="routeFrom"
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="DXB"
+                            value={field.value}
+                            onChange={(e) => {
+                              const upperValue = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
+                              field.onChange(upperValue);
+                            }}
+                            className="font-mono text-center tracking-widest text-lg"
+                            maxLength={4}
+                            data-testid="input-route-from"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="flex items-center justify-center w-12">
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-0.5 bg-primary rounded"></div>
+                      <Plane className="h-5 w-5 text-primary" />
+                      <div className="w-3 h-0.5 bg-primary rounded"></div>
+                    </div>
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="routeTo"
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="LHR"
+                            value={field.value}
+                            onChange={(e) => {
+                              const upperValue = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
+                              field.onChange(upperValue);
+                            }}
+                            className="font-mono text-center tracking-widest text-lg"
+                            maxLength={4}
+                            data-testid="input-route-to"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField
