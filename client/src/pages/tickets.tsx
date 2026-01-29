@@ -141,6 +141,7 @@ export default function TicketsPage() {
   const [ticketSource, setTicketSource] = useState<"direct" | "vendor">("direct");
   const [clientType, setClientType] = useState<"customer" | "agent">("customer");
   const [ticketNumbersList, setTicketNumbersList] = useState<string[]>([""]);
+  const [ticketPricesList, setTicketPricesList] = useState<number[]>([0]);
   const [createEticketFile, setCreateEticketFile] = useState<File | null>(null);
   const [createEticketPreview, setCreateEticketPreview] = useState<string | null>(null);
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
@@ -218,34 +219,45 @@ export default function TicketsPage() {
   // Calculate passenger count from quantity field
   const passengerCount = Number(watchQuantity) || 1;
 
-  // Sync ticket numbers list with quantity
+  // Sync ticket numbers and prices lists with quantity
   useEffect(() => {
     setTicketNumbersList(prev => {
       if (passengerCount > prev.length) {
-        // Add empty entries for new passengers
         return [...prev, ...Array(passengerCount - prev.length).fill("")];
       } else if (passengerCount < prev.length) {
-        // Trim excess entries
+        return prev.slice(0, passengerCount);
+      }
+      return prev;
+    });
+    setTicketPricesList(prev => {
+      if (passengerCount > prev.length) {
+        return [...prev, ...Array(passengerCount - prev.length).fill(0)];
+      } else if (passengerCount < prev.length) {
         return prev.slice(0, passengerCount);
       }
       return prev;
     });
   }, [passengerCount]);
 
-  // Auto-calculate face value based on ticket source (per person × quantity)
+  // Calculate total from individual ticket prices + MC Addition
+  const totalTicketPrices = useMemo(() => {
+    return ticketPricesList.reduce((sum, price) => sum + (price || 0), 0);
+  }, [ticketPricesList]);
+
+  // Auto-calculate face value based on sum of individual prices + MC Addition
   useEffect(() => {
     const middleClass = Number(watchMiddleClassPrice) || 0;
-    let basePrice = 0;
-    if (ticketSource === "direct") {
-      basePrice = Number(watchAirlinePrice) || 0;
-    } else {
-      // For vendor or agent sources, use vendor/agent price
-      basePrice = Number(watchVendorPrice) || 0;
-    }
-    const perPersonPrice = basePrice + middleClass;
-    const total = perPersonPrice * passengerCount;
+    const mcTotal = middleClass * passengerCount;
+    const total = totalTicketPrices + mcTotal;
     form.setValue("faceValue", total);
-  }, [ticketSource, watchVendorPrice, watchAirlinePrice, watchMiddleClassPrice, passengerCount, form]);
+    // Also update the vendor/airline price to average for backend compatibility
+    const avgPrice = passengerCount > 0 ? totalTicketPrices / passengerCount : 0;
+    if (ticketSource === "direct") {
+      form.setValue("airlinePrice", avgPrice);
+    } else {
+      form.setValue("vendorPrice", avgPrice);
+    }
+  }, [ticketSource, watchMiddleClassPrice, passengerCount, totalTicketPrices, form]);
 
   const calculations = useMemo(() => {
     const faceValue = Number(watchFaceValue) || 0;
@@ -584,6 +596,7 @@ export default function TicketsPage() {
     setCreateEticketFile(null);
     setCreateEticketPreview(null);
     setTicketNumbersList([""]); // Reset ticket numbers list
+    setTicketPricesList([0]); // Reset ticket prices list
   };
 
   return (
@@ -1242,63 +1255,21 @@ export default function TicketsPage() {
                         )}
                       </div>
                       <div className="col-span-3">
-                        {index === 0 ? (
-                          ticketSource === "vendor" ? (
-                            <FormField
-                              control={form.control}
-                              name="vendorPrice"
-                              render={({ field }) => (
-                                <FormItem className="space-y-0">
-                                  <FormControl>
-                                    <Input
-                                      type="number"
-                                      min="0"
-                                      step="any"
-                                      placeholder="Price"
-                                      defaultValue=""
-                                      onChange={(e) => {
-                                        const val = parseFloat(e.target.value) || 0;
-                                        field.onChange(val);
-                                      }}
-                                      className="text-right"
-                                      data-testid="input-ticket-price"
-                                    />
-                                  </FormControl>
-                                </FormItem>
-                              )}
-                            />
-                          ) : (
-                            <FormField
-                              control={form.control}
-                              name="airlinePrice"
-                              render={({ field }) => (
-                                <FormItem className="space-y-0">
-                                  <FormControl>
-                                    <Input
-                                      type="number"
-                                      min="0"
-                                      step="any"
-                                      placeholder="Price"
-                                      defaultValue=""
-                                      onChange={(e) => {
-                                        const val = parseFloat(e.target.value) || 0;
-                                        field.onChange(val);
-                                      }}
-                                      className="text-right"
-                                      data-testid="input-ticket-price"
-                                    />
-                                  </FormControl>
-                                </FormItem>
-                              )}
-                            />
-                          )
-                        ) : (
-                          <Input
-                            placeholder="—"
-                            disabled
-                            className="text-right text-muted-foreground"
-                          />
-                        )}
+                        <Input
+                          type="number"
+                          min="0"
+                          step="any"
+                          placeholder="Price"
+                          value={ticketPricesList[index] || ""}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value) || 0;
+                            const newPrices = [...ticketPricesList];
+                            newPrices[index] = val;
+                            setTicketPricesList(newPrices);
+                          }}
+                          className="text-right"
+                          data-testid={`input-ticket-price-${index}`}
+                        />
                       </div>
                     </div>
                   ))}
@@ -1450,12 +1421,17 @@ export default function TicketsPage() {
               </div>
 
               {/* Total Price Summary */}
-              <div className="p-3 bg-primary/10 rounded-md">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Total: </span>
-                    <span className="font-medium">{passengerCount} × AED {calculations.perPersonPrice.toFixed(2)}</span>
-                  </div>
+              <div className="p-3 bg-primary/10 rounded-md space-y-1">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Ticket Prices:</span>
+                  <span className="font-mono">AED {totalTicketPrices.toFixed(2)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">MC Addition ({passengerCount}×):</span>
+                  <span className="font-mono">AED {((Number(watchMiddleClassPrice) || 0) * passengerCount).toFixed(2)}</span>
+                </div>
+                <div className="flex items-center justify-between pt-1 border-t">
+                  <span className="font-medium">Total:</span>
                   <span className="text-lg font-bold text-primary font-mono" data-testid="text-total-price">
                     AED {calculations.faceValue.toFixed(2)}
                   </span>
