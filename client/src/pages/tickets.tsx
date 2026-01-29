@@ -94,21 +94,17 @@ function getStatusBadgeVariant(status: string): "default" | "secondary" | "destr
 const createTicketFormSchema = z.object({
   ticketNumber: z.string().optional(), // Optional - added later after e-ticket upload
   pnr: z.string().optional(),
-  passportNumber: z.string().min(1, "Passport number is required"),
   customerId: z.string().min(1, "Customer is required"),
   vendorId: z.string().optional(), // Optional - "direct" means direct from airline
   tripType: z.enum(["one_way", "round_trip"]).default("one_way"),
-  ticketType: z.string().min(1, "Ticket type is required"),
   seatClass: z.enum(["economy", "business", "first"]).default("economy"),
   routeFrom: z.string().min(1, "Origin is required").max(4, "Max 4 characters"),
   routeTo: z.string().min(1, "Destination is required").max(4, "Max 4 characters"),
   airlines: z.string().min(1, "Airlines is required"),
   flightNumber: z.string().optional(), // Optional at initial booking
-  flightTime: z.string().optional(), // Optional at initial booking
   travelDate: z.string().min(1, "Travel date is required"),
   returnDate: z.string().optional(),
   passengerName: z.string().min(1, "Passenger name is required"),
-  baggageAllowance: z.string().optional(),
   faceValue: z.coerce.number().min(0, "Face value must be positive"),
   deductFromDeposit: z.boolean().default(false),
 });
@@ -156,21 +152,17 @@ export default function TicketsPage() {
     defaultValues: {
       ticketNumber: "",
       pnr: "",
-      passportNumber: "",
       customerId: "",
       vendorId: "",
       tripType: "one_way",
-      ticketType: "",
       seatClass: "economy",
       routeFrom: "",
       routeTo: "",
       airlines: "",
       flightNumber: "",
-      flightTime: "",
       travelDate: "",
       returnDate: "",
       passengerName: "",
-      baggageAllowance: "",
       faceValue: 0,
       deductFromDeposit: false,
     },
@@ -425,7 +417,6 @@ export default function TicketsPage() {
 
   const filteredTickets = tickets.filter((ticket) =>
     (ticket.ticketNumber?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
-    (ticket.passportNumber?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
     ticket.passengerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     ticket.route.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -447,11 +438,9 @@ export default function TicketsPage() {
           else if (header === 'customerid') ticket.customerId = values[i];
           else if (header === 'vendorid') ticket.vendorId = values[i];
           else if (header === 'triptype') ticket.tripType = values[i] || 'one_way';
-          else if (header === 'tickettype') ticket.ticketType = values[i];
           else if (header === 'route') ticket.route = values[i];
           else if (header === 'airlines') ticket.airlines = values[i];
           else if (header === 'flightnumber') ticket.flightNumber = values[i];
-          else if (header === 'flighttime') ticket.flightTime = values[i];
           else if (header === 'traveldate') ticket.travelDate = values[i];
           else if (header === 'passengername') ticket.passengerName = values[i];
         });
@@ -584,13 +573,10 @@ export default function TicketsPage() {
                     <TableRow key={ticket.id} data-testid={`row-ticket-${ticket.id}`}>
                       <TableCell className="font-medium">
                         <div className="flex flex-col">
-                          <span className="text-xs text-muted-foreground">Passport:</span>
-                          <span className="font-mono">{ticket.passportNumber || "-"}</span>
-                          {ticket.ticketNumber && (
-                            <>
-                              <span className="text-xs text-muted-foreground mt-1">Ticket:</span>
-                              <span className="font-mono text-sm">{ticket.ticketNumber}</span>
-                            </>
+                          {ticket.ticketNumber ? (
+                            <span className="font-mono text-sm">{ticket.ticketNumber}</span>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">Pending</span>
                           )}
                         </div>
                       </TableCell>
@@ -662,23 +648,6 @@ export default function TicketsPage() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <FormField
-                  control={form.control}
-                  name="passportNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Passport Number</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="e.g., AB1234567"
-                          {...field}
-                          data-testid="input-passport-number"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
                 <FormField
                   control={form.control}
                   name="pnr"
@@ -993,43 +962,6 @@ export default function TicketsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="ticketType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Ticket Type *</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="e.g., E-Ticket, Paper"
-                          {...field}
-                          data-testid="input-ticket-type"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="baggageAllowance"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Baggage Allowance</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="e.g., 23kg, 2 pieces"
-                          {...field}
-                          data-testid="input-baggage"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
               <div>
                 <FormLabel>Route *</FormLabel>
                 <div className="flex items-center gap-2 mt-2">
@@ -1189,23 +1121,6 @@ export default function TicketsPage() {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="flightTime"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Flight Time (24hr) *</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="time"
-                          {...field}
-                          data-testid="input-flight-time"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
 
               {watchTripType === "round_trip" && (
@@ -1329,15 +1244,15 @@ export default function TicketsPage() {
           <DialogHeader>
             <DialogTitle>Bulk Import Tickets</DialogTitle>
             <DialogDescription>
-              Import multiple tickets from CSV data. Format: customerId, vendorId, passengerName, route, airlines, flightNumber, flightTime, travelDate, ticketType, faceValue
+              Import multiple tickets from CSV data. Format: customerId, vendorId, passengerName, route, airlines, flightNumber, travelDate, faceValue
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="p-3 bg-muted rounded-md text-xs font-mono overflow-x-auto">
               <p className="font-semibold mb-1">Example CSV:</p>
-              customerId,vendorId,passengerName,route,airlines,flightNumber,flightTime,travelDate,ticketType,faceValue
+              customerId,vendorId,passengerName,route,airlines,flightNumber,travelDate,faceValue
               <br />
-              cust-1,vendor-1,John Doe,DXB-LON,Emirates,EK007,10:00,2024-03-15,Economy,1500
+              cust-1,vendor-1,John Doe,DXB-LON,Emirates,EK007,2024-03-15,1500
             </div>
             <Textarea
               placeholder="Paste CSV data here..."
