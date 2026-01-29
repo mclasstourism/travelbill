@@ -1111,7 +1111,34 @@ export default function TicketsPage() {
                     </FormItem>
                   )}
                 />
+              </div>
 
+              {/* Ticket Numbers Section - One per passenger */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">
+                  Ticket Numbers * ({passengerCount} {passengerCount === 1 ? 'ticket' : 'tickets'})
+                </Label>
+                <div className="space-y-2">
+                  {ticketNumbersList.map((ticketNum, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground w-6">{index + 1}.</span>
+                      <Input
+                        placeholder={`Ticket #${index + 1}`}
+                        value={ticketNum}
+                        onChange={(e) => {
+                          const newList = [...ticketNumbersList];
+                          newList[index] = e.target.value;
+                          setTicketNumbersList(newList);
+                        }}
+                        className="font-mono flex-1"
+                        data-testid={`input-ticket-number-${index}`}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Enter ticket number for each passenger in this booking
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -1345,36 +1372,6 @@ export default function TicketsPage() {
                     AED {calculations.faceValue.toFixed(2)}
                   </span>
                 </div>
-              </div>
-
-              {/* Ticket Numbers Section */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium">
-                    Ticket Numbers * ({passengerCount} {passengerCount === 1 ? 'ticket' : 'tickets'})
-                  </Label>
-                </div>
-                <div className="space-y-2">
-                  {ticketNumbersList.map((ticketNum, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground w-6">{index + 1}.</span>
-                      <Input
-                        placeholder={`Ticket #${index + 1}`}
-                        value={ticketNum}
-                        onChange={(e) => {
-                          const newList = [...ticketNumbersList];
-                          newList[index] = e.target.value;
-                          setTicketNumbersList(newList);
-                        }}
-                        className="font-mono flex-1"
-                        data-testid={`input-ticket-number-${index}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Enter ticket number for each passenger in this booking
-                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
