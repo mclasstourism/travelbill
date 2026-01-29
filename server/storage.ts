@@ -70,6 +70,7 @@ export interface IStorage {
   findDuplicateCustomer(name: string, phone: string): Promise<Customer | undefined>;
   createCustomer(customer: InsertCustomer): Promise<Customer>;
   updateCustomer(id: string, updates: Partial<Customer>): Promise<Customer | undefined>;
+  deleteCustomer(id: string): Promise<boolean>;
 
   getAgents(): Promise<Agent[]>;
   getAgent(id: string): Promise<Agent | undefined>;
@@ -397,6 +398,11 @@ export class DatabaseStorage implements IStorage {
       depositBalance: updates.depositBalance,
     }).where(eq(customersTable.id, id)).returning();
     return result[0] ? this.mapCustomer(result[0]) : undefined;
+  }
+
+  async deleteCustomer(id: string): Promise<boolean> {
+    await db.delete(customersTable).where(eq(customersTable.id, id));
+    return true;
   }
 
   // Agents

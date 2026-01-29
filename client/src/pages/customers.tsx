@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,16 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Table,
   TableBody,
@@ -30,29 +41,37 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Users, Search, Wallet, Loader2 } from "lucide-react";
+import { Plus, Users, Search, Loader2, Pencil, Trash2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertCustomerSchema, type Customer, type InsertCustomer } from "@shared/schema";
 
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("en-AE", {
-    style: "currency",
-    currency: "AED",
-    minimumFractionDigits: 2,
-  }).format(amount);
-}
-
 export default function CustomersPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "superadmin";
 
   const { data: customers = [], isLoading } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
   });
 
-  const form = useForm<InsertCustomer>({
+  const createForm = useForm<InsertCustomer>({
+    resolver: zodResolver(insertCustomerSchema),
+    defaultValues: {
+      name: "",
+      phone: "",
+      address: "",
+      email: "",
+      depositBalance: 0,
+    },
+  });
+
+  const editForm = useForm<InsertCustomer>({
     resolver: zodResolver(insertCustomerSchema),
     defaultValues: {
       name: "",
@@ -72,7 +91,7 @@ export default function CustomersPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
       setIsCreateOpen(false);
-      form.reset();
+      createForm.reset();
       toast({
         title: "Customer created",
         description: "The customer has been added successfully.",
@@ -87,14 +106,91 @@ export default function CustomersPage() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<InsertCustomer> }) => {
+      const res = await apiRequest("PUT", `/api/customers/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
+      setIsEditOpen(false);
+      setSelectedCustomer(null);
+      toast({
+        title: "Customer updated",
+        description: "The customer has been updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update customer",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("DELETE", `/api/customers/${id}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
+      setIsDeleteOpen(false);
+      setSelectedCustomer(null);
+      toast({
+        title: "Customer deleted",
+        description: "The customer has been deleted successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete customer",
+        variant: "destructive",
+      });
+    },
+  });
+
   const filteredCustomers = customers.filter((customer) =>
     customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     customer.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     customer.phone?.includes(searchQuery)
   );
 
-  const onSubmit = (data: InsertCustomer) => {
+  const onCreateSubmit = (data: InsertCustomer) => {
     createMutation.mutate(data);
+  };
+
+  const onEditSubmit = (data: InsertCustomer) => {
+    if (selectedCustomer) {
+      updateMutation.mutate({ id: selectedCustomer.id, data });
+    }
+  };
+
+  const handleEdit = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    editForm.reset({
+      name: customer.name,
+      phone: customer.phone,
+      address: customer.address || "",
+      email: customer.email || "",
+      depositBalance: customer.depositBalance,
+    });
+    setIsEditOpen(true);
+  };
+
+  const handleDelete = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setIsDeleteOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (selectedCustomer) {
+      deleteMutation.mutate(selectedCustomer.id);
+    }
   };
 
   return (
@@ -146,7 +242,8 @@ export default function CustomersPage() {
                     <TableHead>Name</TableHead>
                     <TableHead>Phone</TableHead>
                     <TableHead>Email</TableHead>
-                    <TableHead className="text-right">Deposit Balance</TableHead>
+                    <TableHead>Address</TableHead>
+                    {isAdmin && <TableHead className="text-right">Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -159,11 +256,31 @@ export default function CustomersPage() {
                       <TableCell className="text-muted-foreground">
                         {customer.email || "-"}
                       </TableCell>
-                      <TableCell className="text-right font-mono font-semibold">
-                        <span className={customer.depositBalance >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
-                          {formatCurrency(customer.depositBalance)}
-                        </span>
+                      <TableCell className="text-muted-foreground">
+                        {customer.address || "-"}
                       </TableCell>
+                      {isAdmin && (
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => handleEdit(customer)}
+                              data-testid={`button-edit-customer-${customer.id}`}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => handleDelete(customer)}
+                              data-testid={`button-delete-customer-${customer.id}`}
+                            >
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -182,10 +299,10 @@ export default function CustomersPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <Form {...createForm}>
+            <form onSubmit={createForm.handleSubmit(onCreateSubmit)} className="space-y-4">
               <FormField
-                control={form.control}
+                control={createForm.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
@@ -203,7 +320,7 @@ export default function CustomersPage() {
               />
 
               <FormField
-                control={form.control}
+                control={createForm.control}
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
@@ -227,7 +344,7 @@ export default function CustomersPage() {
               />
 
               <FormField
-                control={form.control}
+                control={createForm.control}
                 name="address"
                 render={({ field }) => (
                   <FormItem>
@@ -245,7 +362,7 @@ export default function CustomersPage() {
               />
 
               <FormField
-                control={form.control}
+                control={createForm.control}
                 name="email"
                 render={({ field }) => (
                   <FormItem>
@@ -287,6 +404,145 @@ export default function CustomersPage() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Customer</DialogTitle>
+            <DialogDescription>
+              Update the customer details below.
+            </DialogDescription>
+          </DialogHeader>
+
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
+              <FormField
+                control={editForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name (as per passport) *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter name..."
+                        {...field}
+                        data-testid="input-edit-customer-name"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={editForm.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone *</FormLabel>
+                    <FormControl>
+                      <div className="flex">
+                        <span className="inline-flex items-center px-3 text-sm border border-r-0 rounded-l-md bg-muted text-muted-foreground">
+                          +971
+                        </span>
+                        <Input
+                          placeholder="50 123 4567"
+                          {...field}
+                          data-testid="input-edit-customer-phone"
+                          className="rounded-l-none"
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={editForm.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Address</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Street address"
+                        {...field}
+                        data-testid="input-edit-customer-address"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={editForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="email@example.com"
+                        {...field}
+                        data-testid="input-edit-customer-email"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setIsEditOpen(false)}
+                  data-testid="button-cancel-edit-customer"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={updateMutation.isPending}
+                  data-testid="button-update-customer"
+                >
+                  {updateMutation.isPending && (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  )}
+                  Update Customer
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Customer</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{selectedCustomer?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete-customer">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete-customer"
+            >
+              {deleteMutation.isPending && (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              )}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

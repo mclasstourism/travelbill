@@ -400,6 +400,41 @@ export async function registerRoutes(
     }
   });
 
+  app.put("/api/customers/:id", requireAuth, requireRole("superadmin"), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const existing = await storage.getCustomer(id);
+      if (!existing) {
+        res.status(404).json({ error: "Customer not found" });
+        return;
+      }
+      const data = insertCustomerSchema.partial().parse(req.body);
+      const updated = await storage.updateCustomer(id, data);
+      res.json(updated);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to update customer" });
+      }
+    }
+  });
+
+  app.delete("/api/customers/:id", requireAuth, requireRole("superadmin"), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const existing = await storage.getCustomer(id);
+      if (!existing) {
+        res.status(404).json({ error: "Customer not found" });
+        return;
+      }
+      await storage.deleteCustomer(id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete customer" });
+    }
+  });
+
   // Agents
   app.get("/api/agents", requireAuth, async (req, res) => {
     try {
