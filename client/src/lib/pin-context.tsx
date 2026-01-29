@@ -1,12 +1,19 @@
 import { createContext, useContext, useState, useCallback } from "react";
-import type { PinSession, BillCreator } from "@shared/schema";
+import type { User } from "@shared/schema";
+
+type PinSession = {
+  staffId: string;
+  staffName: string;
+  authenticated: boolean;
+  expiresAt: number;
+};
 
 type PinContextType = {
   session: PinSession | null;
   isAuthenticated: boolean;
-  authenticate: (billCreator: BillCreator) => void;
+  authenticate: (staff: User) => void;
   logout: () => void;
-  billCreatorName: string | null;
+  staffName: string | null;
 };
 
 const PinContext = createContext<PinContextType | undefined>(undefined);
@@ -28,10 +35,10 @@ export function PinProvider({ children }: { children: React.ReactNode }) {
     return null;
   });
 
-  const authenticate = useCallback((billCreator: BillCreator) => {
+  const authenticate = useCallback((staff: User) => {
     const newSession: PinSession = {
-      billCreatorId: billCreator.id,
-      billCreatorName: billCreator.name,
+      staffId: staff.id,
+      staffName: staff.name || staff.username,
       authenticated: true,
       expiresAt: Date.now() + SESSION_DURATION,
     };
@@ -45,10 +52,10 @@ export function PinProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const isAuthenticated = session !== null && session.expiresAt > Date.now();
-  const billCreatorName = session?.billCreatorName || null;
+  const staffName = session?.staffName || null;
 
   return (
-    <PinContext.Provider value={{ session, isAuthenticated, authenticate, logout, billCreatorName }}>
+    <PinContext.Provider value={{ session, isAuthenticated, authenticate, logout, staffName }}>
       {children}
     </PinContext.Provider>
   );

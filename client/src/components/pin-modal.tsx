@@ -24,7 +24,9 @@ import { Lock, AlertCircle, Loader2 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { usePin } from "@/lib/pin-context";
-import type { BillCreator } from "@shared/schema";
+import type { User } from "@shared/schema";
+
+type SafeUser = Omit<User, 'password' | 'twoFactorSecret'>;
 
 interface PinModalProps {
   open: boolean;
@@ -33,24 +35,24 @@ interface PinModalProps {
 }
 
 export function PinModal({ open, onOpenChange, onSuccess }: PinModalProps) {
-  const [selectedCreatorId, setSelectedCreatorId] = useState<string>("");
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const { authenticate } = usePin();
 
-  const { data: billCreators = [], isLoading: isLoadingCreators } = useQuery<BillCreator[]>({
-    queryKey: ["/api/bill-creators"],
+  const { data: users = [], isLoading: isLoadingUsers } = useQuery<SafeUser[]>({
+    queryKey: ["/api/users"],
     enabled: open,
   });
 
   const verifyMutation = useMutation({
-    mutationFn: async ({ creatorId, pin }: { creatorId: string; pin: string }) => {
-      const res = await apiRequest("POST", "/api/auth/verify-pin", { creatorId, pin });
+    mutationFn: async ({ userId, pin }: { userId: string; pin: string }) => {
+      const res = await apiRequest("POST", "/api/auth/verify-user-pin", { userId, pin });
       return res.json();
     },
     onSuccess: (data) => {
-      if (data.success && data.billCreator) {
-        authenticate(data.billCreator);
+      if (data.success && data.user) {
+        authenticate(data.user);
         setPin("");
         setError("");
         onOpenChange(false);
@@ -67,20 +69,20 @@ export function PinModal({ open, onOpenChange, onSuccess }: PinModalProps) {
   });
 
   useEffect(() => {
-    if (pin.length === 8 && selectedCreatorId) {
-      verifyMutation.mutate({ creatorId: selectedCreatorId, pin });
+    if (pin.length === 5 && selectedUserId) {
+      verifyMutation.mutate({ userId: selectedUserId, pin });
     }
-  }, [pin, selectedCreatorId]);
+  }, [pin, selectedUserId]);
 
   useEffect(() => {
     if (!open) {
       setPin("");
       setError("");
-      setSelectedCreatorId("");
+      setSelectedUserId("");
     }
   }, [open]);
 
-  const activeCreators = billCreators.filter((c) => c.active);
+  const activeUsers = users.filter((u) => u.active !== false && u.pin);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -91,50 +93,39 @@ export function PinModal({ open, onOpenChange, onSuccess }: PinModalProps) {
             PIN Authentication
           </DialogTitle>
           <DialogDescription>
-            Select your account and enter your 8-digit PIN to authenticate.
+            Select your account and enter your 5-digit PIN to authenticate.
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-6 py-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="bill-creator">Bill Creator</Label>
-            {isLoadingCreators ? (
-              <div className="flex items-center gap-2 h-10 text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Loading...
-              </div>
-            ) : activeCreators.length === 0 ? (
-              <div className="text-sm text-muted-foreground">
-                No bill creators found. Please add one in Settings.
-              </div>
-            ) : (
-              <Select
-                value={selectedCreatorId}
-                onValueChange={(value) => {
-                  setSelectedCreatorId(value);
-                  setPin("");
-                  setError("");
-                }}
+            <Label htmlFor="staff-user">Staff Member</Label>
+            <Select
+              value={selectedUserId}
+              onValueChange={setSelectedUserId}
+              disabled={isLoadingUsers}
+            >
+              <SelectTrigger
+                id="staff-user"
+                data-testid="select-staff-user"
               >
-                <SelectTrigger data-testid="select-bill-creator">
-                  <SelectValue placeholder="Select bill creator" />
-                </SelectTrigger>
-                <SelectContent>
-                  {activeCreators.map((creator) => (
-                    <SelectItem key={creator.id} value={creator.id}>
-                      {creator.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+                <SelectValue placeholder="Select staff member" />
+              </SelectTrigger>
+              <SelectContent>
+                {activeUsers.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.name || user.username}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {selectedCreatorId && (
+          {selectedUserId && (
             <div className="flex flex-col items-center gap-4">
-              <Label>Enter PIN</Label>
+              <Label>Enter 5-digit PIN</Label>
               <InputOTP
-                maxLength={8}
+                maxLength={5}
                 value={pin}
                 onChange={setPin}
                 disabled={verifyMutation.isPending}
@@ -146,21 +137,18 @@ export function PinModal({ open, onOpenChange, onSuccess }: PinModalProps) {
                   <InputOTPSlot index={2} />
                   <InputOTPSlot index={3} />
                   <InputOTPSlot index={4} />
-                  <InputOTPSlot index={5} />
-                  <InputOTPSlot index={6} />
-                  <InputOTPSlot index={7} />
                 </InputOTPGroup>
               </InputOTP>
 
               {verifyMutation.isPending && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 text-muted-foreground">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Verifying...
                 </div>
               )}
 
               {error && (
-                <div className="flex items-center gap-2 text-sm text-destructive">
+                <div className="flex items-center gap-2 text-destructive text-sm">
                   <AlertCircle className="w-4 h-4" />
                   {error}
                 </div>
@@ -169,9 +157,9 @@ export function PinModal({ open, onOpenChange, onSuccess }: PinModalProps) {
           )}
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
           <Button
-            variant="ghost"
+            variant="outline"
             onClick={() => onOpenChange(false)}
             data-testid="button-cancel-pin"
           >

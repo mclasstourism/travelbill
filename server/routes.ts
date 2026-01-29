@@ -294,7 +294,7 @@ export async function registerRoutes(
     }
   });
 
-  // PIN Authentication
+  // PIN Authentication (legacy - for bill creators)
   app.post("/api/auth/verify-pin", async (req, res) => {
     try {
       const { creatorId, pin } = req.body;
@@ -309,6 +309,26 @@ export async function registerRoutes(
       } else {
         res.status(401).json({ success: false, error: "Invalid PIN" });
       }
+    } catch (error) {
+      res.status(500).json({ error: "Authentication failed" });
+    }
+  });
+
+  // PIN Authentication for staff users
+  app.post("/api/auth/verify-user-pin", async (req, res) => {
+    try {
+      const { userId, pin } = req.body;
+      if (!userId || !pin) {
+        res.status(400).json({ error: "User ID and PIN are required" });
+        return;
+      }
+      const user = await storage.getUser(userId);
+      if (!user || user.pin !== pin || user.active === false) {
+        res.status(401).json({ success: false, error: "Invalid PIN" });
+        return;
+      }
+      const { password, twoFactorSecret, ...safeUser } = user;
+      res.json({ success: true, user: safeUser });
     } catch (error) {
       res.status(500).json({ error: "Authentication failed" });
     }

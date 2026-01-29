@@ -19,7 +19,6 @@ import InvoicesPage from "@/pages/invoices";
 import TicketsPage from "@/pages/tickets";
 import DepositsPage from "@/pages/deposits";
 import VendorCreditsPage from "@/pages/vendor-credits";
-import BillCreatorsPage from "@/pages/bill-creators";
 import ReportsPage from "@/pages/reports";
 import AnalyticsPage from "@/pages/analytics";
 import ActivityLogsPage from "@/pages/activity-logs";
@@ -44,7 +43,6 @@ function Router() {
       <Route path="/analytics" component={AnalyticsPage} />
       <Route path="/calendar" component={CalendarPage} />
       <Route path="/activity-logs" component={ActivityLogsPage} />
-      <Route path="/settings/bill-creators" component={BillCreatorsPage} />
       <Route path="/settings/users" component={UserManagementPage} />
       <Route path="/settings/account" component={AccountSettingsPage} />
       <Route component={NotFound} />

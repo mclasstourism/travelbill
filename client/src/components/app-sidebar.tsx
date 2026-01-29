@@ -61,13 +61,12 @@ const reportsItems = [
 ];
 
 const settingsItems = [
-  { title: "Bill Creators", url: "/settings/bill-creators", icon: Lock },
   { title: "User Management", url: "/settings/users", icon: UserCog },
 ];
 
 export function AppSidebar() {
   const [location] = useLocation();
-  const { isAuthenticated, billCreatorName, logout: pinLogout } = usePin();
+  const { isAuthenticated, staffName, logout: pinLogout } = usePin();
   const { user, logout: authLogout } = useAuth();
 
   return (
@@ -196,7 +195,7 @@ export function AppSidebar() {
             <div className="flex items-center gap-2 min-w-0">
               <Badge variant="secondary" className="text-xs">
                 <Lock className="w-3 h-3 mr-1" />
-                {billCreatorName}
+                {staffName}
               </Badge>
             </div>
             <Button
