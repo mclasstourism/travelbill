@@ -380,18 +380,46 @@ export default function VendorsPage() {
                         {vendor.telephone || "-"}
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {vendor.airlines && vendor.airlines.length > 0 ? (
-                            vendor.airlines.map((airline, idx) => (
-                              <Badge key={idx} variant="secondary">
-                                <Plane className="w-3 h-3 mr-1" />
-                                {airline.code ? `${airline.name} (${airline.code})` : airline.name}
-                              </Badge>
-                            ))
-                          ) : (
-                            <span className="text-muted-foreground text-sm">-</span>
-                          )}
-                        </div>
+                        {vendor.airlines && vendor.airlines.length > 0 ? (
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 gap-1"
+                                data-testid={`button-view-airlines-${vendor.id}`}
+                              >
+                                <Plane className="w-3 h-3" />
+                                <span>{vendor.airlines.length} airline(s)</span>
+                                <ChevronDown className="w-3 h-3 ml-1" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-64 p-0" align="start">
+                              <div className="max-h-48 overflow-y-auto overscroll-contain p-2">
+                                {vendor.airlines.map((airline, idx) => {
+                                  const airlineData = airlines.find(a => a.name === airline.name || a.code === airline.code);
+                                  return (
+                                    <div key={idx} className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-muted">
+                                      {airlineData?.logo && (
+                                        <img 
+                                          src={airlineData.logo} 
+                                          alt={airline.name} 
+                                          className="w-6 h-4 object-contain rounded-sm"
+                                        />
+                                      )}
+                                      <span className="text-sm">{airline.name}</span>
+                                      {airline.code && (
+                                        <span className="text-xs text-muted-foreground">({airline.code})</span>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">-</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right font-mono font-semibold">
                         <span className="text-blue-600 dark:text-blue-400">
