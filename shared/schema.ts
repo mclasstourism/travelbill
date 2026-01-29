@@ -133,7 +133,8 @@ export const ticketsTable = pgTable("tickets", {
   faceValue: doublePrecision("face_value").notNull(), // Final price to customer
   deductFromDeposit: boolean("deduct_from_deposit").default(false),
   depositDeducted: doublePrecision("deposit_deducted").default(0),
-  eticketImage: varchar("eticket_image", { length: 500 }), // URL to e-ticket image (PNG/screenshot)
+  eticketImage: varchar("eticket_image", { length: 500 }), // Legacy: URL to first e-ticket file
+  eticketFiles: text("eticket_files").array(), // Array of e-ticket file URLs (PDF or images)
   issuedBy: varchar("issued_by", { length: 36 }).notNull(),
   status: varchar("status", { length: 20 }).default("pending"), // pending, processing, approved, issued, used, cancelled, refunded
   createdAt: timestamp("created_at").defaultNow(),

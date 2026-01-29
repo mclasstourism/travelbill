@@ -144,8 +144,8 @@ export default function TicketsPage() {
   const [ticketPricesList, setTicketPricesList] = useState<number[]>([0]);
   const [ticketClassesList, setTicketClassesList] = useState<string[]>(["economy"]);
   const [passengerNamesList, setPassengerNamesList] = useState<string[]>([""]);
-  const [createEticketFile, setCreateEticketFile] = useState<File | null>(null);
-  const [createEticketPreview, setCreateEticketPreview] = useState<string | null>(null);
+  const [createEticketFiles, setCreateEticketFiles] = useState<File[]>([]);
+  const [createEticketPreviews, setCreateEticketPreviews] = useState<{name: string, type: string, url?: string}[]>([]);
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
   const [invoiceTicket, setInvoiceTicket] = useState<Ticket | null>(null);
   const { toast } = useToast();
@@ -331,8 +331,8 @@ export default function TicketsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
       setIsCreateOpen(false);
       form.reset();
-      setCreateEticketFile(null);
-      setCreateEticketPreview(null);
+      setCreateEticketFiles([]);
+      setCreateEticketPreviews([]);
       toast({
         title: "Ticket issued",
         description: "The ticket has been issued successfully.",
@@ -592,25 +592,28 @@ export default function TicketsPage() {
     // Combine route fields
     const route = `${data.routeFrom} - ${data.routeTo}`;
 
-    // Handle e-ticket image upload
-    let eticketImageUrl: string | undefined;
-    if (createEticketFile) {
-      try {
-        const formData = new FormData();
-        formData.append("file", createEticketFile);
-        formData.append("directory", ".private/etickets");
-        
-        const uploadResponse = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
-        
-        if (uploadResponse.ok) {
-          const uploadResult = await uploadResponse.json();
-          eticketImageUrl = uploadResult.url || uploadResult.objectPath;
+    // Handle e-ticket files upload (multiple files - PDF or images)
+    const eticketFileUrls: string[] = [];
+    if (createEticketFiles.length > 0) {
+      for (const file of createEticketFiles) {
+        try {
+          const formData = new FormData();
+          formData.append("file", file);
+          formData.append("directory", ".private/etickets");
+          
+          const uploadResponse = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+          
+          if (uploadResponse.ok) {
+            const uploadResult = await uploadResponse.json();
+            const fileUrl = uploadResult.url || uploadResult.objectPath;
+            if (fileUrl) eticketFileUrls.push(fileUrl);
+          }
+        } catch (error) {
+          console.error("Failed to upload e-ticket file:", error);
         }
-      } catch (error) {
-        console.error("Failed to upload e-ticket:", error);
       }
     }
 
@@ -629,14 +632,15 @@ export default function TicketsPage() {
       depositDeducted,
       passengerCount: Number(data.quantity) || 1,
       issuedBy: session.staffId,
-      eticketImage: eticketImageUrl,
+      eticketImage: eticketFileUrls[0] || undefined, // Legacy: first file
+      eticketFiles: eticketFileUrls, // All files
       ticketNumbers: validTicketNumbers,
       ticketNumber: validTicketNumbers[0] || "", // Also set first ticket number for legacy field
     };
 
     createMutation.mutate(ticketData);
-    setCreateEticketFile(null);
-    setCreateEticketPreview(null);
+    setCreateEticketFiles([]);
+    setCreateEticketPreviews([]);
     setTicketNumbersList([""]); // Reset ticket numbers list
     setTicketPricesList([0]); // Reset ticket prices list
     setTicketClassesList(["economy"]); // Reset ticket classes list
@@ -1714,46 +1718,87 @@ export default function TicketsPage() {
               )}
 
               <div className="space-y-2">
-                <Label>E-Ticket Image</Label>
+                <Label>E-Ticket Files (PDF or Images)</Label>
                 <div className="flex items-center gap-4">
                   <Input
                     type="file"
-                    accept="image/*"
+                    accept="image/*,.pdf,application/pdf"
+                    multiple
                     onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setCreateEticketFile(file);
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          setCreateEticketPreview(reader.result as string);
-                        };
-                        reader.readAsDataURL(file);
+                      const files = e.target.files;
+                      if (files && files.length > 0) {
+                        const fileArray = Array.from(files);
+                        setCreateEticketFiles(prev => [...prev, ...fileArray]);
+                        
+                        // Create previews for each file
+                        fileArray.forEach(file => {
+                          if (file.type.startsWith('image/')) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setCreateEticketPreviews(prev => [...prev, {
+                                name: file.name,
+                                type: file.type,
+                                url: reader.result as string
+                              }]);
+                            };
+                            reader.readAsDataURL(file);
+                          } else {
+                            // PDF - no preview URL needed
+                            setCreateEticketPreviews(prev => [...prev, {
+                              name: file.name,
+                              type: file.type
+                            }]);
+                          }
+                        });
                       }
                     }}
                     className="flex-1"
                     data-testid="input-eticket-upload"
                   />
-                  {createEticketPreview && (
+                  {createEticketFiles.length > 0 && (
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        setCreateEticketFile(null);
-                        setCreateEticketPreview(null);
+                        setCreateEticketFiles([]);
+                        setCreateEticketPreviews([]);
                       }}
                     >
-                      <X className="w-4 h-4" />
+                      Clear All
                     </Button>
                   )}
                 </div>
-                {createEticketPreview && (
-                  <div className="mt-2 border rounded-md overflow-hidden">
-                    <img
-                      src={createEticketPreview}
-                      alt="E-ticket preview"
-                      className="max-h-40 object-contain mx-auto"
-                    />
+                {createEticketPreviews.length > 0 && (
+                  <div className="mt-2 space-y-2">
+                    {createEticketPreviews.map((preview, idx) => (
+                      <div key={idx} className="flex items-center gap-2 p-2 border rounded-md bg-muted/30">
+                        {preview.type.startsWith('image/') && preview.url ? (
+                          <img
+                            src={preview.url}
+                            alt={preview.name}
+                            className="h-10 w-10 object-cover rounded"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 flex items-center justify-center bg-red-100 dark:bg-red-900/30 rounded">
+                            <FileText className="w-5 h-5 text-red-600 dark:text-red-400" />
+                          </div>
+                        )}
+                        <span className="flex-1 text-sm truncate">{preview.name}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => {
+                            setCreateEticketFiles(prev => prev.filter((_, i) => i !== idx));
+                            setCreateEticketPreviews(prev => prev.filter((_, i) => i !== idx));
+                          }}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -1809,8 +1854,8 @@ export default function TicketsPage() {
                   variant="ghost"
                   onClick={() => {
                     setIsCreateOpen(false);
-                    setCreateEticketFile(null);
-                    setCreateEticketPreview(null);
+                    setCreateEticketFiles([]);
+                    setCreateEticketPreviews([]);
                   }}
                   data-testid="button-cancel-ticket"
                 >
