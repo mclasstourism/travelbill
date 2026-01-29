@@ -1251,6 +1251,7 @@ export default function TicketsPage() {
                           <Input
                             type="date"
                             className="pl-9"
+                            min={new Date().toISOString().split('T')[0]}
                             {...field}
                             data-testid="input-travel-date"
                           />
@@ -1276,6 +1277,7 @@ export default function TicketsPage() {
                           <Input
                             type="date"
                             className="pl-9"
+                            min={form.watch("travelDate") || new Date().toISOString().split('T')[0]}
                             {...field}
                             data-testid="input-return-date"
                           />
