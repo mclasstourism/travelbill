@@ -49,6 +49,7 @@ MVP fully implemented with:
 - `client/src/lib/pin-context.tsx` - PIN authentication context
 - `client/src/lib/theme-provider.tsx` - Theme context
 - `client/src/lib/queryClient.ts` - API client with auth headers
+- `client/src/lib/airlines.ts` - Airline data with logos for direct ticket booking
 
 ## Data Models
 - **User**: Staff accounts with username, password hash, and role
@@ -95,7 +96,10 @@ MVP fully implemented with:
 - Email invoice to customer via Resend
 
 ### Ticket Issuance
-- Select customer and vendor
+- Select customer and vendor (or "Direct from Airline" for direct purchases)
+- When "Direct from Airline" is selected, choose from 28 airlines with logos
+- Supported airlines: Airblue, Air India Express, Air Arabia, Air Sial, Akasa Air, Biman Bangladesh, British Airways, Cathay Pacific, Emirates, Etihad, flydubai, Flynas, Gulf Air, IndiGo, Jazeera, Kuwait Airways, Malaysia Airlines, Oman Air, Philippine Airlines, PIA, Qatar Airways, SalamAir, Saudia, Singapore Airlines, SpiceJet, SriLankan, Turkish Airlines, US-Bangla
+- Quick-add new customers directly from ticket form
 - Enter passenger details and travel information
 - Option to deduct from customer deposit
 - Bulk CSV import with validation

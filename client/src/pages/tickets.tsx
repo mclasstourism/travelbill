@@ -47,6 +47,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { z } from "zod";
 import type { Ticket, Customer, Vendor } from "@shared/schema";
+import { airlines } from "@/lib/airlines";
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("en-AE", {
@@ -661,6 +662,28 @@ export default function TicketsPage() {
                             {vendorAirlines.map((airline) => (
                               <SelectItem key={airline.id || airline.name} value={airline.name}>
                                 {airline.code ? `${airline.name} (${airline.code})` : airline.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : watchVendorId === "direct" ? (
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-airlines-direct">
+                              <SelectValue placeholder="Select airline" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="max-h-80">
+                            {airlines.map((airline) => (
+                              <SelectItem key={airline.id} value={airline.name}>
+                                <div className="flex items-center gap-2">
+                                  <img 
+                                    src={airline.logo} 
+                                    alt={airline.name} 
+                                    className="w-6 h-4 object-contain"
+                                  />
+                                  <span>{airline.name} ({airline.code})</span>
+                                </div>
                               </SelectItem>
                             ))}
                           </SelectContent>
