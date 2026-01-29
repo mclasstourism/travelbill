@@ -94,7 +94,7 @@ function getStatusBadgeVariant(status: string): "default" | "secondary" | "destr
 }
 
 const createTicketFormSchema = z.object({
-  ticketNumber: z.string().optional(), // Optional - added later after e-ticket upload
+  ticketNumber: z.string().min(1, "Ticket number is required"),
   pnr: z.string().optional(),
   customerId: z.string().min(1, "Customer is required"),
   vendorId: z.string().optional(), // Optional - "direct" means direct from airline
@@ -141,6 +141,8 @@ export default function TicketsPage() {
   const [additionalPassengers, setAdditionalPassengers] = useState<string[]>([]);
   const [newPassengerName, setNewPassengerName] = useState("");
   const [showGroupSection, setShowGroupSection] = useState(false);
+  const [createEticketFile, setCreateEticketFile] = useState<File | null>(null);
+  const [createEticketPreview, setCreateEticketPreview] = useState<string | null>(null);
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
   const [invoiceTicket, setInvoiceTicket] = useState<Ticket | null>(null);
   const { toast } = useToast();
@@ -286,6 +288,8 @@ export default function TicketsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
       setIsCreateOpen(false);
       form.reset();
+      setCreateEticketFile(null);
+      setCreateEticketPreview(null);
       toast({
         title: "Ticket issued",
         description: "The ticket has been issued successfully.",
@@ -502,7 +506,7 @@ export default function TicketsPage() {
     }
   };
 
-  const onSubmit = (data: CreateTicketForm) => {
+  const onSubmit = async (data: CreateTicketForm) => {
     if (!isAuthenticated || !session) {
       toast({
         title: "Authentication required",
@@ -525,6 +529,28 @@ export default function TicketsPage() {
     // Combine route fields
     const route = `${data.routeFrom} - ${data.routeTo}`;
 
+    // Handle e-ticket image upload
+    let eticketImageUrl: string | undefined;
+    if (createEticketFile) {
+      try {
+        const formData = new FormData();
+        formData.append("file", createEticketFile);
+        formData.append("directory", ".private/etickets");
+        
+        const uploadResponse = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+        
+        if (uploadResponse.ok) {
+          const uploadResult = await uploadResponse.json();
+          eticketImageUrl = uploadResult.url || uploadResult.objectPath;
+        }
+      } catch (error) {
+        console.error("Failed to upload e-ticket:", error);
+      }
+    }
+
     const ticketData = {
       ...data,
       route, // Combined route
@@ -534,12 +560,15 @@ export default function TicketsPage() {
       passengers: additionalPassengers.length > 0 ? additionalPassengers : undefined,
       passengerCount: 1 + additionalPassengers.length,
       issuedBy: session.staffId,
+      eticketImage: eticketImageUrl,
     };
 
     createMutation.mutate(ticketData);
     setAdditionalPassengers([]); // Reset for next ticket
     setNewPassengerName("");
     setShowGroupSection(false);
+    setCreateEticketFile(null);
+    setCreateEticketPreview(null);
   };
 
   return (
@@ -606,7 +635,6 @@ export default function TicketsPage() {
                     <TableHead className="text-right">Cost Price</TableHead>
                     <TableHead className="text-right">MC Addition</TableHead>
                     <TableHead className="text-right">Face Value</TableHead>
-                    <TableHead>Status</TableHead>
                     <TableHead>E-Ticket</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -656,11 +684,6 @@ export default function TicketsPage() {
                       </TableCell>
                       <TableCell className="text-right font-mono font-semibold text-primary">
                         {formatCurrency(ticket.faceValue)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getStatusBadgeVariant(ticket.status)}>
-                          {ticket.status}
-                        </Badge>
                       </TableCell>
                       <TableCell>
                         {ticket.eticketImage ? (
@@ -727,26 +750,47 @@ export default function TicketsPage() {
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="pnr"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>PNR / Booking Ref</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="e.g., ABC123"
-                        value={field.value}
-                        onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                        maxLength={6}
-                        className="uppercase"
-                        data-testid="input-pnr"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="ticketNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Ticket # *</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Enter ticket number"
+                          {...field}
+                          className="font-mono"
+                          data-testid="input-ticket-number"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="pnr"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>PNR / Booking Ref</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g., ABC123"
+                          value={field.value}
+                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                          maxLength={6}
+                          className="uppercase"
+                          data-testid="input-pnr"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <div className="space-y-3">
                 <FormLabel>Select Client</FormLabel>
@@ -1498,6 +1542,51 @@ export default function TicketsPage() {
                 </p>
               </div>
 
+              <div className="space-y-2">
+                <Label>E-Ticket Image</Label>
+                <div className="flex items-center gap-4">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setCreateEticketFile(file);
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setCreateEticketPreview(reader.result as string);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="flex-1"
+                    data-testid="input-eticket-upload"
+                  />
+                  {createEticketPreview && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setCreateEticketFile(null);
+                        setCreateEticketPreview(null);
+                      }}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+                {createEticketPreview && (
+                  <div className="mt-2 border rounded-md overflow-hidden">
+                    <img
+                      src={createEticketPreview}
+                      alt="E-ticket preview"
+                      className="max-h-40 object-contain mx-auto"
+                    />
+                  </div>
+                )}
+              </div>
+
               {selectedCustomer && selectedCustomer.depositBalance > 0 && (
                 <FormField
                   control={form.control}
@@ -1547,7 +1636,11 @@ export default function TicketsPage() {
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={() => setIsCreateOpen(false)}
+                  onClick={() => {
+                    setIsCreateOpen(false);
+                    setCreateEticketFile(null);
+                    setCreateEticketPreview(null);
+                  }}
                   data-testid="button-cancel-ticket"
                 >
                   Cancel
