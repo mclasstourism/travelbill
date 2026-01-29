@@ -251,6 +251,49 @@ export async function registerRoutes(
     }
   });
 
+  // Change password (authenticated user)
+  app.post("/api/auth/change-password", requireAuth, async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const userId = (req as any).user?.id;
+      
+      if (!currentPassword || !newPassword) {
+        res.status(400).json({ error: "Current and new password are required" });
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        res.status(400).json({ error: "New password must be at least 6 characters" });
+        return;
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        res.status(404).json({ error: "User not found" });
+        return;
+      }
+
+      const bcrypt = await import("bcryptjs");
+      const isValid = await bcrypt.compare(currentPassword, user.password);
+      if (!isValid) {
+        res.status(401).json({ error: "Current password is incorrect" });
+        return;
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      const updated = await storage.updateUser(userId, { password: hashedPassword });
+      
+      if (updated) {
+        res.json({ success: true, message: "Password changed successfully" });
+      } else {
+        res.status(500).json({ error: "Failed to change password" });
+      }
+    } catch (error) {
+      console.error("Change password error:", error);
+      res.status(500).json({ error: "Failed to change password" });
+    }
+  });
+
   // PIN Authentication
   app.post("/api/auth/verify-pin", async (req, res) => {
     try {

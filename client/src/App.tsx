@@ -24,6 +24,7 @@ import ReportsPage from "@/pages/reports";
 import AnalyticsPage from "@/pages/analytics";
 import ActivityLogsPage from "@/pages/activity-logs";
 import UserManagementPage from "@/pages/user-management";
+import AccountSettingsPage from "@/pages/account-settings";
 import CalendarPage from "@/pages/calendar";
 import LoginPage from "@/pages/login";
 import { Loader2, LogOut } from "lucide-react";
@@ -45,6 +46,7 @@ function Router() {
       <Route path="/activity-logs" component={ActivityLogsPage} />
       <Route path="/settings/bill-creators" component={BillCreatorsPage} />
       <Route path="/settings/users" component={UserManagementPage} />
+      <Route path="/settings/account" component={AccountSettingsPage} />
       <Route component={NotFound} />
     </Switch>
   );

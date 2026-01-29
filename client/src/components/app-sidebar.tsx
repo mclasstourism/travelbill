@@ -218,15 +218,27 @@ export function AppSidebar() {
                 {user.username}
               </Badge>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={authLogout}
-              data-testid="button-logout"
-              title="Sign out"
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Link href="/settings/account">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  data-testid="button-account-settings"
+                  title="Account Settings"
+                >
+                  <Settings className="w-4 h-4" />
+                </Button>
+              </Link>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={authLogout}
+                data-testid="button-logout"
+                title="Sign out"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         )}
       </SidebarFooter>

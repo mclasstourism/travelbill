@@ -146,6 +146,7 @@ export default function UserManagementPage() {
             <Users className="w-5 h-5" />
             Staff Users
           </CardTitle>
+          <p className="text-sm text-muted-foreground">Manage staff accounts who can access the system</p>
         </CardHeader>
         <CardContent>
           {isLoading ? (
