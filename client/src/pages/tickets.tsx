@@ -742,6 +742,23 @@ export default function TicketsPage() {
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="ticketNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Ticket Number</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g., 176-1234567890"
+                          {...field}
+                          data-testid="input-ticket-number"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               <div className="space-y-3">
