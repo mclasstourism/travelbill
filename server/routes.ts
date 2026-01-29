@@ -11,6 +11,7 @@ import {
   insertDepositTransactionSchema,
   insertVendorTransactionSchema,
   insertUserSchema,
+  insertAirlineSchema,
 } from "@shared/schema";
 import { z } from "zod";
 import crypto from "crypto";
@@ -552,6 +553,80 @@ export async function registerRoutes(
       } else {
         res.status(500).json({ error: "Failed to update vendor" });
       }
+    }
+  });
+
+  // Airlines (master list)
+  app.get("/api/airlines", requireAuth, async (req, res) => {
+    try {
+      const airlines = await storage.getAirlines();
+      res.json(airlines);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch airlines" });
+    }
+  });
+
+  app.get("/api/airlines/:id", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const airline = await storage.getAirline(id);
+      if (!airline) {
+        res.status(404).json({ error: "Airline not found" });
+        return;
+      }
+      res.json(airline);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch airline" });
+    }
+  });
+
+  app.post("/api/airlines", requireAuth, requireRole("superadmin"), async (req, res) => {
+    try {
+      const data = insertAirlineSchema.parse(req.body);
+      const airline = await storage.createAirline(data);
+      res.status(201).json(airline);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create airline" });
+      }
+    }
+  });
+
+  app.patch("/api/airlines/:id", requireAuth, requireRole("superadmin"), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const data = insertAirlineSchema.partial().parse(req.body);
+      
+      const existing = await storage.getAirline(id);
+      if (!existing) {
+        res.status(404).json({ error: "Airline not found" });
+        return;
+      }
+      
+      const airline = await storage.updateAirline(id, data);
+      res.json(airline);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to update airline" });
+      }
+    }
+  });
+
+  app.delete("/api/airlines/:id", requireAuth, requireRole("superadmin"), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteAirline(id);
+      if (!deleted) {
+        res.status(404).json({ error: "Airline not found" });
+        return;
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete airline" });
     }
   });
 

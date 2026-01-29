@@ -71,6 +71,16 @@ export const vendorsTable = pgTable("vendors", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Airlines table (master list)
+export const airlinesTable = pgTable("airlines", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 255 }).notNull(),
+  code: varchar("code", { length: 10 }).notNull(),
+  logo: text("logo").default(""),
+  active: boolean("active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Invoices table
 export const invoicesTable = pgTable("invoices", {
   id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
@@ -284,6 +294,18 @@ export type Vendor = {
   depositBalance: number;
   airlines: VendorAirline[];
 };
+
+// Airlines (master list)
+export const insertAirlineSchema = createInsertSchema(airlinesTable).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  name: z.string().min(1, "Airline name is required"),
+  code: z.string().min(2, "Airline code is required").max(3, "Airline code must be 2-3 characters"),
+});
+
+export type InsertAirline = z.infer<typeof insertAirlineSchema>;
+export type Airline = typeof airlinesTable.$inferSelect;
 
 // Payment methods
 export const paymentMethods = ["cash", "card", "credit"] as const;

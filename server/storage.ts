@@ -26,6 +26,8 @@ import {
   type SalesAnalytics,
   type CurrencyRate,
   type Currency,
+  type Airline,
+  type InsertAirline,
   usersTable,
   customersTable,
   agentsTable,
@@ -38,6 +40,7 @@ import {
   documentsTable,
   passwordResetTokensTable,
   billCreatorsTable,
+  airlinesTable,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
@@ -83,6 +86,12 @@ export interface IStorage {
   findDuplicateVendor(name: string, phone: string): Promise<Vendor | undefined>;
   createVendor(vendor: InsertVendor): Promise<Vendor>;
   updateVendor(id: string, updates: Partial<Vendor>): Promise<Vendor | undefined>;
+
+  getAirlines(): Promise<Airline[]>;
+  getAirline(id: string): Promise<Airline | undefined>;
+  createAirline(airline: InsertAirline): Promise<Airline>;
+  updateAirline(id: string, updates: Partial<Airline>): Promise<Airline | undefined>;
+  deleteAirline(id: string): Promise<boolean>;
 
   getInvoices(): Promise<Invoice[]>;
   getInvoice(id: string): Promise<Invoice | undefined>;
@@ -505,12 +514,51 @@ export class DatabaseStorage implements IStorage {
       name: updates.name,
       email: updates.email,
       phone: updates.phone,
+      telephone: updates.telephone,
       address: updates.address,
       creditBalance: updates.creditBalance,
       depositBalance: updates.depositBalance,
       airlines: updates.airlines,
     }).where(eq(vendorsTable.id, id)).returning();
     return result[0] ? this.mapVendor(result[0]) : undefined;
+  }
+
+  // Airlines (master list)
+  async getAirlines(): Promise<Airline[]> {
+    const result = await db.select().from(airlinesTable).orderBy(airlinesTable.name);
+    return result;
+  }
+
+  async getAirline(id: string): Promise<Airline | undefined> {
+    const result = await db.select().from(airlinesTable).where(eq(airlinesTable.id, id));
+    return result[0];
+  }
+
+  async createAirline(airline: InsertAirline): Promise<Airline> {
+    const id = randomUUID();
+    const result = await db.insert(airlinesTable).values({
+      id,
+      name: airline.name,
+      code: airline.code.toUpperCase(),
+      logo: airline.logo || "",
+      active: airline.active ?? true,
+    }).returning();
+    return result[0];
+  }
+
+  async updateAirline(id: string, updates: Partial<Airline>): Promise<Airline | undefined> {
+    const result = await db.update(airlinesTable).set({
+      name: updates.name,
+      code: updates.code?.toUpperCase(),
+      logo: updates.logo,
+      active: updates.active,
+    }).where(eq(airlinesTable.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteAirline(id: string): Promise<boolean> {
+    const result = await db.delete(airlinesTable).where(eq(airlinesTable.id, id)).returning();
+    return result.length > 0;
   }
 
   // Invoices
