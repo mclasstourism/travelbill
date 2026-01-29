@@ -102,6 +102,7 @@ const createTicketFormSchema = z.object({
   seatClass: z.enum(["economy", "business", "first"]).default("economy"),
   routeFrom: z.string().min(1, "Origin is required").max(4, "Max 4 characters"),
   routeTo: z.string().min(1, "Destination is required").max(4, "Max 4 characters"),
+  quantity: z.coerce.number().min(1, "At least 1 ticket required").default(1),
   airlines: z.string().min(1, "Airlines is required"),
   flightNumber: z.string().optional(), // Optional at initial booking
   travelDate: z.string().min(1, "Travel date is required"),
@@ -177,6 +178,7 @@ export default function TicketsPage() {
       routeTo: "",
       airlines: "",
       flightNumber: "",
+      quantity: 1,
       travelDate: "",
       returnDate: "",
       passengerName: "",
@@ -197,6 +199,7 @@ export default function TicketsPage() {
   const watchVendorPrice = form.watch("vendorPrice");
   const watchAirlinePrice = form.watch("airlinePrice");
   const watchMiddleClassPrice = form.watch("middleClassPrice");
+  const watchQuantity = form.watch("quantity");
 
   const selectedCustomer = customers.find((c) => c.id === watchCustomerId);
   const selectedVendor = vendors.find((v) => v.id === watchVendorId);
@@ -220,10 +223,10 @@ export default function TicketsPage() {
     }
   }, [watchCustomerId, selectedCustomer, selectedCustomerOption, form]);
 
-  // Calculate passenger count
-  const passengerCount = 1 + additionalPassengers.length;
+  // Calculate passenger count from quantity field
+  const passengerCount = Number(watchQuantity) || 1;
 
-  // Auto-calculate face value based on ticket source (per person × passenger count)
+  // Auto-calculate face value based on ticket source (per person × quantity)
   useEffect(() => {
     const middleClass = Number(watchMiddleClassPrice) || 0;
     let basePrice = 0;
@@ -562,16 +565,12 @@ export default function TicketsPage() {
       vendorId, // Normalized - undefined means direct from airline
       faceValue,
       depositDeducted,
-      passengers: additionalPassengers.length > 0 ? additionalPassengers : undefined,
-      passengerCount: 1 + additionalPassengers.length,
+      passengerCount: Number(data.quantity) || 1,
       issuedBy: session.staffId,
       eticketImage: eticketImageUrl,
     };
 
     createMutation.mutate(ticketData);
-    setAdditionalPassengers([]); // Reset for next ticket
-    setNewPassengerName("");
-    setShowGroupSection(false);
     setCreateEticketFile(null);
     setCreateEticketPreview(null);
   };
@@ -1110,102 +1109,6 @@ export default function TicketsPage() {
                   )}
                 />
 
-                {!showGroupSection && additionalPassengers.length === 0 ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="text-muted-foreground"
-                    onClick={() => setShowGroupSection(true)}
-                    data-testid="button-show-group-section"
-                  >
-                    <Users className="w-4 h-4 mr-2" />
-                    Add more passengers (group booking)
-                  </Button>
-                ) : (
-                  <div className="space-y-3 p-3 border rounded-md">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm font-medium flex items-center gap-2">
-                        <Users className="w-4 h-4" />
-                        Group Members
-                      </Label>
-                      {additionalPassengers.length === 0 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setShowGroupSection(false)}
-                          data-testid="button-hide-group-section"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
-
-                    {additionalPassengers.length > 0 && (
-                      <div className="space-y-2">
-                        {additionalPassengers.map((passenger, index) => (
-                          <div key={index} className="flex items-center gap-2">
-                            <div className="flex-1 flex items-center gap-2 p-2 bg-muted rounded-md">
-                              <span className="text-sm">{passenger}</span>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                const newList = additionalPassengers.filter((_, i) => i !== index);
-                                setAdditionalPassengers(newList);
-                                if (newList.length === 0) {
-                                  setShowGroupSection(false);
-                                }
-                              }}
-                              data-testid={`button-remove-passenger-${index}`}
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="flex items-center gap-2">
-                      <Input
-                        placeholder="Enter passenger name"
-                        value={newPassengerName}
-                        onChange={(e) => setNewPassengerName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && newPassengerName.trim()) {
-                            e.preventDefault();
-                            setAdditionalPassengers(prev => [...prev, newPassengerName.trim()]);
-                            setNewPassengerName("");
-                          }
-                        }}
-                        data-testid="input-additional-passenger"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          if (newPassengerName.trim()) {
-                            setAdditionalPassengers(prev => [...prev, newPassengerName.trim()]);
-                            setNewPassengerName("");
-                          }
-                        }}
-                        data-testid="button-add-passenger"
-                      >
-                        <Plus className="w-4 h-4 mr-1" />
-                        Add
-                      </Button>
-                    </div>
-
-                    {additionalPassengers.length > 0 && (
-                      <p className="text-sm text-muted-foreground">
-                        Total passengers: {1 + additionalPassengers.length} (including lead)
-                      </p>
-                    )}
-                  </div>
-                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -1311,6 +1214,133 @@ export default function TicketsPage() {
                       </FormItem>
                     )}
                   />
+                </div>
+              </div>
+
+              {/* Quantity and Pricing Section */}
+              <div className="grid grid-cols-3 gap-3">
+                <FormField
+                  control={form.control}
+                  name="quantity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Quantity (Tickets)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="1"
+                          placeholder="1"
+                          {...field}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || 1;
+                            field.onChange(Math.max(1, val));
+                          }}
+                          data-testid="input-quantity"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {ticketSource === "vendor" ? (
+                  <FormField
+                    control={form.control}
+                    name="vendorPrice"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Price/Person (AED)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="any"
+                            placeholder="0"
+                            defaultValue=""
+                            onBlur={(e) => {
+                              const val = parseFloat(e.target.value) || 0;
+                              field.onChange(val);
+                            }}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value) || 0;
+                              field.onChange(val);
+                            }}
+                            data-testid="input-vendor-price-inline"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : (
+                  <FormField
+                    control={form.control}
+                    name="airlinePrice"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Price/Person (AED)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="any"
+                            placeholder="0"
+                            defaultValue=""
+                            onBlur={(e) => {
+                              const val = parseFloat(e.target.value) || 0;
+                              field.onChange(val);
+                            }}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value) || 0;
+                              field.onChange(val);
+                            }}
+                            data-testid="input-airline-price-inline"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                <FormField
+                  control={form.control}
+                  name="middleClassPrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>MC Addition (AED)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="any"
+                          placeholder="0"
+                          defaultValue=""
+                          onBlur={(e) => {
+                            const val = parseFloat(e.target.value) || 0;
+                            field.onChange(val);
+                          }}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value) || 0;
+                            field.onChange(val);
+                          }}
+                          data-testid="input-mc-price-inline"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Total Price Summary */}
+              <div className="p-3 bg-primary/10 rounded-md">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Total: </span>
+                    <span className="font-medium">{passengerCount} × AED {calculations.perPersonPrice.toFixed(2)}</span>
+                  </div>
+                  <span className="text-lg font-bold text-primary font-mono" data-testid="text-total-price">
+                    AED {calculations.faceValue.toFixed(2)}
+                  </span>
                 </div>
               </div>
 
@@ -1441,119 +1471,6 @@ export default function TicketsPage() {
                   )}
                 />
               )}
-
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">Pricing</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  {ticketSource === "vendor" ? (
-                    <FormField
-                      control={form.control}
-                      name="vendorPrice"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Vendor Price per Person (AED)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              min="0"
-                              step="any"
-                              placeholder="0"
-                              defaultValue=""
-                              onBlur={(e) => {
-                                const val = parseFloat(e.target.value) || 0;
-                                field.onChange(val);
-                              }}
-                              onChange={(e) => {
-                                const val = parseFloat(e.target.value) || 0;
-                                field.onChange(val);
-                              }}
-                              data-testid="input-vendor-price"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  ) : (
-                    <FormField
-                      control={form.control}
-                      name="airlinePrice"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Airline Price per Person (AED)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              min="0"
-                              step="any"
-                              placeholder="0"
-                              defaultValue=""
-                              onBlur={(e) => {
-                                const val = parseFloat(e.target.value) || 0;
-                                field.onChange(val);
-                              }}
-                              onChange={(e) => {
-                                const val = parseFloat(e.target.value) || 0;
-                                field.onChange(val);
-                              }}
-                              data-testid="input-airline-price"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                  <FormField
-                    control={form.control}
-                    name="middleClassPrice"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>MC Addition per Person (AED)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="any"
-                            placeholder="0"
-                            defaultValue=""
-                            onBlur={(e) => {
-                              const val = parseFloat(e.target.value) || 0;
-                              field.onChange(val);
-                            }}
-                            onChange={(e) => {
-                              const val = parseFloat(e.target.value) || 0;
-                              field.onChange(val);
-                            }}
-                            data-testid="input-middle-class-price"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-
-              <div className="p-4 bg-muted rounded-md space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Price per Person</span>
-                  <span className="text-sm font-mono" data-testid="text-price-per-person">
-                    AED {calculations.perPersonPrice.toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">
-                    Total Face Value ({passengerCount} {passengerCount === 1 ? 'person' : 'persons'})
-                  </span>
-                  <span className="text-lg font-bold text-primary font-mono" data-testid="text-face-value">
-                    AED {calculations.faceValue.toFixed(2)}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  ({ticketSource === "direct" ? "Airline" : "Vendor"} Price + MC Addition) × {passengerCount} passengers
-                </p>
-              </div>
 
               <div className="space-y-2">
                 <Label>E-Ticket Image</Label>
