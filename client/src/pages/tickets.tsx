@@ -882,10 +882,17 @@ export default function TicketsPage() {
                         type="number"
                         min="1"
                         placeholder="1"
-                        {...field}
+                        defaultValue={field.value || 1}
                         onChange={(e) => {
+                          const val = parseInt(e.target.value);
+                          if (!isNaN(val) && val >= 1) {
+                            field.onChange(val);
+                          }
+                        }}
+                        onBlur={(e) => {
                           const val = parseInt(e.target.value) || 1;
                           field.onChange(Math.max(1, val));
+                          e.target.value = String(Math.max(1, val));
                         }}
                         data-testid="input-quantity"
                       />
