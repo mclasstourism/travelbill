@@ -248,7 +248,7 @@ export default function CustomersPage() {
                     <TableRow key={customer.id} data-testid={`row-customer-${customer.id}`}>
                       <TableCell className="font-medium">{customer.name}</TableCell>
                       <TableCell className="text-muted-foreground">
-                        {customer.phone || "-"}
+                        {customer.phone ? `+971 ${customer.phone}` : "-"}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {customer.email || "-"}
