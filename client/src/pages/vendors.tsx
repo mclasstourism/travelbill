@@ -580,7 +580,7 @@ export default function VendorsPage() {
 
               <div className="space-y-3">
                 <FormLabel>Airlines</FormLabel>
-                <Popover open={airlinePopoverOpen} onOpenChange={setAirlinePopoverOpen}>
+                <Popover open={airlinePopoverOpen} onOpenChange={setAirlinePopoverOpen} modal={false}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
@@ -595,10 +595,10 @@ export default function VendorsPage() {
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-full p-0" align="start">
+                  <PopoverContent className="w-full p-0" align="start" style={{ pointerEvents: "auto" }}>
                     <Command>
                       <CommandInput placeholder="Search airlines..." />
-                      <CommandList className="max-h-64 overflow-y-auto">
+                      <CommandList className="max-h-64 overflow-y-auto overscroll-contain" style={{ pointerEvents: "auto" }}>
                         <CommandEmpty>No airline found.</CommandEmpty>
                         <CommandGroup>
                           {airlines.map((airline) => (
@@ -781,7 +781,7 @@ export default function VendorsPage() {
 
               <div>
                 <FormLabel>Registered Airlines</FormLabel>
-                <Popover open={editAirlinePopoverOpen} onOpenChange={setEditAirlinePopoverOpen}>
+                <Popover open={editAirlinePopoverOpen} onOpenChange={setEditAirlinePopoverOpen} modal={false}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
@@ -796,10 +796,10 @@ export default function VendorsPage() {
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-full p-0" align="start">
+                  <PopoverContent className="w-full p-0" align="start" style={{ pointerEvents: "auto" }}>
                     <Command>
                       <CommandInput placeholder="Search airlines..." />
-                      <CommandList className="max-h-64 overflow-y-auto">
+                      <CommandList className="max-h-64 overflow-y-auto overscroll-contain" style={{ pointerEvents: "auto" }}>
                         <CommandEmpty>No airline found.</CommandEmpty>
                         <CommandGroup>
                           {airlines.map((airline) => (
