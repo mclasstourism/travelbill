@@ -227,7 +227,8 @@ export default function UserManagementPage() {
                 <li>Create invoices & tickets</li>
                 <li>Manage customers & agents</li>
                 <li>Manage vendors</li>
-                <li>Basic operations</li>
+                <li>View analytics & reports</li>
+                <li>View activity logs</li>
               </ul>
             </div>
           </div>

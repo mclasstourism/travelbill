@@ -590,8 +590,8 @@ export async function registerRoutes(
     }
   });
 
-  // Activity Logs (superadmin only)
-  app.get("/api/activity-logs", requireAuth, requireRole("superadmin"), async (req, res) => {
+  // Activity Logs (superadmin and staff)
+  app.get("/api/activity-logs", requireAuth, requireRole("superadmin", "staff"), async (req, res) => {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
       const logs = await storage.getActivityLogs(limit);
