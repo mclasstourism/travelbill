@@ -194,7 +194,6 @@ export default function UserManagementPage() {
                       <TableHead className="text-center">Tickets</TableHead>
                       <TableHead className="text-center">Deposits</TableHead>
                       <TableHead className="text-center">Vendor Credits</TableHead>
-                      <TableHead className="text-center">Total</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -222,9 +221,6 @@ export default function UserManagementPage() {
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge variant="secondary">0</Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="default">0</Badge>
                         </TableCell>
                       </TableRow>
                     ))}
