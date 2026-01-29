@@ -40,7 +40,21 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Ticket as TicketIcon, Search, Loader2, Lock, Calendar, Plane, Upload, Download, UserPlus, Building2 } from "lucide-react";
+import { Plus, Ticket as TicketIcon, Search, Loader2, Lock, Calendar, Plane, Upload, Download, UserPlus, Building2, Check, ChevronsUpDown } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from "@/components/ui/command";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -95,7 +109,9 @@ export default function TicketsPage() {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [importData, setImportData] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [customerType, setCustomerType] = useState<"existing" | "walkin">("existing");
+  const [customerSelectOpen, setCustomerSelectOpen] = useState(false);
+  const [customerSearchQuery, setCustomerSearchQuery] = useState("");
+  const [selectedCustomerOption, setSelectedCustomerOption] = useState<"walkin" | string>("");
   const [newCustomerName, setNewCustomerName] = useState("");
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
   const [newCustomerCompany, setNewCustomerCompany] = useState("");
@@ -147,12 +163,23 @@ export default function TicketsPage() {
   const selectedVendor = vendors.find((v) => v.id === watchVendorId);
   const vendorAirlines = selectedVendor?.airlines || [];
 
+  // Filter customers based on search query
+  const filteredCustomers = useMemo(() => {
+    if (!customerSearchQuery) return customers;
+    const query = customerSearchQuery.toLowerCase();
+    return customers.filter(
+      (c) =>
+        c.name.toLowerCase().includes(query) ||
+        c.phone.toLowerCase().includes(query)
+    );
+  }, [customers, customerSearchQuery]);
+
   // Auto-fill passenger name when existing customer is selected
   useEffect(() => {
-    if (customerType === "existing" && selectedCustomer) {
+    if (selectedCustomerOption && selectedCustomerOption !== "walkin" && selectedCustomer) {
       form.setValue("passengerName", selectedCustomer.name);
     }
-  }, [watchCustomerId, selectedCustomer, customerType, form]);
+  }, [watchCustomerId, selectedCustomer, selectedCustomerOption, form]);
 
   const calculations = useMemo(() => {
     const faceValue = Number(watchFaceValue) || 0;
@@ -178,7 +205,7 @@ export default function TicketsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       form.setValue("customerId", newCustomer.id);
       form.setValue("passengerName", newCustomer.name);
-      setCustomerType("existing");
+      setSelectedCustomerOption(newCustomer.id);
       setNewCustomerName("");
       setNewCustomerPhone("");
       setNewCustomerCompany("");
@@ -463,67 +490,110 @@ export default function TicketsPage() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-3">
-                <FormLabel>Customer Type</FormLabel>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant={customerType === "existing" ? "default" : "outline"}
-                    className="flex-1 gap-2"
-                    onClick={() => {
-                      setCustomerType("existing");
-                    }}
-                    data-testid="button-customer-existing"
-                  >
-                    <UserPlus className="w-4 h-4" />
-                    Existing Customer
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={customerType === "walkin" ? "default" : "outline"}
-                    className="flex-1 gap-2"
-                    onClick={() => {
-                      setCustomerType("walkin");
-                      form.setValue("customerId", "");
-                    }}
-                    data-testid="button-customer-walkin"
-                  >
-                    <UserPlus className="w-4 h-4" />
-                    Walk-in Customer
-                  </Button>
-                </div>
-
-                {customerType === "existing" ? (
-                  <FormField
-                    control={form.control}
-                    name="customerId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                <FormLabel>Select Client</FormLabel>
+                <FormField
+                  control={form.control}
+                  name="customerId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Popover open={customerSelectOpen} onOpenChange={setCustomerSelectOpen}>
+                        <PopoverTrigger asChild>
                           <FormControl>
-                            <SelectTrigger data-testid="select-ticket-customer">
-                              <SelectValue placeholder="Select customer" />
-                            </SelectTrigger>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={customerSelectOpen}
+                              className="w-full justify-between font-normal"
+                              data-testid="select-ticket-customer"
+                            >
+                              {selectedCustomerOption === "walkin" ? (
+                                <span className="flex items-center gap-2">
+                                  <UserPlus className="w-4 h-4 text-primary" />
+                                  Walk-in Customer
+                                </span>
+                              ) : selectedCustomer ? (
+                                <span>{selectedCustomer.name} - {selectedCustomer.phone}</span>
+                              ) : (
+                                <span className="text-muted-foreground">Search clients...</span>
+                              )}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
                           </FormControl>
-                          <SelectContent>
-                            {customers.map((customer) => (
-                              <SelectItem key={customer.id} value={customer.id}>
-                                {customer.name} - {customer.phone}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                ) : (
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                          <Command shouldFilter={false}>
+                            <CommandInput
+                              placeholder="Search clients..."
+                              value={customerSearchQuery}
+                              onValueChange={setCustomerSearchQuery}
+                              data-testid="input-search-customer"
+                            />
+                            <CommandList>
+                              <CommandGroup>
+                                <CommandItem
+                                  value="walkin"
+                                  onSelect={() => {
+                                    setSelectedCustomerOption("walkin");
+                                    field.onChange("");
+                                    setCustomerSelectOpen(false);
+                                    setCustomerSearchQuery("");
+                                  }}
+                                  className="gap-2"
+                                  data-testid="option-walkin-customer"
+                                >
+                                  <Check
+                                    className={`h-4 w-4 ${
+                                      selectedCustomerOption === "walkin" ? "opacity-100" : "opacity-0"
+                                    }`}
+                                  />
+                                  <UserPlus className="w-4 h-4 text-primary" />
+                                  Walk-in Customer
+                                </CommandItem>
+                              </CommandGroup>
+                              <CommandSeparator />
+                              {filteredCustomers.length === 0 ? (
+                                <CommandEmpty>No customers found.</CommandEmpty>
+                              ) : (
+                                <CommandGroup heading="Existing Customers">
+                                  {filteredCustomers.map((customer) => (
+                                    <CommandItem
+                                      key={customer.id}
+                                      value={customer.id}
+                                      onSelect={() => {
+                                        setSelectedCustomerOption(customer.id);
+                                        field.onChange(customer.id);
+                                        setCustomerSelectOpen(false);
+                                        setCustomerSearchQuery("");
+                                      }}
+                                      className="gap-2"
+                                      data-testid={`option-customer-${customer.id}`}
+                                    >
+                                      <Check
+                                        className={`h-4 w-4 ${
+                                          selectedCustomerOption === customer.id ? "opacity-100" : "opacity-0"
+                                        }`}
+                                      />
+                                      <span>{customer.name} - {customer.phone}</span>
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              )}
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {selectedCustomerOption === "walkin" && (
                   <div className="space-y-3 p-4 border rounded-md bg-muted/30">
-                    <p className="text-sm text-muted-foreground">Enter the walk-in customer details below.</p>
                     <div className="space-y-3">
                       <div>
-                        <label className="text-sm font-medium">Name *</label>
+                        <label className="text-sm font-medium">Customer Name *</label>
                         <Input
-                          placeholder="As per passport name"
+                          placeholder="Enter name..."
                           value={newCustomerName}
                           onChange={(e) => setNewCustomerName(e.target.value)}
                           data-testid="input-walkin-name"
@@ -531,9 +601,9 @@ export default function TicketsPage() {
                         />
                       </div>
                       <div>
-                        <label className="text-sm font-medium">Phone *</label>
+                        <label className="text-sm font-medium">Phone Number *</label>
                         <Input
-                          placeholder="+971 50 123 4567"
+                          placeholder="+971 XXXXXXXXX"
                           value={newCustomerPhone}
                           onChange={(e) => setNewCustomerPhone(e.target.value)}
                           data-testid="input-walkin-phone"
@@ -541,19 +611,9 @@ export default function TicketsPage() {
                         />
                       </div>
                       <div>
-                        <label className="text-sm font-medium">Company</label>
-                        <Input
-                          placeholder="Company name"
-                          value={newCustomerCompany}
-                          onChange={(e) => setNewCustomerCompany(e.target.value)}
-                          data-testid="input-walkin-company"
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
                         <label className="text-sm font-medium">Address</label>
                         <Input
-                          placeholder="Street address"
+                          placeholder="Enter address..."
                           value={newCustomerAddress}
                           onChange={(e) => setNewCustomerAddress(e.target.value)}
                           data-testid="input-walkin-address"
