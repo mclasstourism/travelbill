@@ -513,9 +513,9 @@ export default function TicketsPage() {
                     <p className="text-sm text-muted-foreground">Enter the walk-in customer details below.</p>
                     <div className="space-y-3">
                       <div>
-                        <label className="text-sm font-medium">Name *</label>
+                        <label className="text-sm font-medium">Name * (as per passport)</label>
                         <Input
-                          placeholder="Customer name"
+                          placeholder="Full name as per passport"
                           value={newCustomerName}
                           onChange={(e) => setNewCustomerName(e.target.value)}
                           data-testid="input-walkin-name"
