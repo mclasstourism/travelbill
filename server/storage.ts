@@ -38,6 +38,7 @@ export interface IStorage {
   getUserByPhone(phone: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserPassword(userId: string, newPassword: string): Promise<boolean>;
+  deleteUser(id: string): Promise<boolean>;
   verifyUserPassword(username: string, password: string): Promise<User | null>;
   getPasswordHint(username: string): Promise<string | null>;
   
@@ -892,6 +893,10 @@ export class MemStorage implements IStorage {
     }
     this.users.set(id, updated);
     return updated;
+  }
+
+  async deleteUser(id: string): Promise<boolean> {
+    return this.users.delete(id);
   }
 
   // Invoices by customer/agent

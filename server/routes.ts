@@ -688,10 +688,29 @@ export async function registerRoutes(
         res.status(404).json({ error: "User not found" });
         return;
       }
-      const { password, twoFactorSecret, ...safeUser } = user;
+      const { twoFactorSecret, ...safeUser } = user;
       res.json(safeUser);
     } catch (error) {
       res.status(500).json({ error: "Failed to update user" });
+    }
+  });
+
+  app.delete("/api/users/:id", requireAuth, requireRole("superadmin"), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = await storage.getUser(id);
+      if (!user) {
+        res.status(404).json({ error: "User not found" });
+        return;
+      }
+      if (user.role === "superadmin") {
+        res.status(403).json({ error: "Cannot delete superadmin users" });
+        return;
+      }
+      await storage.deleteUser(id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete user" });
     }
   });
 
