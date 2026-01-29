@@ -589,11 +589,14 @@ export default function TicketsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Passport / Ticket #</TableHead>
+                    <TableHead>Ticket #</TableHead>
                     <TableHead>Passenger</TableHead>
                     <TableHead>Route</TableHead>
                     <TableHead>Travel Date</TableHead>
-                    <TableHead className="text-right">Value</TableHead>
+                    <TableHead>Source</TableHead>
+                    <TableHead className="text-right">Cost Price</TableHead>
+                    <TableHead className="text-right">MC Addition</TableHead>
+                    <TableHead className="text-right">Face Value</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>E-Ticket</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -631,7 +634,18 @@ export default function TicketsPage() {
                       <TableCell className="text-muted-foreground">
                         {format(new Date(ticket.travelDate), "MMM d, yyyy")}
                       </TableCell>
-                      <TableCell className="text-right font-mono font-semibold">
+                      <TableCell>
+                        <Badge variant={ticket.vendorId ? "secondary" : "outline"}>
+                          {ticket.vendorId ? "Vendor" : "Airline"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-muted-foreground">
+                        {formatCurrency(ticket.vendorId ? (ticket.vendorPrice || 0) : (ticket.airlinePrice || 0))}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-muted-foreground">
+                        {formatCurrency(ticket.middleClassPrice || 0)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono font-semibold text-primary">
                         {formatCurrency(ticket.faceValue)}
                       </TableCell>
                       <TableCell>
