@@ -364,21 +364,41 @@ export default function TicketsPage() {
     try {
       let eticketImageUrl = editingTicket.eticketImage;
       
-      // Upload e-ticket image if new file selected
+      // Upload e-ticket image if new file selected using presigned URL flow
       if (eticketFile) {
-        const formData = new FormData();
-        formData.append("file", eticketFile);
-        const uploadRes = await fetch("/api/upload", {
+        // Step 1: Request presigned URL from backend
+        const urlRes = await fetch("/api/uploads/request-url", {
           method: "POST",
-          body: formData,
-          headers: {
+          headers: { 
+            "Content-Type": "application/json",
             Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
           },
+          body: JSON.stringify({
+            name: eticketFile.name,
+            size: eticketFile.size,
+            contentType: eticketFile.type,
+          }),
         });
-        if (uploadRes.ok) {
-          const uploadData = await uploadRes.json();
-          eticketImageUrl = uploadData.url;
+        
+        if (!urlRes.ok) {
+          throw new Error("Failed to get upload URL");
         }
+        
+        const { uploadURL, objectPath } = await urlRes.json();
+        
+        // Step 2: Upload file directly to presigned URL
+        const uploadRes = await fetch(uploadURL, {
+          method: "PUT",
+          body: eticketFile,
+          headers: { "Content-Type": eticketFile.type },
+        });
+        
+        if (!uploadRes.ok) {
+          throw new Error("Failed to upload file");
+        }
+        
+        // Use the objectPath as the URL to store
+        eticketImageUrl = objectPath;
       }
       
       updateTicketMutation.mutate({
