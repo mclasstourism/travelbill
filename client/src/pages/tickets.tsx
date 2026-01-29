@@ -87,6 +87,7 @@ function getStatusBadgeVariant(status: string): "default" | "secondary" | "destr
 }
 
 const createTicketFormSchema = z.object({
+  ticketNumber: z.string().min(1, "Ticket number is required"),
   customerId: z.string().min(1, "Customer is required"),
   vendorId: z.string().optional(), // Optional - "direct" means direct from airline
   tripType: z.enum(["one_way", "round_trip"]).default("one_way"),
@@ -137,6 +138,7 @@ export default function TicketsPage() {
   const form = useForm<CreateTicketForm>({
     resolver: zodResolver(createTicketFormSchema),
     defaultValues: {
+      ticketNumber: "",
       customerId: "",
       vendorId: "",
       tripType: "one_way",
@@ -496,6 +498,24 @@ export default function TicketsPage() {
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="ticketNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ticket Number</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter ticket number from airline/vendor..."
+                        {...field}
+                        data-testid="input-ticket-number"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <div className="space-y-3">
                 <FormLabel>Select Client</FormLabel>
                 <FormField

@@ -644,12 +644,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTicket(ticket: InsertTicket): Promise<Ticket> {
-    await this.ensureCountersInitialized();
     const id = randomUUID();
-    const ticketNumber = `TKT-${this.ticketCounter++}`;
     const result = await db.insert(ticketsTable).values({
       id,
-      ticketNumber,
+      ticketNumber: ticket.ticketNumber,
       customerId: ticket.customerId,
       vendorId: ticket.vendorId || null,
       invoiceId: ticket.invoiceId || null,

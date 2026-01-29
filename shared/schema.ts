@@ -373,6 +373,7 @@ export const tripTypes = ["one_way", "round_trip"] as const;
 export type TripType = typeof tripTypes[number];
 
 export const insertTicketSchema = z.object({
+  ticketNumber: z.string().min(1, "Ticket number is required"),
   customerId: z.string().min(1, "Customer is required"),
   vendorId: z.string().optional(), // Optional - "direct" or empty means direct from airline
   invoiceId: z.string().optional(),
@@ -394,7 +395,6 @@ export const insertTicketSchema = z.object({
 export type InsertTicket = z.infer<typeof insertTicketSchema>;
 export type Ticket = InsertTicket & {
   id: string;
-  ticketNumber: string;
   status: TicketStatus;
   createdAt: string;
 };
