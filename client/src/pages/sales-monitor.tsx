@@ -182,7 +182,7 @@ export default function SalesMonitor() {
           <TableCell>
             <Badge variant={isDirect ? "default" : "secondary"}>
               {isDirect ? (
-                <><Plane className="w-3 h-3 mr-1" /> Airlines</>
+                <><Plane className="w-3 h-3 mr-1" /> {ticket.airlines || "Direct"}</>
               ) : (
                 <><Building2 className="w-3 h-3 mr-1" /> {vendorName}</>
               )}
@@ -525,7 +525,7 @@ export default function SalesMonitor() {
                       <TableHead>Passenger</TableHead>
                       <TableHead>Airlines</TableHead>
                       <TableHead>Travel Date</TableHead>
-                      <TableHead>Source</TableHead>
+                      <TableHead>Vendor</TableHead>
                       <TableHead>Customer Name</TableHead>
                       <TableHead className="text-right">Source Cost</TableHead>
                       <TableHead className="text-right">MC Addition</TableHead>
