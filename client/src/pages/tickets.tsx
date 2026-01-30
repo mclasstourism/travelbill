@@ -657,10 +657,6 @@ export default function TicketsPage() {
           </div>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-          <Button variant="outline" onClick={() => setIsImportOpen(true)} className="w-full sm:w-auto" data-testid="button-import-tickets">
-            <Upload className="w-4 h-4 mr-2" />
-            Bulk Import
-          </Button>
           <Button onClick={handleCreateClick} className="w-full sm:w-auto" data-testid="button-issue-ticket">
             {!isAuthenticated && <Lock className="w-4 h-4 mr-2" />}
             <Plus className="w-4 h-4 mr-2" />
@@ -1856,47 +1852,6 @@ export default function TicketsPage() {
               </div>
             </form>
           </Form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Bulk Import Dialog */}
-      <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Bulk Import Tickets</DialogTitle>
-            <DialogDescription>
-              Import multiple tickets from CSV data. Format: customerId, vendorId, passengerName, route, airlines, flightNumber, travelDate, faceValue
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="p-3 bg-muted rounded-md text-xs font-mono overflow-x-auto">
-              <p className="font-semibold mb-1">Example CSV:</p>
-              customerId,vendorId,passengerName,route,airlines,flightNumber,travelDate,faceValue
-              <br />
-              cust-1,vendor-1,John Doe,DXB-LON,Emirates,EK007,2024-03-15,1500
-            </div>
-            <Textarea
-              placeholder="Paste CSV data here..."
-              value={importData}
-              onChange={(e) => setImportData(e.target.value)}
-              rows={10}
-              className="font-mono text-sm"
-              data-testid="textarea-import-data"
-            />
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsImportOpen(false)}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleImport} 
-                disabled={!importData.trim() || bulkImportMutation.isPending}
-                data-testid="button-confirm-import"
-              >
-                {bulkImportMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Import Tickets
-              </Button>
-            </div>
-          </div>
         </DialogContent>
       </Dialog>
 
