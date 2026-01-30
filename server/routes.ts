@@ -646,6 +646,78 @@ export async function registerRoutes(
     }
   });
 
+  // Change Admin Password
+  app.post("/api/admin/change-password", async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword || !newPassword) {
+        res.status(400).json({ error: "Current and new passwords are required" });
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        res.status(400).json({ error: "New password must be at least 6 characters" });
+        return;
+      }
+
+      // Verify current password
+      const user = await storage.verifyUserPassword("admin", currentPassword);
+      if (!user) {
+        res.status(401).json({ error: "Current password is incorrect" });
+        return;
+      }
+
+      // Update password
+      const success = await storage.updateUserPassword(user.id, newPassword);
+      if (!success) {
+        res.status(500).json({ error: "Failed to update password" });
+        return;
+      }
+
+      res.json({ success: true, message: "Password changed successfully" });
+    } catch (error) {
+      console.error("Change password error:", error);
+      res.status(500).json({ error: "Failed to change password" });
+    }
+  });
+
+  // Change Bill Creator PIN
+  app.post("/api/admin/change-pin", async (req, res) => {
+    try {
+      const { billCreatorId, currentPin, newPin } = req.body;
+      
+      if (!billCreatorId || !currentPin || !newPin) {
+        res.status(400).json({ error: "Bill creator, current PIN, and new PIN are required" });
+        return;
+      }
+
+      if (!/^\d{8}$/.test(newPin)) {
+        res.status(400).json({ error: "New PIN must be exactly 8 digits" });
+        return;
+      }
+
+      // Verify current PIN
+      const billCreator = await storage.verifyPin(billCreatorId, currentPin);
+      if (!billCreator) {
+        res.status(401).json({ error: "Current PIN is incorrect" });
+        return;
+      }
+
+      // Update PIN
+      const updated = await storage.updateBillCreator(billCreatorId, { pin: newPin });
+      if (!updated) {
+        res.status(500).json({ error: "Failed to update PIN" });
+        return;
+      }
+
+      res.json({ success: true, message: "PIN changed successfully" });
+    } catch (error) {
+      console.error("Change PIN error:", error);
+      res.status(500).json({ error: "Failed to change PIN" });
+    }
+  });
+
   // Delete individual party with password verification
   app.delete("/api/customers/:id", async (req, res) => {
     try {
