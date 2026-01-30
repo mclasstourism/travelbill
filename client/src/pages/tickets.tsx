@@ -598,24 +598,38 @@ export default function TicketsPage() {
     // Combine route fields
     const route = `${data.routeFrom} - ${data.routeTo}`;
 
-    // Handle e-ticket files upload (multiple files - PDF or images)
+    // Handle e-ticket files upload (multiple files - PDF or images) using presigned URL flow
     const eticketFileUrls: string[] = [];
     if (createEticketFiles.length > 0) {
       for (const file of createEticketFiles) {
         try {
-          const formData = new FormData();
-          formData.append("file", file);
-          formData.append("directory", ".private/etickets");
-          
-          const uploadResponse = await fetch("/api/upload", {
+          // Step 1: Get presigned upload URL
+          const urlRes = await fetch("/api/uploads/request-url", {
             method: "POST",
-            body: formData,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: file.name,
+              size: file.size,
+              contentType: file.type,
+            }),
           });
           
-          if (uploadResponse.ok) {
-            const uploadResult = await uploadResponse.json();
-            const fileUrl = uploadResult.url || uploadResult.objectPath;
-            if (fileUrl) eticketFileUrls.push(fileUrl);
+          if (!urlRes.ok) {
+            console.error("Failed to get upload URL");
+            continue;
+          }
+          
+          const { uploadURL, objectPath } = await urlRes.json();
+          
+          // Step 2: Upload file directly to presigned URL
+          const uploadRes = await fetch(uploadURL, {
+            method: "PUT",
+            body: file,
+            headers: { "Content-Type": file.type },
+          });
+          
+          if (uploadRes.ok && objectPath) {
+            eticketFileUrls.push(objectPath);
           }
         } catch (error) {
           console.error("Failed to upload e-ticket file:", error);
