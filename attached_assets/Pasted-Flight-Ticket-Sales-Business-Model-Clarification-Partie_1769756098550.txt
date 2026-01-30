@@ -1,0 +1,180 @@
+Flight Ticket Sales – Business Model Clarification
+Parties Involved
+
+There are three distinct roles in the system:
+
+1. Direct Customers (B2C)
+
+Definition
+End customers who buy flight tickets directly from you.
+
+How tickets are sourced
+
+You can obtain tickets for direct customers via:
+
+Airline companies directly, or
+
+Third-party vendors (other agencies)
+
+Financial responsibility
+
+✅ Customer owes you
+
+✅ You owe the airline or vendor
+
+❌ Customer never interacts with vendor financially
+
+System behavior
+
+Ticket is issued under your system
+
+Invoice is issued to the customer
+
+Vendor cost is recorded internally
+
+2. Agents (B2B)
+
+Definition
+Agents are resellers who sell tickets to their own clients but purchase tickets from you.
+
+How tickets are sourced
+
+You obtain tickets from:
+
+Airlines directly, or
+
+Third-party vendors
+
+Financial responsibility
+
+✅ Agent owes you
+
+✅ You owe the airline or vendor
+
+❌ Agent’s client is NOT billed by you
+
+System behavior
+
+Ticket passenger = agent’s client
+
+Invoice is issued to the agent
+
+Agent cannot see vendor costs or margin
+
+3. Vendors (Other Agencies / Suppliers)
+
+Definition
+External suppliers from whom you purchase tickets to resell.
+
+Role
+
+Provide ticket inventory
+
+Bill you for issued tickets
+
+Financial responsibility
+
+❌ Vendors never invoice customers or agents
+
+✅ You owe vendors
+
+✅ Vendor costs must be tracked per ticket
+
+Relationship Summary Table
+Role	Sells To	Buys From	You Invoice	You Owe
+Direct Customer	You	Airline / Vendor	Customer	Airline / Vendor
+Agent	Their client	You	Agent	Airline / Vendor
+Vendor	You	N/A	N/A	Vendor
+Ticket Financial Structure (Single Ticket View)
+
+Every issued ticket must generate two financial records:
+
+1. Sales Invoice (Accounts Receivable)
+
+Issued to:
+
+Customer OR
+
+Agent
+
+Selling price
+
+Invoice status (Unpaid / Partial / Paid)
+
+2. Vendor Payable (Accounts Payable)
+
+Vendor / Airline name
+
+Net cost
+
+Payable status (Unpaid / Paid)
+
+📌 These two records are always independent.
+
+Required Ticket Fields
+
+Each ticket must store:
+
+Ticket ID
+
+PNR / Booking Reference
+
+Airline
+
+Source Type:
+
+AIRLINE_DIRECT
+
+VENDOR
+
+Vendor ID (nullable if airline direct)
+
+Booking Type:
+
+DIRECT_CUSTOMER
+
+AGENT
+
+Billed Party:
+
+Customer ID OR Agent ID
+
+Passenger details
+
+Selling price
+
+Cost price
+
+Currency
+
+Status
+
+Key Accounting Rules (IMPORTANT)
+
+Ticket can be issued before payment
+
+Invoice settlement is manual
+
+Vendor payment is tracked separately
+
+Profit = Selling Price − Vendor Cost
+
+One ticket can never have:
+
+Multiple billed parties
+
+Multiple vendors
+
+System Design Intent (For Replit)
+
+Build a ticket-centric accounting system that:
+
+Separates who pays you vs who you pay
+
+Supports airline-direct and vendor-sourced tickets
+
+Supports B2C and B2B agents
+
+Allows delayed and partial payments
+
+Maintains a full financial audit trail
