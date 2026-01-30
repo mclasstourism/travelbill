@@ -47,7 +47,6 @@ const mainNavItems = [
 const financeItems = [
   { title: "Sales Monitor", url: "/sales-monitor", icon: Monitor },
   { title: "Invoices", url: "/invoices", icon: FileText },
-  { title: "Bills", url: "/bills", icon: FileText },
 ];
 
 const partyItems = [
