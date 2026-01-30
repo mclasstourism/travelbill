@@ -41,11 +41,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Users, Search, Loader2, Pencil, Trash2 } from "lucide-react";
+import { Plus, Users, Search, Loader2, Pencil, Trash2, Briefcase } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertCustomerSchema, type Customer, type InsertCustomer } from "@shared/schema";
+import { insertCustomerSchema, type Customer, type InsertCustomer, type Agent } from "@shared/schema";
 
 export default function CustomersPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -53,13 +55,20 @@ export default function CustomersPage() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<"all" | "customers" | "agents">("all");
   const { toast } = useToast();
   const { user } = useAuth();
   const isAdmin = user?.role === "superadmin";
 
-  const { data: customers = [], isLoading } = useQuery<Customer[]>({
+  const { data: customers = [], isLoading: customersLoading } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
   });
+
+  const { data: agents = [], isLoading: agentsLoading } = useQuery<Agent[]>({
+    queryKey: ["/api/agents"],
+  });
+
+  const isLoading = customersLoading || agentsLoading;
 
   const createForm = useForm<InsertCustomer>({
     resolver: zodResolver(insertCustomerSchema),
@@ -153,11 +162,51 @@ export default function CustomersPage() {
     },
   });
 
-  const filteredCustomers = customers.filter((customer) =>
-    customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    customer.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    customer.phone?.includes(searchQuery)
-  );
+  // Create combined list with type indicator
+  type ClientItem = {
+    id: string;
+    name: string;
+    phone: string;
+    email: string | null;
+    address: string | null;
+    type: "customer" | "agent";
+    depositBalance?: number;
+    creditBalance?: number;
+  };
+
+  const allClients: ClientItem[] = [
+    ...customers.map(c => ({
+      id: c.id,
+      name: c.name,
+      phone: c.phone,
+      email: c.email,
+      address: c.address,
+      type: "customer" as const,
+      depositBalance: c.depositBalance,
+    })),
+    ...agents.map(a => ({
+      id: a.id,
+      name: a.name,
+      phone: a.phone,
+      email: a.email,
+      address: a.address,
+      type: "agent" as const,
+      depositBalance: a.depositBalance,
+      creditBalance: a.creditBalance,
+    })),
+  ];
+
+  const filteredClients = allClients.filter((client) => {
+    const matchesSearch = 
+      client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      client.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      client.phone?.includes(searchQuery);
+    
+    if (activeTab === "all") return matchesSearch;
+    if (activeTab === "customers") return matchesSearch && client.type === "customer";
+    if (activeTab === "agents") return matchesSearch && client.type === "agent";
+    return matchesSearch;
+  });
 
   const onCreateSubmit = (data: InsertCustomer) => {
     createMutation.mutate(data);
@@ -207,6 +256,23 @@ export default function CustomersPage() {
         </Button>
       </div>
 
+      {/* Tabs for filtering */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-3">
+          <TabsTrigger value="all" data-testid="tab-all-clients">
+            All ({allClients.length})
+          </TabsTrigger>
+          <TabsTrigger value="customers" data-testid="tab-customers">
+            <Users className="w-4 h-4 mr-1" />
+            Customers ({customers.length})
+          </TabsTrigger>
+          <TabsTrigger value="agents" data-testid="tab-agents">
+            <Briefcase className="w-4 h-4 mr-1" />
+            Agents ({agents.length})
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       <Card>
         <CardHeader className="pb-4">
           <div className="flex items-center gap-4">
@@ -229,7 +295,7 @@ export default function CustomersPage() {
                 <Skeleton key={i} className="h-16 w-full" />
               ))}
             </div>
-          ) : filteredCustomers.length === 0 ? (
+          ) : filteredClients.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p className="text-lg font-medium">No clients found</p>
@@ -241,6 +307,7 @@ export default function CustomersPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Client Name</TableHead>
+                    <TableHead>Type</TableHead>
                     <TableHead>Phone</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Address</TableHead>
@@ -248,17 +315,31 @@ export default function CustomersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredCustomers.map((customer) => (
-                    <TableRow key={customer.id} data-testid={`row-customer-${customer.id}`}>
-                      <TableCell className="font-medium">{customer.name}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {customer.phone ? `+971 ${customer.phone}` : "-"}
+                  {filteredClients.map((client) => (
+                    <TableRow key={`${client.type}-${client.id}`} data-testid={`row-client-${client.id}`}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          {client.type === "customer" ? (
+                            <Users className="w-4 h-4 text-muted-foreground" />
+                          ) : (
+                            <Briefcase className="w-4 h-4 text-muted-foreground" />
+                          )}
+                          {client.name}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={client.type === "customer" ? "secondary" : "outline"}>
+                          {client.type === "customer" ? "Customer" : "Agent"}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {customer.email || "-"}
+                        {client.phone ? `+971 ${client.phone}` : "-"}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {customer.address || "-"}
+                        {client.email || "-"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {client.address || "-"}
                       </TableCell>
                       {isAdmin && (
                         <TableCell className="text-right">
@@ -266,16 +347,32 @@ export default function CustomersPage() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              onClick={() => handleEdit(customer)}
-                              data-testid={`button-edit-customer-${customer.id}`}
+                              onClick={() => {
+                                if (client.type === "customer") {
+                                  const customer = customers.find(c => c.id === client.id);
+                                  if (customer) handleEdit(customer);
+                                } else {
+                                  // Navigate to agents page for editing agents
+                                  window.location.href = "/agents";
+                                }
+                              }}
+                              data-testid={`button-edit-client-${client.id}`}
                             >
                               <Pencil className="w-4 h-4" />
                             </Button>
                             <Button
                               size="icon"
                               variant="ghost"
-                              onClick={() => handleDelete(customer)}
-                              data-testid={`button-delete-customer-${customer.id}`}
+                              onClick={() => {
+                                if (client.type === "customer") {
+                                  const customer = customers.find(c => c.id === client.id);
+                                  if (customer) handleDelete(customer);
+                                } else {
+                                  // Navigate to agents page for deleting agents
+                                  window.location.href = "/agents";
+                                }
+                              }}
+                              data-testid={`button-delete-client-${client.id}`}
                             >
                               <Trash2 className="w-4 h-4 text-destructive" />
                             </Button>
