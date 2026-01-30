@@ -523,6 +523,32 @@ export class PgStorage implements IStorage {
       }
     }
     
+    // Record credit payment transaction for agents
+    // When an agent invoice uses "credit" payment method, record it as a debit from their credit balance
+    if (invoice.paymentMethod === "credit" && invoice.customerType === "agent" && invoice.total > 0) {
+      const agent = await this.getAgent(invoice.customerId);
+      if (agent) {
+        const newCreditBalance = agent.creditBalance - invoice.total;
+        // Update agent credit balance
+        await db.update(schema.agentsTable)
+          .set({ creditBalance: newCreditBalance })
+          .where(eq(schema.agentsTable.id, invoice.customerId));
+        
+        // Create agent transaction record for the credit usage
+        await db.insert(schema.agentTransactionsTable).values({
+          agentId: invoice.customerId,
+          type: "debit",
+          transactionType: "credit",
+          amount: invoice.total,
+          description: `Invoice ${invoiceNumber} - Credit payment`,
+          paymentMethod: "credit",
+          referenceId: createdInvoice.id,
+          referenceType: "invoice",
+          balanceAfter: newCreditBalance,
+        });
+      }
+    }
+    
     return createdInvoice;
   }
 
