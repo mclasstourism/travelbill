@@ -775,10 +775,10 @@ export default function TicketsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Customer</TableHead>
-                    <TableHead className="text-right">Ticket Price</TableHead>
                     <TableHead>No. of Passengers</TableHead>
                     <TableHead>Route</TableHead>
                     <TableHead>Travel Date</TableHead>
+                    <TableHead className="text-right">Ticket Price</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -798,18 +798,6 @@ export default function TicketsPage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex flex-col items-end">
-                          <span className="font-mono font-semibold text-primary">
-                            {formatCurrency(ticket.faceValue)}
-                          </span>
-                          {(ticket.passengerCount || 1) > 1 && (
-                            <span className="text-xs text-muted-foreground">
-                              ({formatCurrency(ticket.faceValue / (ticket.passengerCount || 1))}/person)
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
                       <TableCell>
                         <Badge variant="outline">
                           {(ticket.passengerCount || 1)}
@@ -823,6 +811,18 @@ export default function TicketsPage() {
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {format(new Date(ticket.travelDate), "MMM d, yyyy")}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex flex-col items-end">
+                          <span className="font-mono font-semibold text-primary">
+                            {formatCurrency(ticket.faceValue)}
+                          </span>
+                          {(ticket.passengerCount || 1) > 1 && (
+                            <span className="text-xs text-muted-foreground">
+                              ({formatCurrency(ticket.faceValue / (ticket.passengerCount || 1))}/person)
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
