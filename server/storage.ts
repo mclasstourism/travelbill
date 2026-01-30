@@ -663,6 +663,8 @@ export class DatabaseStorage implements IStorage {
       travelDate: ticket.travelDate,
       returnDate: ticket.returnDate || null,
       passengerName: ticket.passengerName,
+      passengerNames: ticket.passengerNames || null,
+      passengerCount: ticket.passengerCount || 1,
       baggageAllowance: ticket.baggageAllowance || null,
       faceValue: ticket.faceValue,
       deductFromDeposit: ticket.deductFromDeposit || false,
