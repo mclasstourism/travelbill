@@ -515,8 +515,15 @@ export default function TicketsPage() {
     setIsEditOpen(true);
   };
 
-  // Open form with existing ticket data for viewing
+  // Open read-only view for existing ticket
   const handleViewInvoice = (ticket: Ticket) => {
+    setEditingTicket(ticket);
+    setEditStatus(ticket.status || "pending");
+    setIsEditOpen(true);
+  };
+
+  // Legacy form view function (not used for viewing existing tickets)
+  const handleFormViewInvoice = (ticket: Ticket) => {
     // Split route into from/to
     const routeParts = ticket.route?.split(" - ") || ["", ""];
     
