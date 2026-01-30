@@ -1695,7 +1695,7 @@ export default function TicketsPage() {
               )}
 
               <div className="space-y-2">
-                <Label>Documents (PDF or Images)</Label>
+                <Label>Documents (PDF)</Label>
                 <div 
                   className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
                     isDragging 
@@ -1725,27 +1725,15 @@ export default function TicketsPage() {
                     const files = e.dataTransfer.files;
                     if (files && files.length > 0) {
                       const fileArray = Array.from(files).filter(file => 
-                        file.type.startsWith('image/') || file.type === 'application/pdf'
+                        file.type === 'application/pdf'
                       );
                       if (fileArray.length > 0) {
                         setCreateEticketFiles(prev => [...prev, ...fileArray]);
                         fileArray.forEach(file => {
-                          if (file.type.startsWith('image/')) {
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                              setCreateEticketPreviews(prev => [...prev, {
-                                name: file.name,
-                                type: file.type,
-                                url: reader.result as string
-                              }]);
-                            };
-                            reader.readAsDataURL(file);
-                          } else {
-                            setCreateEticketPreviews(prev => [...prev, {
-                              name: file.name,
-                              type: file.type
-                            }]);
-                          }
+                          setCreateEticketPreviews(prev => [...prev, {
+                            name: file.name,
+                            type: file.type
+                          }]);
                         });
                       }
                     }
@@ -1753,30 +1741,20 @@ export default function TicketsPage() {
                 >
                   <input
                     type="file"
-                    accept="image/*,.pdf,application/pdf"
+                    accept=".pdf,application/pdf"
                     multiple
                     onChange={(e) => {
                       const files = e.target.files;
                       if (files && files.length > 0) {
-                        const fileArray = Array.from(files);
+                        const fileArray = Array.from(files).filter(file => 
+                          file.type === 'application/pdf'
+                        );
                         setCreateEticketFiles(prev => [...prev, ...fileArray]);
                         fileArray.forEach(file => {
-                          if (file.type.startsWith('image/')) {
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                              setCreateEticketPreviews(prev => [...prev, {
-                                name: file.name,
-                                type: file.type,
-                                url: reader.result as string
-                              }]);
-                            };
-                            reader.readAsDataURL(file);
-                          } else {
-                            setCreateEticketPreviews(prev => [...prev, {
-                              name: file.name,
-                              type: file.type
-                            }]);
-                          }
+                          setCreateEticketPreviews(prev => [...prev, {
+                            name: file.name,
+                            type: file.type
+                          }]);
                         });
                       }
                     }}
@@ -1789,7 +1767,7 @@ export default function TicketsPage() {
                       {isDragging ? 'Drop files here' : 'Drag & drop files here'}
                     </p>
                     <p className="text-xs text-muted-foreground">or click to browse</p>
-                    <p className="text-xs text-muted-foreground">PDF, PNG, JPG accepted</p>
+                    <p className="text-xs text-muted-foreground">PDF files only</p>
                   </div>
                 </div>
                 {createEticketFiles.length > 0 && (
