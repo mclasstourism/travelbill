@@ -1643,56 +1643,44 @@ export default function TicketsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="airlines"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Airlines *</FormLabel>
-                      {ticketSource === "direct" ? (
-                        // Direct airline - show as read-only display since it's set from source
-                        <div className="flex items-center gap-2 h-9 px-3 py-2 bg-muted rounded-md border">
-                          {(() => {
-                            const selectedAirline = airlines.find(a => a.name === field.value);
-                            return selectedAirline ? (
-                              <>
-                                <img src={selectedAirline.logo} alt={selectedAirline.name} className="w-5 h-5 object-contain rounded" />
-                                <span className="text-sm">{selectedAirline.name}</span>
-                              </>
-                            ) : (
-                              <span className="text-sm text-muted-foreground">Select from source above</span>
-                            );
-                          })()}
-                        </div>
-                      ) : vendorAirlines.length > 0 ? (
-                        <Select onValueChange={field.onChange} value={field.value}>
+              <div className={ticketSource === "direct" ? "" : "grid grid-cols-2 gap-4"}>
+                {/* Only show Airlines field when source is vendor (not direct) */}
+                {ticketSource !== "direct" && (
+                  <FormField
+                    control={form.control}
+                    name="airlines"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Airlines *</FormLabel>
+                        {vendorAirlines.length > 0 ? (
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-airlines">
+                                <SelectValue placeholder="Select airline" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {vendorAirlines.map((airline) => (
+                                <SelectItem key={airline.id || airline.name} value={airline.name}>
+                                  {airline.code ? `${airline.name} (${airline.code})` : airline.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
                           <FormControl>
-                            <SelectTrigger data-testid="select-airlines">
-                              <SelectValue placeholder="Select airline" />
-                            </SelectTrigger>
+                            <Input
+                              placeholder="e.g., Emirates"
+                              {...field}
+                              data-testid="input-airlines"
+                            />
                           </FormControl>
-                          <SelectContent>
-                            {vendorAirlines.map((airline) => (
-                              <SelectItem key={airline.id || airline.name} value={airline.name}>
-                                {airline.code ? `${airline.name} (${airline.code})` : airline.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <FormControl>
-                          <Input
-                            placeholder="e.g., Emirates"
-                            {...field}
-                            data-testid="input-airlines"
-                          />
-                        </FormControl>
-                      )}
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 <FormField
                   control={form.control}
