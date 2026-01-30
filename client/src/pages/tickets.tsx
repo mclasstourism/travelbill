@@ -150,6 +150,7 @@ export default function TicketsPage() {
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
   const [invoiceTicket, setInvoiceTicket] = useState<Ticket | null>(null);
   const [viewingTicket, setViewingTicket] = useState<Ticket | null>(null);
+  const [documentsTicket, setDocumentsTicket] = useState<Ticket | null>(null);
   const { toast } = useToast();
   const { isAuthenticated, session } = usePin();
 
@@ -755,12 +756,9 @@ export default function TicketsPage() {
                         <Button
                           size="icon"
                           variant="ghost"
-                          onClick={() => {
-                            const fileUrl = ticket.eticketFiles?.[0] || ticket.eticketImage;
-                            if (fileUrl) window.open(fileUrl, '_blank');
-                          }}
+                          onClick={() => setDocumentsTicket(ticket)}
                           data-testid={`button-view-document-mobile-${ticket.id}`}
-                          title="View Document"
+                          title="View Documents"
                           className="text-blue-600 dark:text-blue-400"
                         >
                           <FileText className="w-4 h-4" />
@@ -839,17 +837,14 @@ export default function TicketsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {/* Document button - opens uploaded document file */}
+                          {/* Document button - opens documents popup */}
                           {(ticket.eticketFiles?.length || ticket.eticketImage) && (
                             <Button
                               size="icon"
                               variant="ghost"
-                              onClick={() => {
-                                const fileUrl = ticket.eticketFiles?.[0] || ticket.eticketImage;
-                                if (fileUrl) window.open(fileUrl, '_blank');
-                              }}
+                              onClick={() => setDocumentsTicket(ticket)}
                               data-testid={`button-view-document-${ticket.id}`}
-                              title="View Document"
+                              title="View Documents"
                               className="text-blue-600 dark:text-blue-400"
                             >
                               <FileText className="w-4 h-4" />
@@ -2433,6 +2428,89 @@ export default function TicketsPage() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Documents Viewer Dialog */}
+      <Dialog open={!!documentsTicket} onOpenChange={(open) => !open && setDocumentsTicket(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Documents
+            </DialogTitle>
+            <DialogDescription>
+              {documentsTicket && (
+                <>
+                  {customers.find(c => c.id === documentsTicket.customerId)?.name || "Customer"} - {documentsTicket.route}
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {documentsTicket && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+              {/* Show all eticketFiles */}
+              {documentsTicket.eticketFiles && documentsTicket.eticketFiles.map((fileUrl: string, idx: number) => (
+                <Card 
+                  key={idx} 
+                  className="overflow-hidden cursor-pointer hover-elevate"
+                  onClick={() => window.open(fileUrl, '_blank')}
+                >
+                  <div className="aspect-[4/3] bg-muted flex items-center justify-center overflow-hidden">
+                    {fileUrl.toLowerCase().endsWith('.pdf') ? (
+                      <div className="flex flex-col items-center gap-2 p-4">
+                        <FileText className="w-16 h-16 text-red-500" />
+                        <span className="text-sm text-muted-foreground">PDF Document</span>
+                      </div>
+                    ) : (
+                      <img 
+                        src={fileUrl} 
+                        alt={`Document ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </div>
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">Document {idx + 1}</span>
+                      <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Click to view full size</p>
+                  </CardContent>
+                </Card>
+              ))}
+              
+              {/* Fallback to legacy eticketImage if no eticketFiles */}
+              {(!documentsTicket.eticketFiles || documentsTicket.eticketFiles.length === 0) && documentsTicket.eticketImage && (
+                <Card 
+                  className="overflow-hidden cursor-pointer hover-elevate"
+                  onClick={() => window.open(documentsTicket.eticketImage, '_blank')}
+                >
+                  <div className="aspect-[4/3] bg-muted flex items-center justify-center overflow-hidden">
+                    <img 
+                      src={documentsTicket.eticketImage} 
+                      alt="Document"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">Document</span>
+                      <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Click to view full size</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+          
+          <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
+            <Button variant="outline" onClick={() => setDocumentsTicket(null)}>
+              Close
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
