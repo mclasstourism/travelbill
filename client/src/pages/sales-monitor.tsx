@@ -315,7 +315,7 @@ export default function SalesMonitor() {
                 <Briefcase className="w-6 h-6 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
-                <div className="text-sm text-muted-foreground">Agent Sales</div>
+                <div className="text-sm text-muted-foreground">Client Sales</div>
                 <div className="text-xl font-bold">{agentSales.length} Sales</div>
                 <div className="text-sm font-mono text-purple-600 dark:text-purple-400">
                   {formatCurrency(agentTotals.faceValue)}
@@ -343,11 +343,11 @@ export default function SalesMonitor() {
         </Card>
       </div>
 
-      <Tabs defaultValue="agents" className="w-full">
+      <Tabs defaultValue="clients" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="agents" data-testid="tab-agents">
-            <Briefcase className="w-4 h-4 mr-2" />
-            Agents
+          <TabsTrigger value="clients" data-testid="tab-clients">
+            <Users className="w-4 h-4 mr-2" />
+            Clients
           </TabsTrigger>
           <TabsTrigger value="vendors" data-testid="tab-vendors">
             <Building2 className="w-4 h-4 mr-2" />
@@ -355,12 +355,12 @@ export default function SalesMonitor() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="agents" className="mt-6">
+        <TabsContent value="clients" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Briefcase className="w-5 h-5" />
-                Agent Sales
+                <Users className="w-5 h-5" />
+                Client Sales
               </CardTitle>
             </CardHeader>
             <CardContent>
