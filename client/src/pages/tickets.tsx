@@ -713,7 +713,7 @@ export default function TicketsPage() {
           <Button onClick={handleCreateClick} className="w-full sm:w-auto" data-testid="button-issue-ticket">
             {!isAuthenticated && <Lock className="w-4 h-4 mr-2" />}
             <Plus className="w-4 h-4 mr-2" />
-            Issue Ticket
+            Create Invoice
           </Button>
         </div>
       </div>
@@ -863,7 +863,7 @@ export default function TicketsPage() {
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Issue Ticket</DialogTitle>
+            <DialogTitle>Create Invoice</DialogTitle>
             <DialogDescription>
               Enter ticket details. The amount can be deducted from customer deposit.
             </DialogDescription>
@@ -1849,7 +1849,7 @@ export default function TicketsPage() {
                   {createMutation.isPending && (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   )}
-                  Issue Ticket
+                  Create Invoice
                 </Button>
               </div>
             </form>
