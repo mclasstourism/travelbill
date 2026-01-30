@@ -335,7 +335,7 @@ export default function VendorsPage() {
       </Card>
 
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New Vendor</DialogTitle>
             <DialogDescription>
@@ -493,7 +493,7 @@ export default function VendorsPage() {
         setIsEditOpen(open);
         if (!open) setEditingVendor(null);
       }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Vendor</DialogTitle>
             <DialogDescription>
