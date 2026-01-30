@@ -2437,19 +2437,12 @@ export default function TicketsPage() {
                         rel="noopener noreferrer"
                         className="flex items-center gap-3 p-3 border rounded-lg hover-elevate"
                         onClick={(e) => e.stopPropagation()}
+                        data-testid={`link-document-${idx}`}
                       >
-                        {fileUrl.toLowerCase().endsWith('.pdf') ? (
-                          <FileText className="w-8 h-8 text-red-500" />
-                        ) : (
-                          <img 
-                            src={fileUrl} 
-                            alt={`Document ${idx + 1}`} 
-                            className="w-12 h-12 object-cover rounded"
-                          />
-                        )}
+                        <FileText className="w-8 h-8 text-red-500" />
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">Document {idx + 1}</p>
-                          <p className="text-xs text-muted-foreground">Click to view</p>
+                          <p className="font-medium truncate">E-Ticket {idx + 1}</p>
+                          <p className="text-xs text-muted-foreground">Click to view/download</p>
                         </div>
                         <ExternalLink className="w-4 h-4 text-muted-foreground" />
                       </a>
@@ -2494,32 +2487,6 @@ export default function TicketsPage() {
                   )}
                 </div>
               </div>
-
-              {/* Documents Section */}
-              {(viewingTicket.eticketFiles?.length || viewingTicket.eticketImage) && (
-                <div className="space-y-3">
-                  <h4 className="font-semibold flex items-center gap-2">
-                    <FileText className="w-4 h-4" />
-                    Documents
-                  </h4>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {viewingTicket.eticketFiles?.map((fileUrl: string, idx: number) => (
-                      <Card 
-                        key={idx} 
-                        className="overflow-hidden cursor-pointer hover-elevate"
-                        onClick={() => window.open(fileUrl, '_blank')}
-                      >
-                        <div className="aspect-square bg-muted flex items-center justify-center">
-                          <FileText className="w-8 h-8 text-red-500" />
-                        </div>
-                        <CardContent className="p-2 text-center">
-                          <span className="text-xs">PDF {idx + 1}</span>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* Actions */}
               <div className="flex flex-wrap gap-2 border-t pt-4">
