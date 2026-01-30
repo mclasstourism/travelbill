@@ -13,7 +13,6 @@ import Dashboard from "@/pages/dashboard";
 import CustomersPage from "@/pages/customers";
 import AgentsPage from "@/pages/agents";
 import VendorsPage from "@/pages/vendors";
-import InvoicesPage from "@/pages/invoices";
 import TicketsPage from "@/pages/tickets";
 import DepositsPage from "@/pages/deposits";
 import VendorCreditsPage from "@/pages/vendor-credits";
@@ -38,7 +37,6 @@ function Router() {
       <Route path="/agents" component={AgentsPage} />
       <Route path="/vendors" component={VendorsPage} />
       <Route path="/airlines" component={AirlinesPage} />
-      <Route path="/invoices" component={InvoicesPage} />
       <Route path="/tickets" component={TicketsPage} />
       <Route path="/sales-monitor" component={SalesMonitorPage} />
       <Route path="/deposits" component={DepositsPage} />
