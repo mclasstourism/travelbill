@@ -749,7 +749,7 @@ export default function TicketsPage() {
                       <span className="font-mono font-semibold text-primary">{formatCurrency(ticket.faceValue)}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      {/* E-ticket button - opens uploaded e-ticket file */}
+                      {/* Document button - opens uploaded document file */}
                       {(ticket.eticketFiles?.length || ticket.eticketImage) && (
                         <Button
                           size="icon"
@@ -758,11 +758,11 @@ export default function TicketsPage() {
                             const fileUrl = ticket.eticketFiles?.[0] || ticket.eticketImage;
                             if (fileUrl) window.open(fileUrl, '_blank');
                           }}
-                          data-testid={`button-view-eticket-mobile-${ticket.id}`}
-                          title="View E-Ticket"
+                          data-testid={`button-view-document-mobile-${ticket.id}`}
+                          title="View Document"
                           className="text-blue-600 dark:text-blue-400"
                         >
-                          <TicketIcon className="w-4 h-4" />
+                          <FileText className="w-4 h-4" />
                         </Button>
                       )}
                       {ticket.invoiceId && (
@@ -838,7 +838,7 @@ export default function TicketsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {/* E-ticket button - opens uploaded e-ticket file */}
+                          {/* Document button - opens uploaded document file */}
                           {(ticket.eticketFiles?.length || ticket.eticketImage) && (
                             <Button
                               size="icon"
@@ -847,11 +847,11 @@ export default function TicketsPage() {
                                 const fileUrl = ticket.eticketFiles?.[0] || ticket.eticketImage;
                                 if (fileUrl) window.open(fileUrl, '_blank');
                               }}
-                              data-testid={`button-view-eticket-${ticket.id}`}
-                              title="View E-Ticket"
+                              data-testid={`button-view-document-${ticket.id}`}
+                              title="View Document"
                               className="text-blue-600 dark:text-blue-400"
                             >
-                              <TicketIcon className="w-4 h-4" />
+                              <FileText className="w-4 h-4" />
                             </Button>
                           )}
                           {ticket.invoiceId && (
@@ -1699,7 +1699,7 @@ export default function TicketsPage() {
               )}
 
               <div className="space-y-2">
-                <Label>E-Ticket Files (PDF or Images)</Label>
+                <Label>Documents (PDF or Images)</Label>
                 <div className="flex items-center gap-4">
                   <Input
                     type="file"
@@ -1967,8 +1967,8 @@ export default function TicketsPage() {
                       />
                       <div className="flex flex-col items-center gap-2 text-muted-foreground">
                         <Upload className="w-8 h-8" />
-                        <span className="text-sm">Click to upload e-ticket image</span>
-                        <span className="text-xs">PNG, JPG, or screenshot</span>
+                        <span className="text-sm">Click to upload document</span>
+                        <span className="text-xs">PNG, JPG, PDF, or screenshot</span>
                       </div>
                     </label>
                   )}
@@ -2270,12 +2270,12 @@ export default function TicketsPage() {
                 </div>
               </div>
 
-              {/* E-Tickets */}
+              {/* Documents - uploaded files like printed e-tickets, airline confirmations, etc. */}
               {((viewingTicket.eticketFiles && viewingTicket.eticketFiles.length > 0) || viewingTicket.eticketImage) && (
                 <div className="space-y-3">
                   <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-2">
                     <FileText className="w-4 h-4" />
-                    E-Tickets
+                    Documents
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {viewingTicket.eticketFiles && viewingTicket.eticketFiles.map((fileUrl: string, idx: number) => (
@@ -2292,12 +2292,12 @@ export default function TicketsPage() {
                         ) : (
                           <img 
                             src={fileUrl} 
-                            alt={`E-ticket ${idx + 1}`} 
+                            alt={`Document ${idx + 1}`} 
                             className="w-12 h-12 object-cover rounded"
                           />
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">E-Ticket {idx + 1}</p>
+                          <p className="font-medium truncate">Document {idx + 1}</p>
                           <p className="text-xs text-muted-foreground">Click to view</p>
                         </div>
                         <ExternalLink className="w-4 h-4 text-muted-foreground" />
@@ -2313,11 +2313,11 @@ export default function TicketsPage() {
                       >
                         <img 
                           src={viewingTicket.eticketImage} 
-                          alt="E-ticket" 
+                          alt="Document" 
                           className="w-12 h-12 object-cover rounded"
                         />
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">E-Ticket</p>
+                          <p className="font-medium truncate">Document</p>
                           <p className="text-xs text-muted-foreground">Click to view</p>
                         </div>
                         <ExternalLink className="w-4 h-4 text-muted-foreground" />
