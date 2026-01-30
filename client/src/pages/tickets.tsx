@@ -2345,20 +2345,6 @@ export default function TicketsPage() {
                 </div>
               </div>
 
-              {/* Status */}
-              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                <span className="text-sm text-muted-foreground">Status</span>
-                <Badge 
-                  variant={
-                    viewingTicket.status === "issued" ? "default" : 
-                    viewingTicket.status === "cancelled" ? "destructive" : 
-                    "secondary"
-                  }
-                >
-                  {viewingTicket.status?.charAt(0).toUpperCase() + viewingTicket.status?.slice(1) || "Pending"}
-                </Badge>
-              </div>
-
               {/* Actions */}
               <div className="flex justify-end gap-2 border-t pt-4">
                 <Button variant="outline" onClick={() => setViewingTicket(null)}>
