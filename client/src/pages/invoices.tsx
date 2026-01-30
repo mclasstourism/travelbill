@@ -114,6 +114,7 @@ const createInvoiceFormSchema = z.object({
   vendorCost: z.coerce.number().min(0, "Vendor cost must be positive").default(0),
   paymentMethod: z.enum(paymentMethods),
   useCustomerDeposit: z.boolean().default(false),
+  useAgentCredit: z.boolean().default(false),
   useVendorBalance: z.enum(["none", "credit", "deposit"]).default("none"),
   notes: z.string().optional(),
 });
@@ -196,6 +197,7 @@ export default function InvoicesPage() {
       vendorCost: 0,
       paymentMethod: "cash",
       useCustomerDeposit: false,
+      useAgentCredit: false,
       useVendorBalance: "none",
       notes: "",
     },
@@ -209,6 +211,7 @@ export default function InvoicesPage() {
   const watchItems = form.watch("items");
   const watchDiscountPercent = form.watch("discountPercent");
   const watchUseDeposit = form.watch("useCustomerDeposit");
+  const watchUseAgentCredit = form.watch("useAgentCredit");
   const watchCustomerType = form.watch("customerType");
   const watchCustomerId = form.watch("customerId");
   const watchVendorId = form.watch("vendorId");
@@ -230,11 +233,20 @@ export default function InvoicesPage() {
     }, 0);
     const discountAmount = subtotal * ((Number(watchDiscountPercent) || 0) / 100);
     const afterDiscount = subtotal - discountAmount;
+    
+    // Customer/Agent deposit deduction
     let depositUsed = 0;
     if (watchUseDeposit && selectedParty) {
       depositUsed = Math.min(selectedParty.depositBalance, afterDiscount);
     }
     let afterCustomerDeposit = afterDiscount - depositUsed;
+    
+    // Agent credit deduction (separate from deposit)
+    let agentCreditUsed = 0;
+    if (watchUseAgentCredit && selectedAgent && selectedAgent.creditBalance > 0) {
+      agentCreditUsed = Math.min(selectedAgent.creditBalance, afterCustomerDeposit);
+    }
+    let afterAgentCredit = afterCustomerDeposit - agentCreditUsed;
     
     // Vendor balance deduction is based on vendor cost, not invoice total
     const vendorCostAmount = Number(watchVendorCost) || 0;
@@ -246,9 +258,9 @@ export default function InvoicesPage() {
       vendorBalanceDeducted = Math.min(vendorBalance, vendorCostAmount);
     }
     
-    const total = afterCustomerDeposit;
-    return { subtotal, discountAmount, afterDiscount, depositUsed, vendorBalanceDeducted, vendorCost: vendorCostAmount, total };
-  }, [watchItems, watchDiscountPercent, watchUseDeposit, selectedParty, watchUseVendorBalance, selectedVendor, watchVendorCost]);
+    const total = afterAgentCredit;
+    return { subtotal, discountAmount, afterDiscount, depositUsed, agentCreditUsed, vendorBalanceDeducted, vendorCost: vendorCostAmount, total };
+  }, [watchItems, watchDiscountPercent, watchUseDeposit, watchUseAgentCredit, selectedParty, selectedAgent, watchUseVendorBalance, selectedVendor, watchVendorCost]);
 
   const createMutation = useMutation({
     mutationFn: async (data: InsertInvoice) => {
@@ -309,11 +321,19 @@ export default function InvoicesPage() {
     const discountAmount = subtotal * ((Number(data.discountPercent) || 0) / 100);
     const afterDiscount = subtotal - discountAmount;
     
+    // Customer/Agent deposit deduction
     let depositUsed = 0;
     if (data.useCustomerDeposit && selectedParty) {
       depositUsed = Math.min(selectedParty.depositBalance, afterDiscount);
     }
-    const total = afterDiscount - depositUsed;
+    const afterDeposit = afterDiscount - depositUsed;
+    
+    // Agent credit deduction (separate from deposit)
+    let agentCreditUsed = 0;
+    if (data.useAgentCredit && selectedAgent && selectedAgent.creditBalance > 0) {
+      agentCreditUsed = Math.min(selectedAgent.creditBalance, afterDeposit);
+    }
+    const total = afterDeposit - agentCreditUsed;
 
     // Calculate vendor balance deduction based on vendor cost
     const vendorCostAmount = Number(data.vendorCost) || 0;
@@ -338,6 +358,8 @@ export default function InvoicesPage() {
       paymentMethod: data.paymentMethod,
       useCustomerDeposit: data.useCustomerDeposit,
       depositUsed,
+      useAgentCredit: data.useAgentCredit,
+      agentCreditUsed,
       useVendorBalance: data.useVendorBalance,
       vendorBalanceDeducted,
       notes: data.notes || "",
@@ -840,6 +862,30 @@ export default function InvoicesPage() {
                 />
               )}
 
+              {selectedAgent && selectedAgent.creditBalance > 0 && (
+                <FormField
+                  control={form.control}
+                  name="useAgentCredit"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-md border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Use Agent Credit</FormLabel>
+                        <p className="text-sm text-muted-foreground">
+                          Available: {formatCurrency(selectedAgent.creditBalance)}
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid="switch-use-agent-credit"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              )}
+
               {selectedVendor && (selectedVendor.creditBalance > 0 || selectedVendor.depositBalance > 0) && (
                 <FormField
                   control={form.control}
@@ -907,8 +953,14 @@ export default function InvoicesPage() {
                     )}
                     {calculations.depositUsed > 0 && (
                       <div className="flex justify-between text-sm text-blue-600 dark:text-blue-400">
-                        <span>Customer Deposit Applied</span>
+                        <span>{watchCustomerType === "agent" ? "Agent" : "Customer"} Deposit Applied</span>
                         <span className="font-mono">-{formatCurrency(calculations.depositUsed)}</span>
+                      </div>
+                    )}
+                    {calculations.agentCreditUsed > 0 && (
+                      <div className="flex justify-between text-sm text-purple-600 dark:text-purple-400">
+                        <span>Agent Credit Applied</span>
+                        <span className="font-mono">-{formatCurrency(calculations.agentCreditUsed)}</span>
                       </div>
                     )}
                     {calculations.vendorCost > 0 && (

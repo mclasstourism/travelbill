@@ -401,6 +401,8 @@ export class PgStorage implements IStorage {
       paymentMethod: row.paymentMethod as any,
       useCustomerDeposit: row.useCustomerDeposit || false,
       depositUsed: row.depositUsed || 0,
+      useAgentCredit: row.useAgentCredit || false,
+      agentCreditUsed: row.agentCreditUsed || 0,
       useVendorBalance: (row.useVendorBalance as any) || "none",
       vendorBalanceDeducted: row.vendorBalanceDeducted || 0,
       notes: row.notes || "",
@@ -428,6 +430,8 @@ export class PgStorage implements IStorage {
       paymentMethod: invoice.paymentMethod,
       useCustomerDeposit: invoice.useCustomerDeposit || false,
       depositUsed: invoice.depositUsed || 0,
+      useAgentCredit: invoice.useAgentCredit || false,
+      agentCreditUsed: invoice.agentCreditUsed || 0,
       useVendorBalance: invoice.useVendorBalance || "none",
       vendorBalanceDeducted: invoice.vendorBalanceDeducted || 0,
       notes: invoice.notes || "",
@@ -523,12 +527,11 @@ export class PgStorage implements IStorage {
       }
     }
     
-    // Record credit payment transaction for agents
-    // When an agent invoice uses "credit" payment method, record it as a debit from their credit balance
-    if (invoice.paymentMethod === "credit" && invoice.customerType === "agent" && invoice.total > 0) {
+    // Record agent credit deduction transaction (separate toggle, not tied to payment method)
+    if (invoice.useAgentCredit && invoice.agentCreditUsed && invoice.agentCreditUsed > 0 && invoice.customerType === "agent") {
       const agent = await this.getAgent(invoice.customerId);
       if (agent) {
-        const newCreditBalance = agent.creditBalance - invoice.total;
+        const newCreditBalance = agent.creditBalance - invoice.agentCreditUsed;
         // Update agent credit balance
         await db.update(schema.agentsTable)
           .set({ creditBalance: newCreditBalance })
@@ -539,9 +542,9 @@ export class PgStorage implements IStorage {
           agentId: invoice.customerId,
           type: "debit",
           transactionType: "credit",
-          amount: invoice.total,
-          description: `Invoice ${invoiceNumber} - Credit payment`,
-          paymentMethod: "credit",
+          amount: invoice.agentCreditUsed,
+          description: `Invoice ${invoiceNumber} - Credit used for payment`,
+          paymentMethod: invoice.paymentMethod,
           referenceId: createdInvoice.id,
           referenceType: "invoice",
           balanceAfter: newCreditBalance,
