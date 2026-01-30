@@ -69,8 +69,8 @@ export default function SalesMonitor() {
 
   // Client sales = ALL invoices (both customer and agent invoices)
   const clientInvoices = invoices;
-  // Vendor/Agency sales = tickets sourced FROM vendors/agencies (vendorId is set)
-  const vendorTickets = tickets.filter((t) => t.vendorId && t.vendorId.trim() !== "");
+  // Vendor/Agency sales = invoices with a vendorId set
+  const vendorInvoices = invoices.filter((inv) => inv.vendorId && inv.vendorId.trim() !== "");
   
   // Calculate invoice totals
   const invoiceTotals = clientInvoices.reduce(
@@ -119,8 +119,17 @@ export default function SalesMonitor() {
     }
   };
 
-  const vendorTotals = calculateTotals(vendorTickets);
-  const agentTotals = calculateTotals(agentSales);
+  // Vendor invoice totals
+  const vendorInvoiceTotals = vendorInvoices.reduce(
+    (acc, inv) => ({
+      count: acc.count + 1,
+      vendorPrice: acc.vendorPrice + (inv.vendorCost || 0),
+      mcAddition: acc.mcAddition + ((inv.total || 0) - (inv.vendorCost || 0)),
+      totalAmount: acc.totalAmount + (inv.total || 0),
+      paidAmount: acc.paidAmount + (inv.status === "paid" ? (inv.total || 0) : 0),
+    }),
+    { count: 0, vendorPrice: 0, mcAddition: 0, totalAmount: 0, paidAmount: 0 }
+  );
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-AE", {
@@ -346,10 +355,10 @@ export default function SalesMonitor() {
                 <Building2 className="w-6 h-6 text-orange-600 dark:text-orange-400" />
               </div>
               <div>
-                <div className="text-sm text-muted-foreground">Vendor Sales</div>
-                <div className="text-xl font-bold">{vendorTickets.length} Sales</div>
+                <div className="text-sm text-muted-foreground">Vendor Invoices</div>
+                <div className="text-xl font-bold">{vendorInvoices.length} Invoices</div>
                 <div className="text-sm font-mono text-orange-600 dark:text-orange-400">
-                  {formatCurrency(vendorTotals.faceValue)}
+                  {formatCurrency(vendorInvoiceTotals.totalAmount)}
                 </div>
               </div>
             </div>
@@ -506,40 +515,110 @@ export default function SalesMonitor() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Building2 className="w-5 h-5" />
-                Vendor Sales
+                Vendor Invoices
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <SummaryCards totals={vendorTotals} type="vendor" />
+              {/* Vendor Invoice Summary Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                      <FileText className="w-4 h-4" />
+                      Total Invoices
+                    </div>
+                    <div className="text-2xl font-bold">{vendorInvoices.length}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                      <Building2 className="w-4 h-4" />
+                      Vendor Price
+                    </div>
+                    <div className="text-2xl font-bold font-mono">
+                      {formatCurrency(vendorInvoiceTotals.vendorPrice)}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                      <TrendingUp className="w-4 h-4" />
+                      MC Addition
+                    </div>
+                    <div className="text-2xl font-bold font-mono text-primary">
+                      {formatCurrency(vendorInvoiceTotals.mcAddition)}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                      <DollarSign className="w-4 h-4" />
+                      Grand Total
+                    </div>
+                    <div className="text-2xl font-bold font-mono text-green-600">
+                      {formatCurrency(vendorInvoiceTotals.totalAmount)}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
               
               <div className="rounded-md border overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Ticket #</TableHead>
-                      <TableHead>Passenger</TableHead>
-                      <TableHead>Airlines</TableHead>
-                      <TableHead>Travel Date</TableHead>
-                      <TableHead>Vendor</TableHead>
-                      <TableHead>Customer Name</TableHead>
-                      <TableHead className="text-right">Source Cost</TableHead>
+                      <TableHead>Invoice #</TableHead>
+                      <TableHead>Client Name</TableHead>
+                      <TableHead className="text-right">Vendor Price</TableHead>
                       <TableHead className="text-right">MC Addition</TableHead>
-                      <TableHead className="text-right">Face Value</TableHead>
-                      <TableHead className="text-right">Deposit Used</TableHead>
-                      <TableHead>Invoice / Payment</TableHead>
+                      <TableHead className="text-right">Grand Total</TableHead>
+                      <TableHead>Payment Method</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {vendorTickets.length === 0 ? (
+                    {vendorInvoices.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
-                          No customer sales yet
+                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                          No vendor invoices yet
                         </TableCell>
                       </TableRow>
                     ) : (
-                      vendorTickets.map((ticket) => (
-                        <TicketRow key={ticket.id} ticket={ticket} showSource showDeposit hideClientType />
-                      ))
+                      vendorInvoices.map((invoice) => {
+                        const clientName = getCustomerName(invoice.customerId);
+                        const vendorPrice = invoice.vendorCost || 0;
+                        const mcAddition = (invoice.total || 0) - vendorPrice;
+                        return (
+                          <TableRow key={invoice.id} data-testid={`row-vendor-invoice-${invoice.id}`}>
+                            <TableCell className="font-mono font-medium">
+                              {invoice.invoiceNumber}
+                            </TableCell>
+                            <TableCell className="font-medium">{clientName}</TableCell>
+                            <TableCell className="text-right font-mono">
+                              {formatCurrency(vendorPrice)}
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-primary">
+                              {formatCurrency(mcAddition)}
+                            </TableCell>
+                            <TableCell className="text-right font-mono font-semibold">
+                              {formatCurrency(invoice.total || 0)}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                {getPaymentIcon(invoice.paymentMethod)}
+                                <span className="capitalize text-sm">{invoice.paymentMethod}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={invoice.status === "paid" ? "default" : "destructive"}>
+                                {invoice.status === "paid" ? "Paid" : "Unpaid"}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>
