@@ -705,17 +705,6 @@ export default function TicketsPage() {
                 <div key={ticket.id} className="border rounded-lg p-4 space-y-3" data-testid={`card-ticket-${ticket.id}`}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <div className="flex flex-col gap-0.5 mb-1">
-                        {(ticket.ticketNumbers && ticket.ticketNumbers.length > 0) ? (
-                          ticket.ticketNumbers.map((tNum: string, idx: number) => (
-                            <span key={idx} className="font-mono text-sm font-medium">{tNum}</span>
-                          ))
-                        ) : ticket.ticketNumber ? (
-                          <span className="font-mono text-sm font-medium">{ticket.ticketNumber}</span>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">No ticket #</span>
-                        )}
-                      </div>
                       <div className="space-y-0.5">
                         {(ticket.passengerNames && ticket.passengerNames.length > 0) ? (
                           ticket.passengerNames.map((name: string, idx: number) => (
@@ -753,12 +742,6 @@ export default function TicketsPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      {ticket.eticketImage && (
-                        <Badge variant="default" className="gap-1">
-                          <Image className="w-3 h-3" />
-                          E-Ticket
-                        </Badge>
-                      )}
                       {ticket.invoiceId && (
                         <Button
                           size="icon"
@@ -791,32 +774,17 @@ export default function TicketsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Ticket #</TableHead>
                     <TableHead>Passenger</TableHead>
                     <TableHead className="text-right">Ticket Price</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Route</TableHead>
                     <TableHead>Travel Date</TableHead>
-                    <TableHead>E-Ticket</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredTickets.map((ticket) => (
                     <TableRow key={ticket.id} data-testid={`row-ticket-${ticket.id}`}>
-                      <TableCell className="font-medium">
-                        <div className="flex flex-col gap-0.5">
-                          {(ticket.ticketNumbers && ticket.ticketNumbers.length > 0) ? (
-                            ticket.ticketNumbers.map((tNum: string, idx: number) => (
-                              <span key={idx} className="font-mono text-sm">{tNum}</span>
-                            ))
-                          ) : ticket.ticketNumber ? (
-                            <span className="font-mono text-sm">{ticket.ticketNumber}</span>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">Pending</span>
-                          )}
-                        </div>
-                      </TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-0.5">
                           {(ticket.passengerNames && ticket.passengerNames.length > 0) ? (
@@ -855,19 +823,6 @@ export default function TicketsPage() {
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {format(new Date(ticket.travelDate), "MMM d, yyyy")}
-                      </TableCell>
-                      <TableCell>
-                        {ticket.eticketImage ? (
-                          <Badge variant="default" className="gap-1">
-                            <Image className="w-3 h-3" />
-                            Attached
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="gap-1 text-muted-foreground">
-                            <X className="w-3 h-3" />
-                            None
-                          </Badge>
-                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
