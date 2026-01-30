@@ -29,7 +29,9 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Users, Search, Loader2, Pencil } from "lucide-react";
+import { Plus, Users, Search, Loader2, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { DialogFooter } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertCustomerSchema, type Customer, type InsertCustomer } from "@shared/schema";
@@ -45,7 +47,10 @@ function formatCurrency(amount: number): string {
 export default function CustomersPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null);
+  const [deletePassword, setDeletePassword] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
@@ -140,6 +145,32 @@ export default function CustomersPage() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async ({ id, password }: { id: string; password: string }) => {
+      const res = await apiRequest("DELETE", `/api/customers/${id}`, { password });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/deposit-transactions"] });
+      setIsDeleteOpen(false);
+      setDeletingCustomer(null);
+      setDeletePassword("");
+      toast({
+        title: "Customer deleted",
+        description: "The customer has been deleted successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete customer. Check admin password.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const filteredCustomers = customers.filter((customer) =>
     customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     customer.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -157,6 +188,17 @@ export default function CustomersPage() {
   const handleEditClick = (customer: Customer) => {
     setEditingCustomer(customer);
     setIsEditOpen(true);
+  };
+
+  const handleDeleteClick = (customer: Customer) => {
+    setDeletingCustomer(customer);
+    setDeletePassword("");
+    setIsDeleteOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deletingCustomer || !deletePassword) return;
+    deleteMutation.mutate({ id: deletingCustomer.id, password: deletePassword });
   };
 
   return (
@@ -228,14 +270,24 @@ export default function CustomersPage() {
                         </span>
                       </TableCell>
                       <TableCell>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => handleEditClick(customer)}
-                          data-testid={`button-edit-customer-${customer.id}`}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => handleEditClick(customer)}
+                            data-testid={`button-edit-customer-${customer.id}`}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => handleDeleteClick(customer)}
+                            data-testid={`button-delete-customer-${customer.id}`}
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -503,6 +555,61 @@ export default function CustomersPage() {
               </div>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDeleteOpen} onOpenChange={(open) => {
+        setIsDeleteOpen(open);
+        if (!open) {
+          setDeletingCustomer(null);
+          setDeletePassword("");
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              Delete Customer
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete <strong>{deletingCustomer?.name}</strong>?
+              <br /><br />
+              This will also delete all associated deposit transactions. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="delete-password">Admin Password</Label>
+              <Input
+                id="delete-password"
+                type="password"
+                placeholder="Enter admin password to confirm"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                data-testid="input-delete-customer-password"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setIsDeleteOpen(false)}
+              data-testid="button-cancel-delete-customer"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={deleteMutation.isPending || !deletePassword}
+              data-testid="button-confirm-delete-customer"
+            >
+              {deleteMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Delete Customer
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

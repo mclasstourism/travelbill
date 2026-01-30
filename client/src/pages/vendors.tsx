@@ -29,7 +29,9 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Building2, Search, Loader2, Trash2, Plane, Pencil } from "lucide-react";
+import { Plus, Building2, Search, Loader2, Trash2, Plane, Pencil, AlertTriangle } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { DialogFooter } from "@/components/ui/dialog";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertVendorSchema, type Vendor, type InsertVendor } from "@shared/schema";
@@ -46,7 +48,10 @@ function formatCurrency(amount: number): string {
 export default function VendorsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
+  const [deletingVendor, setDeletingVendor] = useState<Vendor | null>(null);
+  const [deletePassword, setDeletePassword] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
@@ -153,6 +158,32 @@ export default function VendorsPage() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async ({ id, password }: { id: string; password: string }) => {
+      const res = await apiRequest("DELETE", `/api/vendors/${id}`, { password });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendor-transactions"] });
+      setIsDeleteOpen(false);
+      setDeletingVendor(null);
+      setDeletePassword("");
+      toast({
+        title: "Vendor deleted",
+        description: "The vendor has been deleted successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete vendor. Check admin password.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const filteredVendors = vendors.filter((vendor) =>
     vendor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     vendor.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -172,6 +203,17 @@ export default function VendorsPage() {
   const handleEdit = (vendor: Vendor) => {
     setEditingVendor(vendor);
     setIsEditOpen(true);
+  };
+
+  const handleDeleteClick = (vendor: Vendor) => {
+    setDeletingVendor(vendor);
+    setDeletePassword("");
+    setIsDeleteOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deletingVendor || !deletePassword) return;
+    deleteMutation.mutate({ id: deletingVendor.id, password: deletePassword });
   };
 
   return (
@@ -260,14 +302,24 @@ export default function VendorsPage() {
                         </span>
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(vendor)}
-                          data-testid={`button-edit-vendor-${vendor.id}`}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(vendor)}
+                            data-testid={`button-edit-vendor-${vendor.id}`}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteClick(vendor)}
+                            data-testid={`button-delete-vendor-${vendor.id}`}
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -591,6 +643,61 @@ export default function VendorsPage() {
               </div>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDeleteOpen} onOpenChange={(open) => {
+        setIsDeleteOpen(open);
+        if (!open) {
+          setDeletingVendor(null);
+          setDeletePassword("");
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              Delete Vendor
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete <strong>{deletingVendor?.name}</strong>?
+              <br /><br />
+              This will also delete all associated credit transactions. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="delete-vendor-password">Admin Password</Label>
+              <Input
+                id="delete-vendor-password"
+                type="password"
+                placeholder="Enter admin password to confirm"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                data-testid="input-delete-vendor-password"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setIsDeleteOpen(false)}
+              data-testid="button-cancel-delete-vendor"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={deleteMutation.isPending || !deletePassword}
+              data-testid="button-confirm-delete-vendor"
+            >
+              {deleteMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Delete Vendor
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

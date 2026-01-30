@@ -29,7 +29,9 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Briefcase, Search, Loader2, Pencil } from "lucide-react";
+import { Plus, Briefcase, Search, Loader2, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { DialogFooter } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertAgentSchema, type Agent, type InsertAgent } from "@shared/schema";
@@ -45,7 +47,10 @@ function formatCurrency(amount: number): string {
 export default function AgentsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
+  const [deletingAgent, setDeletingAgent] = useState<Agent | null>(null);
+  const [deletePassword, setDeletePassword] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
@@ -143,6 +148,32 @@ export default function AgentsPage() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async ({ id, password }: { id: string; password: string }) => {
+      const res = await apiRequest("DELETE", `/api/agents/${id}`, { password });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/agent-transactions"] });
+      setIsDeleteOpen(false);
+      setDeletingAgent(null);
+      setDeletePassword("");
+      toast({
+        title: "Agent deleted",
+        description: "The agent has been deleted successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete agent. Check admin password.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const filteredAgents = agents.filter((agent) =>
     agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     agent.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -160,6 +191,17 @@ export default function AgentsPage() {
   const handleEditClick = (agent: Agent) => {
     setEditingAgent(agent);
     setIsEditOpen(true);
+  };
+
+  const handleDeleteClick = (agent: Agent) => {
+    setDeletingAgent(agent);
+    setDeletePassword("");
+    setIsDeleteOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deletingAgent || !deletePassword) return;
+    deleteMutation.mutate({ id: deletingAgent.id, password: deletePassword });
   };
 
   return (
@@ -237,14 +279,24 @@ export default function AgentsPage() {
                         </span>
                       </TableCell>
                       <TableCell>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => handleEditClick(agent)}
-                          data-testid={`button-edit-agent-${agent.id}`}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => handleEditClick(agent)}
+                            data-testid={`button-edit-agent-${agent.id}`}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => handleDeleteClick(agent)}
+                            data-testid={`button-delete-agent-${agent.id}`}
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -512,6 +564,61 @@ export default function AgentsPage() {
               </div>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDeleteOpen} onOpenChange={(open) => {
+        setIsDeleteOpen(open);
+        if (!open) {
+          setDeletingAgent(null);
+          setDeletePassword("");
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              Delete Agent
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete <strong>{deletingAgent?.name}</strong>?
+              <br /><br />
+              This will also delete all associated credit transactions. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="delete-agent-password">Admin Password</Label>
+              <Input
+                id="delete-agent-password"
+                type="password"
+                placeholder="Enter admin password to confirm"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                data-testid="input-delete-agent-password"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setIsDeleteOpen(false)}
+              data-testid="button-cancel-delete-agent"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={deleteMutation.isPending || !deletePassword}
+              data-testid="button-confirm-delete-agent"
+            >
+              {deleteMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Delete Agent
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
