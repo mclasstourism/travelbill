@@ -1125,6 +1125,9 @@ export class DatabaseStorage implements IStorage {
       eticketFiles: row.eticketFiles || null,
       issuedBy: row.issuedBy,
       status: row.status as "pending" | "processing" | "approved" | "issued" | "used" | "cancelled" | "refunded",
+      isPaid: row.isPaid || false,
+      paidAt: row.paidAt?.toISOString() || null,
+      paidBy: row.paidBy || null,
       createdAt: row.createdAt?.toISOString() || new Date().toISOString(),
     };
   }
