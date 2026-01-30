@@ -119,7 +119,7 @@ export default function DepositsPage() {
   const customerTransactions = selectedCustomer 
     ? transactions
         .filter(tx => tx.customerId === selectedCustomer.id)
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
     : [];
 
   const totalDeposits = customers.reduce((sum, c) => sum + (c.depositBalance > 0 ? c.depositBalance : 0), 0);

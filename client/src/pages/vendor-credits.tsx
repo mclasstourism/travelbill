@@ -123,7 +123,7 @@ export default function VendorCreditsPage() {
   const vendorTransactions = selectedVendor 
     ? transactions
         .filter(tx => tx.vendorId === selectedVendor.id)
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
     : [];
 
   const totalCredits = vendors.reduce((sum, v) => sum + v.creditBalance, 0);
