@@ -332,13 +332,135 @@ export default function VendorsPage() {
         </Alert>
       )}
 
+      <Tabs defaultValue="all" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 mb-4">
+          <TabsTrigger value="all" data-testid="tab-all">
+            <Building2 className="w-4 h-4 mr-2" />
+            All ({vendors.length + airlines.length})
+          </TabsTrigger>
+          <TabsTrigger value="agencies" data-testid="tab-agencies">
+            <Building2 className="w-4 h-4 mr-2" />
+            Agencies ({vendors.length})
+          </TabsTrigger>
+          <TabsTrigger value="airlines" data-testid="tab-airlines">
+            <Plane className="w-4 h-4 mr-2" />
+            Airlines ({airlines.length})
+          </TabsTrigger>
+        </TabsList>
+
+        {/* All Tab - Combined list */}
+        <TabsContent value="all">
+          <Card>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-4">
+                <div className="relative flex-1 sm:max-w-sm">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search all..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                    data-testid="input-search-all"
+                  />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="space-y-4">
+                  {Array(5).fill(0).map((_, i) => (
+                    <Skeleton key={i} className="h-16 w-full" />
+                  ))}
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Contact</TableHead>
+                        <TableHead className="text-center">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {/* Agencies */}
+                      {filteredVendors.map((vendor) => (
+                        <TableRow key={vendor.id} data-testid={`row-all-vendor-${vendor.id}`}>
+                          <TableCell>
+                            <Badge variant="secondary">
+                              <Building2 className="w-3 h-3 mr-1" /> Agency
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-3">
+                              {vendor.logo ? (
+                                <img src={vendor.logo} alt={vendor.name} className="w-8 h-8 object-contain rounded border" />
+                              ) : (
+                                <div className="w-8 h-8 rounded border bg-muted flex items-center justify-center">
+                                  <Building2 className="w-4 h-4 text-muted-foreground" />
+                                </div>
+                              )}
+                              <span>{vendor.name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{vendor.phone || "-"}</TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <Button variant="ghost" size="icon" onClick={() => { setEditingVendor(vendor); setIsEditOpen(true); }}>
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => { setSelectedVendor(vendor); setIsStatementOpen(true); }}>
+                                <FileText className="w-4 h-4 mr-1" /> Statement
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {/* Airlines */}
+                      {airlines
+                        .filter(a => a.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                        .map((airline) => (
+                        <TableRow key={airline.id} data-testid={`row-all-airline-${airline.id}`}>
+                          <TableCell>
+                            <Badge variant="default">
+                              <Plane className="w-3 h-3 mr-1" /> Airline
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-3">
+                              <img src={airline.logo} alt={airline.name} className="w-8 h-8 object-contain rounded border" />
+                              <span>{airline.name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">Code: {airline.code}</TableCell>
+                          <TableCell className="text-center text-muted-foreground">-</TableCell>
+                        </TableRow>
+                      ))}
+                      {filteredVendors.length === 0 && airlines.filter(a => a.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                            No results found
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Agencies Tab */}
+        <TabsContent value="agencies">
       <Card>
         <CardHeader className="pb-4">
           <div className="flex items-center gap-4">
             <div className="relative flex-1 sm:max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search vendors..."
+                placeholder="Search agencies..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
@@ -357,8 +479,8 @@ export default function VendorsPage() {
           ) : filteredVendors.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Building2 className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium">No vendors found</p>
-              <p className="text-sm">Add your first vendor to get started</p>
+              <p className="text-lg font-medium">No agencies found</p>
+              <p className="text-sm">Add your first agency to get started</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -487,6 +609,63 @@ export default function VendorsPage() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        {/* Airlines Tab */}
+        <TabsContent value="airlines">
+          <Card>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-4">
+                <div className="relative flex-1 sm:max-w-sm">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search airlines..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                    data-testid="input-search-airlines"
+                  />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Logo</TableHead>
+                      <TableHead>Airline Name</TableHead>
+                      <TableHead>Code</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {airlines
+                      .filter(a => a.name.toLowerCase().includes(searchQuery.toLowerCase()) || a.code.toLowerCase().includes(searchQuery.toLowerCase()))
+                      .map((airline) => (
+                      <TableRow key={airline.id} data-testid={`row-airline-${airline.id}`}>
+                        <TableCell>
+                          <img src={airline.logo} alt={airline.name} className="w-10 h-10 object-contain rounded border" />
+                        </TableCell>
+                        <TableCell className="font-medium">{airline.name}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{airline.code}</Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {airlines.filter(a => a.name.toLowerCase().includes(searchQuery.toLowerCase()) || a.code.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                          No airlines found
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="sm:max-w-md">
