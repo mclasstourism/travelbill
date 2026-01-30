@@ -150,6 +150,7 @@ export default function TicketsPage() {
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
   const [invoiceTicket, setInvoiceTicket] = useState<Ticket | null>(null);
   const [viewingTicket, setViewingTicket] = useState<Ticket | null>(null);
+  const [formViewingTicket, setFormViewingTicket] = useState<Ticket | null>(null);
   const [documentsTicket, setDocumentsTicket] = useState<Ticket | null>(null);
   const [payingTicket, setPayingTicket] = useState<Ticket | null>(null);
   const [paymentPin, setPaymentPin] = useState("");
@@ -462,6 +463,69 @@ export default function TicketsPage() {
     setIsEditOpen(true);
   };
 
+  // Open form with existing ticket data for viewing
+  const handleViewInvoice = (ticket: Ticket) => {
+    // Split route into from/to
+    const routeParts = ticket.route?.split(" - ") || ["", ""];
+    
+    // Populate form with existing data
+    form.reset({
+      ticketNumber: ticket.ticketNumber || "",
+      pnr: ticket.pnr || "",
+      customerId: ticket.customerId || "",
+      vendorId: ticket.vendorId || "",
+      tripType: ticket.tripType || "one_way",
+      seatClass: ticket.seatClass || "economy",
+      routeFrom: routeParts[0] || "",
+      routeTo: routeParts[1] || "",
+      airlines: ticket.airlines || "",
+      flightNumber: ticket.flightNumber || "",
+      quantity: ticket.passengerCount || 1,
+      travelDate: ticket.travelDate || "",
+      returnDate: ticket.returnDate || "",
+      passengerName: ticket.passengerName || "",
+      vendorPrice: 0,
+      airlinePrice: 0,
+      middleClassPrice: 0,
+      faceValue: ticket.faceValue || 0,
+      deductFromDeposit: ticket.deductFromDeposit || false,
+    });
+
+    // Set passenger details
+    if (ticket.passengerNames && ticket.passengerNames.length > 0) {
+      setPassengerNamesList(ticket.passengerNames);
+    } else if (ticket.passengerName) {
+      setPassengerNamesList([ticket.passengerName]);
+    } else {
+      setPassengerNamesList([""]);
+    }
+
+    // Set ticket numbers
+    if (ticket.ticketNumbers && ticket.ticketNumbers.length > 0) {
+      setTicketNumbersList(ticket.ticketNumbers);
+    } else if (ticket.ticketNumber) {
+      setTicketNumbersList([ticket.ticketNumber]);
+    } else {
+      setTicketNumbersList([""]);
+    }
+
+    // Set prices
+    const pricePerPassenger = ticket.faceValue / (ticket.passengerCount || 1);
+    setTicketPricesList(Array(ticket.passengerCount || 1).fill(pricePerPassenger));
+
+    // Set classes
+    setTicketClassesList(Array(ticket.passengerCount || 1).fill(ticket.seatClass || "economy"));
+
+    // Set ticket source
+    setTicketSource(ticket.vendorId ? "vendor" : "direct");
+    setClientType("customer");
+    setSelectedCustomerOption(ticket.customerId || "");
+
+    // Store the ticket being viewed
+    setFormViewingTicket(ticket);
+    setIsCreateOpen(true);
+  };
+
   const handleEticketFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -755,7 +819,7 @@ export default function TicketsPage() {
                   key={ticket.id} 
                   className="border rounded-lg p-4 space-y-3 cursor-pointer hover-elevate" 
                   data-testid={`card-ticket-${ticket.id}`}
-                  onClick={() => setViewingTicket(ticket)}
+                  onClick={() => handleViewInvoice(ticket)}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
@@ -809,7 +873,7 @@ export default function TicketsPage() {
                       key={ticket.id} 
                       data-testid={`row-ticket-${ticket.id}`}
                       className="cursor-pointer hover-elevate"
-                      onClick={() => setViewingTicket(ticket)}
+                      onClick={() => handleViewInvoice(ticket)}
                     >
                       <TableCell>
                         <span>{getClientName(ticket.customerId)}</span>
@@ -860,12 +924,31 @@ export default function TicketsPage() {
         onSuccess={() => setIsCreateOpen(true)}
       />
 
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+      <Dialog open={isCreateOpen} onOpenChange={(open) => {
+          setIsCreateOpen(open);
+          if (!open) setFormViewingTicket(null);
+        }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Create Invoice</DialogTitle>
+            <DialogTitle>
+              {formViewingTicket ? (
+                <div className="flex items-center gap-2">
+                  <span>Invoice</span>
+                  <Badge variant="outline" className="font-mono text-primary">
+                    {formViewingTicket.pnr || formViewingTicket.ticketNumber || "N/A"}
+                  </Badge>
+                  {(formViewingTicket as any).isPaid ? (
+                    <Badge className="bg-green-100 text-green-700 border-green-300">Paid</Badge>
+                  ) : (
+                    <Badge variant="destructive">Unpaid</Badge>
+                  )}
+                </div>
+              ) : "Create Invoice"}
+            </DialogTitle>
             <DialogDescription>
-              Enter ticket details. The amount can be deducted from customer deposit.
+              {formViewingTicket 
+                ? `Invoice for ${getClientName(formViewingTicket.customerId)}`
+                : "Enter ticket details. The amount can be deducted from customer deposit."}
             </DialogDescription>
           </DialogHeader>
 
@@ -1841,16 +1924,29 @@ export default function TicketsPage() {
                 >
                   Cancel
                 </Button>
-                <Button
-                  type="submit"
-                  disabled={createMutation.isPending}
-                  data-testid="button-save-ticket"
-                >
-                  {createMutation.isPending && (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  )}
-                  Create Invoice
-                </Button>
+                {formViewingTicket ? (
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setIsCreateOpen(false);
+                      setFormViewingTicket(null);
+                    }}
+                    data-testid="button-close-invoice"
+                  >
+                    Close
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    disabled={createMutation.isPending}
+                    data-testid="button-save-ticket"
+                  >
+                    {createMutation.isPending && (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    )}
+                    Create Invoice
+                  </Button>
+                )}
               </div>
             </form>
           </Form>
