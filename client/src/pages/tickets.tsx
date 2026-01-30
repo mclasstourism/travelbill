@@ -1011,6 +1011,12 @@ export default function TicketsPage() {
 
               <div className="space-y-3">
                 <FormLabel>Select Client</FormLabel>
+                {formViewingTicket ? (
+                  <div className="p-3 rounded-md border bg-muted/50">
+                    <span className="font-medium">{getClientName(formViewingTicket.customerId)}</span>
+                  </div>
+                ) : (
+                <>
                 <div className="flex gap-2 mb-2">
                   <Button
                     type="button"
@@ -1235,6 +1241,8 @@ export default function TicketsPage() {
                       </FormItem>
                     )}
                   />
+                )}
+                </>
                 )}
               </div>
 
