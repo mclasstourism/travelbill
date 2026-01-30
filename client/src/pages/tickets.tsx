@@ -1327,7 +1327,7 @@ export default function TicketsPage() {
                         <TableHead className="w-[100px] text-xs">Ticket #</TableHead>
                         <TableHead className="w-[90px] text-xs">Class</TableHead>
                         <TableHead className="text-xs">Passenger Name</TableHead>
-                        <TableHead className="w-[100px] text-right text-xs">Price (AED)</TableHead>
+                        <TableHead className="w-[100px] text-right text-xs">Source Cost</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1443,7 +1443,7 @@ export default function TicketsPage() {
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Price (AED)</Label>
+                          <Label className="text-xs text-muted-foreground">Source Cost</Label>
                           <Input
                             type="number"
                             min="0"
@@ -1633,19 +1633,15 @@ export default function TicketsPage() {
               <div className="p-3 bg-primary/10 rounded-md space-y-2">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Ticket Prices:</span>
-                    <span className="font-mono">AED {totalTicketPrices.toFixed(2)}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Source Cost:</span>
-                    <span className="font-mono">AED {(ticketSource === "direct" ? (Number(watchAirlinePrice) || 0) : (Number(watchVendorPrice) || 0)).toFixed(2)}</span>
+                    <span className="font-mono">AED {totalTicketPrices.toFixed(2)}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">MC Addition:</span>
                     <span className="font-mono">AED {(Number(watchMiddleClassPrice) || 0).toFixed(2)}</span>
                   </div>
                   <div className="flex items-center justify-between pt-1 border-t">
-                    <span className="font-medium">Total:</span>
+                    <span className="font-medium">Grand Total:</span>
                     <span className="text-lg font-bold text-primary font-mono" data-testid="text-total-price">
                       AED {calculations.faceValue.toFixed(2)}
                     </span>
