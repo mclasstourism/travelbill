@@ -47,12 +47,7 @@ const mainNavItems = [
 const financeItems = [
   { title: "Sales Monitor", url: "/sales-monitor", icon: Monitor },
   { title: "Invoices", url: "/invoices", icon: FileText },
-];
-
-const billsItems = [
-  { title: "By Client", url: "/bills/client", icon: Users },
-  { title: "By Agent", url: "/bills/agent", icon: Briefcase },
-  { title: "By Vendor", url: "/bills/vendor", icon: Building2 },
+  { title: "Bills", url: "/bills", icon: FileText },
 ];
 
 const partyItems = [
@@ -131,27 +126,6 @@ export function AppSidebar() {
                     isActive={location === item.url}
                   >
                     <Link href={item.url} onClick={handleNavClick} data-testid={`link-nav-${item.title.toLowerCase().replace(" ", "-")}`}>
-                      <item.icon className="w-4 h-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Bills</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {billsItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location === item.url || location.startsWith(item.url)}
-                  >
-                    <Link href={item.url} onClick={handleNavClick} data-testid={`link-nav-bills-${item.title.toLowerCase().replace(" ", "-")}`}>
                       <item.icon className="w-4 h-4" />
                       <span>{item.title}</span>
                     </Link>
