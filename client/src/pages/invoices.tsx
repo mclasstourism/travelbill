@@ -656,7 +656,11 @@ export default function InvoicesPage() {
                                   type="number"
                                   min={1}
                                   placeholder="Qty"
-                                  {...field}
+                                  value={field.value || ''}
+                                  onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
+                                  onBlur={field.onBlur}
+                                  name={field.name}
+                                  ref={field.ref}
                                   data-testid={`input-item-quantity-${index}`}
                                 />
                               </FormControl>
@@ -677,7 +681,11 @@ export default function InvoicesPage() {
                                   min={0}
                                   step="0.01"
                                   placeholder="Price"
-                                  {...field}
+                                  value={field.value || ''}
+                                  onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
+                                  onBlur={field.onBlur}
+                                  name={field.name}
+                                  ref={field.ref}
                                   data-testid={`input-item-price-${index}`}
                                 />
                               </FormControl>
