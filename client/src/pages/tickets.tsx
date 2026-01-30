@@ -154,6 +154,7 @@ export default function TicketsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/deposit-transactions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
       setIsCreateOpen(false);
       form.reset();

@@ -435,7 +435,95 @@ export class PgStorage implements IStorage {
       status: "issued",
       paidAmount: 0,
     }).returning();
-    return this.mapInvoice(result[0]);
+    
+    const createdInvoice = this.mapInvoice(result[0]);
+    
+    // Record deposit deduction transaction for customer or agent
+    if (invoice.useCustomerDeposit && invoice.depositUsed && invoice.depositUsed > 0) {
+      const customerType = invoice.customerType || "customer";
+      
+      if (customerType === "customer") {
+        // Get current customer balance
+        const customer = await this.getCustomer(invoice.customerId);
+        if (customer) {
+          const newBalance = customer.depositBalance - invoice.depositUsed;
+          // Update customer balance
+          await db.update(schema.customersTable)
+            .set({ depositBalance: newBalance })
+            .where(eq(schema.customersTable.id, invoice.customerId));
+          
+          // Create deposit transaction record
+          await db.insert(schema.depositTransactionsTable).values({
+            customerId: invoice.customerId,
+            type: "debit",
+            amount: invoice.depositUsed,
+            description: `Invoice ${invoiceNumber} - Deposit used for payment`,
+            referenceId: createdInvoice.id,
+            referenceType: "invoice",
+            balanceAfter: newBalance,
+          });
+        }
+      } else if (customerType === "agent") {
+        // Get current agent balance
+        const agent = await this.getAgent(invoice.customerId);
+        if (agent) {
+          const newBalance = agent.depositBalance - invoice.depositUsed;
+          // Update agent balance
+          await db.update(schema.agentsTable)
+            .set({ depositBalance: newBalance })
+            .where(eq(schema.agentsTable.id, invoice.customerId));
+          
+          // Create agent transaction record
+          await db.insert(schema.agentTransactionsTable).values({
+            agentId: invoice.customerId,
+            type: "debit",
+            transactionType: "deposit",
+            amount: invoice.depositUsed,
+            description: `Invoice ${invoiceNumber} - Deposit used for payment`,
+            paymentMethod: "cash",
+            referenceId: createdInvoice.id,
+            referenceType: "invoice",
+            balanceAfter: newBalance,
+          });
+        }
+      }
+    }
+    
+    // Record vendor balance deduction transaction
+    if (invoice.useVendorBalance && invoice.useVendorBalance !== "none" && invoice.vendorBalanceDeducted && invoice.vendorBalanceDeducted > 0) {
+      const vendor = await this.getVendor(invoice.vendorId);
+      if (vendor) {
+        let newBalance: number;
+        const transactionType = invoice.useVendorBalance as "credit" | "deposit";
+        
+        if (transactionType === "credit") {
+          newBalance = vendor.creditBalance - invoice.vendorBalanceDeducted;
+          await db.update(schema.vendorsTable)
+            .set({ creditBalance: newBalance })
+            .where(eq(schema.vendorsTable.id, invoice.vendorId));
+        } else {
+          newBalance = vendor.depositBalance - invoice.vendorBalanceDeducted;
+          await db.update(schema.vendorsTable)
+            .set({ depositBalance: newBalance })
+            .where(eq(schema.vendorsTable.id, invoice.vendorId));
+        }
+        
+        // Create vendor transaction record
+        await db.insert(schema.vendorTransactionsTable).values({
+          vendorId: invoice.vendorId,
+          type: "debit",
+          transactionType: transactionType,
+          amount: invoice.vendorBalanceDeducted,
+          description: `Invoice ${invoiceNumber} - ${transactionType === "credit" ? "Credit" : "Deposit"} used for vendor payment`,
+          paymentMethod: "cash",
+          referenceId: createdInvoice.id,
+          referenceType: "invoice",
+          balanceAfter: newBalance,
+        });
+      }
+    }
+    
+    return createdInvoice;
   }
 
   async updateInvoice(id: string, updates: Partial<Invoice>): Promise<Invoice | undefined> {
@@ -505,7 +593,33 @@ export class PgStorage implements IStorage {
       issuedBy: ticket.issuedBy,
       status: "issued",
     }).returning();
-    return this.mapTicket(result[0]);
+    
+    const createdTicket = this.mapTicket(result[0]);
+    
+    // Record deposit deduction transaction for customer
+    if (ticket.deductFromDeposit && ticket.depositDeducted && ticket.depositDeducted > 0) {
+      const customer = await this.getCustomer(ticket.customerId);
+      if (customer) {
+        const newBalance = customer.depositBalance - ticket.depositDeducted;
+        // Update customer balance
+        await db.update(schema.customersTable)
+          .set({ depositBalance: newBalance })
+          .where(eq(schema.customersTable.id, ticket.customerId));
+        
+        // Create deposit transaction record
+        await db.insert(schema.depositTransactionsTable).values({
+          customerId: ticket.customerId,
+          type: "debit",
+          amount: ticket.depositDeducted,
+          description: `Ticket ${ticketNumber} - ${ticket.passengerName} - Deposit used for ticket`,
+          referenceId: createdTicket.id,
+          referenceType: "ticket",
+          balanceAfter: newBalance,
+        });
+      }
+    }
+    
+    return createdTicket;
   }
 
   async updateTicket(id: string, updates: Partial<Ticket>): Promise<Ticket | undefined> {

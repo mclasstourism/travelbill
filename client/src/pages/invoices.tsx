@@ -225,6 +225,8 @@ export default function InvoicesPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
       queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
       queryClient.invalidateQueries({ queryKey: ["/api/vendor-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/agent-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/deposit-transactions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
       setIsCreateOpen(false);
       form.reset();
@@ -763,6 +765,30 @@ export default function InvoicesPage() {
                           checked={field.value}
                           onCheckedChange={field.onChange}
                           data-testid="switch-use-deposit"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {selectedAgent && selectedAgent.depositBalance > 0 && (
+                <FormField
+                  control={form.control}
+                  name="useCustomerDeposit"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-md border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Use Agent Deposit</FormLabel>
+                        <p className="text-sm text-muted-foreground">
+                          Available: {formatCurrency(selectedAgent.depositBalance)}
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid="switch-use-agent-deposit"
                         />
                       </FormControl>
                     </FormItem>
