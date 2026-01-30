@@ -671,6 +671,7 @@ export class DatabaseStorage implements IStorage {
       deductFromDeposit: ticket.deductFromDeposit || false,
       depositDeducted: ticket.depositDeducted || 0,
       eticketImage: ticket.eticketImage || null,
+      eticketFiles: ticket.eticketFiles || null,
       issuedBy: ticket.issuedBy,
       status: "pending",
     }).returning();
@@ -1121,6 +1122,7 @@ export class DatabaseStorage implements IStorage {
       deductFromDeposit: row.deductFromDeposit || false,
       depositDeducted: row.depositDeducted || 0,
       eticketImage: row.eticketImage,
+      eticketFiles: row.eticketFiles || null,
       issuedBy: row.issuedBy,
       status: row.status as "pending" | "processing" | "approved" | "issued" | "used" | "cancelled" | "refunded",
       createdAt: row.createdAt?.toISOString() || new Date().toISOString(),
