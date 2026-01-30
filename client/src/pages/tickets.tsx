@@ -1611,63 +1611,43 @@ export default function TicketsPage() {
                 </div>
               </div>
 
-              <div className={ticketSource === "direct" ? "" : "grid grid-cols-2 gap-4"}>
-                {/* Only show Airlines field when source is vendor (not direct) */}
-                {ticketSource !== "direct" && (
-                  <FormField
-                    control={form.control}
-                    name="airlines"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Airlines *</FormLabel>
-                        {vendorAirlines.length > 0 ? (
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger data-testid="select-airlines">
-                                <SelectValue placeholder="Select airline" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {vendorAirlines.map((airline) => (
-                                <SelectItem key={airline.id || airline.name} value={airline.name}>
-                                  {airline.code ? `${airline.name} (${airline.code})` : airline.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <FormControl>
-                            <Input
-                              placeholder="e.g., Emirates"
-                              {...field}
-                              data-testid="input-airlines"
-                            />
-                          </FormControl>
-                        )}
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-
+              {/* Only show Airlines field when source is vendor (not direct) */}
+              {ticketSource !== "direct" && (
                 <FormField
                   control={form.control}
-                  name="flightNumber"
+                  name="airlines"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Flight Number *</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="e.g., EK 203"
-                          {...field}
-                          data-testid="input-flight-number"
-                        />
-                      </FormControl>
+                      <FormLabel>Airlines *</FormLabel>
+                      {vendorAirlines.length > 0 ? (
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-airlines">
+                              <SelectValue placeholder="Select airline" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {vendorAirlines.map((airline) => (
+                              <SelectItem key={airline.id || airline.name} value={airline.name}>
+                                {airline.code ? `${airline.name} (${airline.code})` : airline.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <FormControl>
+                          <Input
+                            placeholder="e.g., Emirates"
+                            {...field}
+                            data-testid="input-airlines"
+                          />
+                        </FormControl>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField
@@ -1693,6 +1673,23 @@ export default function TicketsPage() {
                   )}
                 />
 
+                <FormField
+                  control={form.control}
+                  name="flightNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Flight Number *</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g., EK 203"
+                          {...field}
+                          data-testid="input-flight-number"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               {watchTripType === "round_trip" && (
