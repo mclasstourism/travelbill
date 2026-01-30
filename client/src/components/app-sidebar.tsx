@@ -41,7 +41,7 @@ import { useAuth } from "@/lib/auth-context";
 
 const mainNavItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Ticket Issuance", url: "/tickets", icon: Ticket },
+  { title: "Create Invoice", url: "/tickets", icon: Ticket },
 ];
 
 const financeItems = [
