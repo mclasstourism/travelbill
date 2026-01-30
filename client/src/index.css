@@ -286,3 +286,32 @@
     inset: -1px;
   }
 }
+
+/* Print styles - hide everything except printable invoice */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  
+  .print-container,
+  .print-container * {
+    visibility: visible;
+  }
+  
+  .print-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  
+  .printable-invoice {
+    padding: 20mm !important;
+    margin: 0 !important;
+    max-width: none !important;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+}

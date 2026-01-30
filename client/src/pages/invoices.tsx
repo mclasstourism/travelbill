@@ -69,6 +69,8 @@ import {
   type InsertInvoice,
   paymentMethods,
 } from "@shared/schema";
+import { PrintableInvoice } from "@/components/printable-invoice";
+import { useRef } from "react";
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("en-AE", {
@@ -122,6 +124,8 @@ export default function InvoicesPage() {
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
+  const [isPrintMode, setIsPrintMode] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { isAuthenticated, session } = usePin();
 
@@ -148,6 +152,37 @@ export default function InvoicesPage() {
     return customers.find(c => c.id === invoice.customerId)?.name || "Unknown Customer";
   };
   const getVendorName = (id: string) => vendors.find(v => v.id === id)?.name || "Unknown";
+
+  const handlePrint = (invoice: Invoice) => {
+    const wasDialogOpen = viewInvoice !== null;
+    setViewInvoice(invoice);
+    setIsPrintMode(true);
+    setTimeout(() => {
+      window.print();
+      setIsPrintMode(false);
+      if (!wasDialogOpen) {
+        setViewInvoice(null);
+      }
+    }, 100);
+  };
+
+  const getInvoiceCustomer = (invoice: Invoice) => {
+    if (invoice.customerType === "customer") {
+      return customers.find(c => c.id === invoice.customerId);
+    }
+    return undefined;
+  };
+
+  const getInvoiceAgent = (invoice: Invoice) => {
+    if (invoice.customerType === "agent") {
+      return agents.find(a => a.id === invoice.customerId);
+    }
+    return undefined;
+  };
+
+  const getInvoiceVendor = (invoice: Invoice) => {
+    return vendors.find(v => v.id === invoice.vendorId);
+  };
 
   const form = useForm<CreateInvoiceForm>({
     resolver: zodResolver(createInvoiceFormSchema),
@@ -404,10 +439,7 @@ export default function InvoicesPage() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              onClick={() => {
-                                setViewInvoice(invoice);
-                                setTimeout(() => window.print(), 100);
-                              }}
+                              onClick={() => handlePrint(invoice)}
                               data-testid={`button-print-invoice-${invoice.id}`}
                             >
                               <Printer className="w-4 h-4" />
@@ -917,6 +949,134 @@ export default function InvoicesPage() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* View Invoice Dialog */}
+      <Dialog open={viewInvoice !== null && !isPrintMode} onOpenChange={(open) => !open && setViewInvoice(null)}>
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Invoice {viewInvoice?.invoiceNumber}
+            </DialogTitle>
+            <DialogDescription>
+              View invoice details and print
+            </DialogDescription>
+          </DialogHeader>
+
+          {viewInvoice && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">
+                      {viewInvoice.customerType === "agent" ? "Agent" : "Customer"}
+                    </h3>
+                    <p className="font-medium">{getPartyName(viewInvoice)}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Vendor</h3>
+                    <p className="font-medium">{getVendorName(viewInvoice.vendorId)}</p>
+                  </div>
+                </div>
+                <div className="space-y-4 text-right">
+                  <div>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Date</h3>
+                    <p className="font-medium">{format(new Date(viewInvoice.createdAt), "PPP")}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Status</h3>
+                    <Badge variant={getStatusBadgeVariant(viewInvoice.status)} className="capitalize">
+                      {viewInvoice.status}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="w-12">#</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-center">Qty</TableHead>
+                      <TableHead className="text-right">Unit Price</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {viewInvoice.items.map((item, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell>{idx + 1}</TableCell>
+                        <TableCell>{item.description}</TableCell>
+                        <TableCell className="text-center">{item.quantity}</TableCell>
+                        <TableCell className="text-right font-mono">{formatCurrency(item.unitPrice)}</TableCell>
+                        <TableCell className="text-right font-mono">{formatCurrency(item.quantity * item.unitPrice)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="flex justify-end">
+                <div className="w-80 space-y-2">
+                  <div className="flex justify-between py-1 border-b">
+                    <span className="text-muted-foreground">Subtotal:</span>
+                    <span className="font-mono font-medium">{formatCurrency(viewInvoice.subtotal)}</span>
+                  </div>
+                  {viewInvoice.discountAmount > 0 && (
+                    <div className="flex justify-between py-1 border-b text-green-600 dark:text-green-400">
+                      <span>Discount ({viewInvoice.discountPercent}%):</span>
+                      <span className="font-mono">-{formatCurrency(viewInvoice.discountAmount)}</span>
+                    </div>
+                  )}
+                  {viewInvoice.depositUsed > 0 && (
+                    <div className="flex justify-between py-1 border-b text-blue-600 dark:text-blue-400">
+                      <span>Deposit Applied:</span>
+                      <span className="font-mono">-{formatCurrency(viewInvoice.depositUsed)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between py-2 border-b-2 text-lg font-bold">
+                    <span>Total Due:</span>
+                    <span className="font-mono">{formatCurrency(viewInvoice.total)}</span>
+                  </div>
+                  <div className="flex justify-between py-2 bg-muted/50 px-2 rounded text-lg font-bold">
+                    <span>Grand Total:</span>
+                    <span className="font-mono">{formatCurrency(viewInvoice.subtotal - viewInvoice.discountAmount)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center pt-4 border-t">
+                <div className="text-sm text-muted-foreground">
+                  <span className="capitalize">Payment: {viewInvoice.paymentMethod}</span>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setViewInvoice(null)}>
+                    Close
+                  </Button>
+                  <Button onClick={() => handlePrint(viewInvoice)}>
+                    <Printer className="w-4 h-4 mr-2" />
+                    Print Invoice
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Print Mode - Hidden container for printing */}
+      {isPrintMode && viewInvoice && (
+        <div className="print-container fixed inset-0 z-50 bg-white">
+          <PrintableInvoice
+            ref={printRef}
+            invoice={viewInvoice}
+            customer={getInvoiceCustomer(viewInvoice)}
+            agent={getInvoiceAgent(viewInvoice)}
+            vendor={getInvoiceVendor(viewInvoice)}
+          />
+        </div>
+      )}
     </div>
   );
 }
