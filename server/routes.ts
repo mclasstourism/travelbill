@@ -809,8 +809,9 @@ export async function registerRoutes(
       const { id } = req.params;
       const { pin } = req.body;
       
-      // Verify PIN
-      const user = await storage.getUser((req as any).userId);
+      // Verify PIN against logged-in user (admin or staff)
+      const session = (req as any).session;
+      const user = await storage.getUser(session.userId);
       if (!user || user.pin !== pin) {
         res.status(401).json({ error: "Invalid PIN" });
         return;
