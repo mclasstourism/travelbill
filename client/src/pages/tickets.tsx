@@ -1558,7 +1558,7 @@ export default function TicketsPage() {
                   type="submit" 
                   className="w-full" 
                   disabled={createMutation.isPending}
-                  data-testid="button-pay-now"
+                  data-testid="button-issue-ticket"
                 >
                   {createMutation.isPending ? (
                     <>
@@ -1566,7 +1566,7 @@ export default function TicketsPage() {
                       Processing...
                     </>
                   ) : (
-                    "Pay Now"
+                    "Issue Ticket"
                   )}
                 </Button>
               </div>
