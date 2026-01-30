@@ -42,7 +42,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Ticket as TicketIcon, Search, Loader2, Lock, Calendar, Plane, Upload, Download, UserPlus, Building2, Check, ChevronsUpDown, Edit, Image, Eye, X, Users, FileText, Printer, Briefcase, ExternalLink, DollarSign, CreditCard } from "lucide-react";
+import { Plus, Ticket as TicketIcon, Search, Loader2, Lock, Calendar, Plane, Upload, Download, UserPlus, Building2, Check, ChevronsUpDown, Edit, Image, Eye, X, Users, FileText, Printer, Briefcase, ExternalLink, DollarSign, CreditCard, ArrowLeftRight, ArrowRight } from "lucide-react";
 import companyLogo from "@assets/Updated_Logo_1769092146053.png";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
@@ -1363,7 +1363,11 @@ export default function TicketsPage() {
                         </FormItem>
                       )}
                     />
-                    <Plane className="h-4 w-4 text-muted-foreground" />
+                    {form.watch("tripType") === "round_trip" ? (
+                      <ArrowLeftRight className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    )}
                     <FormField
                       control={form.control}
                       name="routeTo"
