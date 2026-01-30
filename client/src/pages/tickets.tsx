@@ -42,7 +42,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Ticket as TicketIcon, Search, Loader2, Lock, Calendar, Plane, Upload, Download, UserPlus, Building2, Check, ChevronsUpDown, Edit, Image, Eye, X, Users, FileText, Printer, Briefcase } from "lucide-react";
+import { Plus, Ticket as TicketIcon, Search, Loader2, Lock, Calendar, Plane, Upload, Download, UserPlus, Building2, Check, ChevronsUpDown, Edit, Image, Eye, X, Users, FileText, Printer, Briefcase, ExternalLink } from "lucide-react";
 import companyLogo from "@assets/Updated_Logo_1769092146053.png";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
@@ -148,6 +148,7 @@ export default function TicketsPage() {
   const [createEticketPreviews, setCreateEticketPreviews] = useState<{name: string, type: string, url?: string}[]>([]);
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
   const [invoiceTicket, setInvoiceTicket] = useState<Ticket | null>(null);
+  const [viewingTicket, setViewingTicket] = useState<Ticket | null>(null);
   const { toast } = useToast();
   const { isAuthenticated, session } = usePin();
 
@@ -704,7 +705,12 @@ export default function TicketsPage() {
             {/* Mobile Card View */}
             <div className="block md:hidden space-y-3">
               {filteredTickets.map((ticket) => (
-                <div key={ticket.id} className="border rounded-lg p-4 space-y-3" data-testid={`card-ticket-${ticket.id}`}>
+                <div 
+                  key={ticket.id} 
+                  className="border rounded-lg p-4 space-y-3 cursor-pointer hover-elevate" 
+                  data-testid={`card-ticket-${ticket.id}`}
+                  onClick={() => setViewingTicket(ticket)}
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{getClientName(ticket.customerId)}</p>
@@ -771,7 +777,12 @@ export default function TicketsPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredTickets.map((ticket) => (
-                    <TableRow key={ticket.id} data-testid={`row-ticket-${ticket.id}`}>
+                    <TableRow 
+                      key={ticket.id} 
+                      data-testid={`row-ticket-${ticket.id}`}
+                      className="cursor-pointer hover-elevate"
+                      onClick={() => setViewingTicket(ticket)}
+                    >
                       <TableCell>
                         <span>{getClientName(ticket.customerId)}</span>
                       </TableCell>
@@ -2155,6 +2166,222 @@ export default function TicketsPage() {
                 >
                   <Printer className="w-4 h-4 mr-2" />
                   Print Invoice
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Ticket Detail View Dialog */}
+      <Dialog open={!!viewingTicket} onOpenChange={(open) => !open && setViewingTicket(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plane className="w-5 h-5" />
+              Ticket Details
+            </DialogTitle>
+          </DialogHeader>
+          
+          {viewingTicket && (
+            <div className="space-y-6">
+              {/* Client & Booking Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+                <div>
+                  <span className="text-sm text-muted-foreground">Client Name</span>
+                  <p className="font-semibold">{getClientName(viewingTicket.customerId)}</p>
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">PNR / Booking Ref</span>
+                  <p className="font-mono font-semibold">{viewingTicket.pnr || "Not assigned"}</p>
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">Route</span>
+                  <p className="font-medium">{viewingTicket.route}</p>
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">Airlines</span>
+                  <p className="font-medium">{viewingTicket.airlines}</p>
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">Travel Date</span>
+                  <p className="font-medium">{format(new Date(viewingTicket.travelDate), "MMM d, yyyy")}</p>
+                </div>
+                {viewingTicket.returnDate && (
+                  <div>
+                    <span className="text-sm text-muted-foreground">Return Date</span>
+                    <p className="font-medium">{format(new Date(viewingTicket.returnDate), "MMM d, yyyy")}</p>
+                  </div>
+                )}
+                <div>
+                  <span className="text-sm text-muted-foreground">Trip Type</span>
+                  <p className="font-medium">{viewingTicket.tripType === "round_trip" ? "Round Trip" : "One Way"}</p>
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">Class</span>
+                  <Badge variant="secondary">
+                    {viewingTicket.seatClass === "first" ? "First Class" : 
+                     viewingTicket.seatClass === "business" ? "Business Class" : "Economy"}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Passenger Details */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  Passengers ({viewingTicket.passengerCount || 1})
+                </h3>
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-12">#</TableHead>
+                        <TableHead>Passenger Name</TableHead>
+                        <TableHead>Ticket Number</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(viewingTicket.passengerNames && viewingTicket.passengerNames.length > 0) ? (
+                        viewingTicket.passengerNames.map((name: string, idx: number) => (
+                          <TableRow key={idx}>
+                            <TableCell className="font-mono text-muted-foreground">{idx + 1}</TableCell>
+                            <TableCell className="font-medium">{name}</TableCell>
+                            <TableCell className="font-mono text-sm">
+                              {viewingTicket.ticketNumbers && viewingTicket.ticketNumbers[idx] 
+                                ? viewingTicket.ticketNumbers[idx] 
+                                : (idx === 0 && viewingTicket.ticketNumber) 
+                                  ? viewingTicket.ticketNumber 
+                                  : <span className="text-muted-foreground italic">Not assigned</span>
+                              }
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell className="font-mono text-muted-foreground">1</TableCell>
+                          <TableCell className="font-medium">{viewingTicket.passengerName}</TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {viewingTicket.ticketNumber || <span className="text-muted-foreground italic">Not assigned</span>}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
+              {/* E-Tickets */}
+              {((viewingTicket.eticketFiles && viewingTicket.eticketFiles.length > 0) || viewingTicket.eticketImage) && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    E-Tickets
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {viewingTicket.eticketFiles && viewingTicket.eticketFiles.map((fileUrl: string, idx: number) => (
+                      <a 
+                        key={idx}
+                        href={fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-3 border rounded-lg hover-elevate"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {fileUrl.toLowerCase().endsWith('.pdf') ? (
+                          <FileText className="w-8 h-8 text-red-500" />
+                        ) : (
+                          <img 
+                            src={fileUrl} 
+                            alt={`E-ticket ${idx + 1}`} 
+                            className="w-12 h-12 object-cover rounded"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">E-Ticket {idx + 1}</p>
+                          <p className="text-xs text-muted-foreground">Click to view</p>
+                        </div>
+                        <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                      </a>
+                    ))}
+                    {viewingTicket.eticketImage && !viewingTicket.eticketFiles?.length && (
+                      <a 
+                        href={viewingTicket.eticketImage}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-3 border rounded-lg hover-elevate"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <img 
+                          src={viewingTicket.eticketImage} 
+                          alt="E-ticket" 
+                          className="w-12 h-12 object-cover rounded"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">E-Ticket</p>
+                          <p className="text-xs text-muted-foreground">Click to view</p>
+                        </div>
+                        <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Pricing Summary */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Pricing</h3>
+                <div className="bg-muted/30 rounded-lg p-4 space-y-2">
+                  <div className="flex justify-between text-lg font-bold">
+                    <span>Total Amount</span>
+                    <span className="text-primary font-mono">{formatCurrency(viewingTicket.faceValue)}</span>
+                  </div>
+                  {(viewingTicket.depositDeducted || 0) > 0 && (
+                    <div className="flex justify-between text-sm text-blue-600 dark:text-blue-400">
+                      <span>Deposit Applied</span>
+                      <span className="font-mono">-{formatCurrency(viewingTicket.depositDeducted || 0)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Status */}
+              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                <span className="text-sm text-muted-foreground">Status</span>
+                <Badge 
+                  variant={
+                    viewingTicket.status === "issued" ? "default" : 
+                    viewingTicket.status === "cancelled" ? "destructive" : 
+                    "secondary"
+                  }
+                >
+                  {viewingTicket.status?.charAt(0).toUpperCase() + viewingTicket.status?.slice(1) || "Pending"}
+                </Badge>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-2 border-t pt-4">
+                <Button variant="outline" onClick={() => setViewingTicket(null)}>
+                  Close
+                </Button>
+                {viewingTicket.invoiceId && (
+                  <Button 
+                    variant="outline"
+                    onClick={() => window.open(`/print-invoice/${viewingTicket.invoiceId}`, '_blank')}
+                  >
+                    <Printer className="w-4 h-4 mr-2" />
+                    Print Invoice
+                  </Button>
+                )}
+                <Button 
+                  onClick={() => {
+                    setEditingTicket(viewingTicket);
+                    setEditTicketNumber(viewingTicket.ticketNumber || "");
+                    setViewingTicket(null);
+                  }}
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Ticket
                 </Button>
               </div>
             </div>
