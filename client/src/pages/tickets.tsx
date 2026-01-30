@@ -1005,7 +1005,6 @@ export default function TicketsPage() {
                         <Input
                           type="number"
                           min="1"
-                          placeholder="1"
                           defaultValue={field.value || 1}
                           onChange={(e) => {
                             const val = parseInt(e.target.value);
