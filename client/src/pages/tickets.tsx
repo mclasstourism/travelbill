@@ -1035,41 +1035,6 @@ export default function TicketsPage() {
                   </div>
                 ) : (
                 <>
-                <div className="flex gap-2 mb-2">
-                  <Button
-                    type="button"
-                    variant={clientType === "customer" ? "default" : "outline"}
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => {
-                      setClientType("customer");
-                      form.setValue("customerId", "");
-                      setSelectedCustomerOption("");
-                    }}
-                    data-testid="button-client-customer"
-                  >
-                    <Users className="w-4 h-4 mr-1" />
-                    Customer
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={clientType === "agent" ? "default" : "outline"}
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => {
-                      setClientType("agent");
-                      form.setValue("customerId", "");
-                      setSelectedCustomerOption("");
-                    }}
-                    data-testid="button-client-agent"
-                  >
-                    <Briefcase className="w-4 h-4 mr-1" />
-                    Agent
-                  </Button>
-                </div>
-                
-                {clientType === "customer" ? (
-                <>
                 <FormField
                   control={form.control}
                   name="customerId"
@@ -1083,18 +1048,34 @@ export default function TicketsPage() {
                               role="combobox"
                               aria-expanded={customerSelectOpen}
                               className="w-full justify-between font-normal"
-                              data-testid="select-ticket-customer"
+                              data-testid="select-ticket-client"
                             >
                               {selectedCustomerOption === "walkin" ? (
                                 <span className="flex items-center gap-2">
                                   <UserPlus className="w-4 h-4 text-primary" />
                                   Walk-in Customer
                                 </span>
-                              ) : selectedCustomer ? (
-                                <span>{selectedCustomer.name} - {selectedCustomer.phone}</span>
-                              ) : (
-                                <span className="text-muted-foreground">Search customers...</span>
-                              )}
+                              ) : (() => {
+                                const customer = customers.find(c => c.id === field.value);
+                                const agent = agents.find(a => a.id === field.value);
+                                if (customer) {
+                                  return (
+                                    <span className="flex items-center gap-2">
+                                      <Users className="w-4 h-4 text-muted-foreground" />
+                                      {customer.name} - {customer.phone}
+                                    </span>
+                                  );
+                                }
+                                if (agent) {
+                                  return (
+                                    <span className="flex items-center gap-2">
+                                      <Briefcase className="w-4 h-4 text-muted-foreground" />
+                                      {agent.name}
+                                    </span>
+                                  );
+                                }
+                                return <span className="text-muted-foreground">Search customers or agents...</span>;
+                              })()}
                               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                           </FormControl>
@@ -1105,7 +1086,7 @@ export default function TicketsPage() {
                               placeholder="Search clients..."
                               value={customerSearchQuery}
                               onValueChange={setCustomerSearchQuery}
-                              data-testid="input-search-customer"
+                              data-testid="input-search-client"
                             />
                             <CommandList>
                               <CommandGroup>
@@ -1113,6 +1094,7 @@ export default function TicketsPage() {
                                   value="walkin"
                                   onSelect={() => {
                                     setSelectedCustomerOption("walkin");
+                                    setClientType("customer");
                                     field.onChange("");
                                     setCustomerSelectOpen(false);
                                     setCustomerSearchQuery("");
@@ -1130,16 +1112,16 @@ export default function TicketsPage() {
                                 </CommandItem>
                               </CommandGroup>
                               <CommandSeparator />
-                              {filteredCustomers.length === 0 ? (
-                                <CommandEmpty>No customers found.</CommandEmpty>
-                              ) : (
-                                <CommandGroup heading="Existing Customers">
+                              {/* Customers Section */}
+                              {filteredCustomers.length > 0 && (
+                                <CommandGroup heading="Customers">
                                   {filteredCustomers.map((customer) => (
                                     <CommandItem
-                                      key={customer.id}
-                                      value={customer.id}
+                                      key={`customer-${customer.id}`}
+                                      value={`customer-${customer.id}`}
                                       onSelect={() => {
                                         setSelectedCustomerOption(customer.id);
+                                        setClientType("customer");
                                         field.onChange(customer.id);
                                         setCustomerSelectOpen(false);
                                         setCustomerSearchQuery("");
@@ -1149,13 +1131,53 @@ export default function TicketsPage() {
                                     >
                                       <Check
                                         className={`h-4 w-4 ${
-                                          selectedCustomerOption === customer.id ? "opacity-100" : "opacity-0"
+                                          field.value === customer.id ? "opacity-100" : "opacity-0"
                                         }`}
                                       />
+                                      <Users className="w-4 h-4 text-muted-foreground" />
                                       <span>{customer.name} - {customer.phone}</span>
                                     </CommandItem>
                                   ))}
                                 </CommandGroup>
+                              )}
+                              {/* Agents Section */}
+                              {(() => {
+                                const filteredAgents = agents.filter(agent =>
+                                  agent.name.toLowerCase().includes(customerSearchQuery.toLowerCase()) ||
+                                  (agent.phone && agent.phone.includes(customerSearchQuery))
+                                );
+                                return filteredAgents.length > 0 ? (
+                                  <CommandGroup heading="Agents">
+                                    {filteredAgents.map((agent) => (
+                                      <CommandItem
+                                        key={`agent-${agent.id}`}
+                                        value={`agent-${agent.id}`}
+                                        onSelect={() => {
+                                          setSelectedCustomerOption(agent.id);
+                                          setClientType("agent");
+                                          field.onChange(agent.id);
+                                          setCustomerSelectOpen(false);
+                                          setCustomerSearchQuery("");
+                                        }}
+                                        className="gap-2"
+                                        data-testid={`option-agent-${agent.id}`}
+                                      >
+                                        <Check
+                                          className={`h-4 w-4 ${
+                                            field.value === agent.id ? "opacity-100" : "opacity-0"
+                                          }`}
+                                        />
+                                        <Briefcase className="w-4 h-4 text-muted-foreground" />
+                                        <span>{agent.name}</span>
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                ) : null;
+                              })()}
+                              {filteredCustomers.length === 0 && agents.filter(a => 
+                                a.name.toLowerCase().includes(customerSearchQuery.toLowerCase())
+                              ).length === 0 && customerSearchQuery && (
+                                <CommandEmpty>No clients found.</CommandEmpty>
                               )}
                             </CommandList>
                           </Command>
@@ -1230,35 +1252,6 @@ export default function TicketsPage() {
                       </Button>
                     </div>
                   </div>
-                )}
-                </>
-                ) : (
-                  <FormField
-                    control={form.control}
-                    name="customerId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <Select onValueChange={field.onChange} value={field.value || ""}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-ticket-agent">
-                              <SelectValue placeholder="Select agent" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {agents.map((agent) => (
-                              <SelectItem key={agent.id} value={agent.id}>
-                                <div className="flex items-center gap-2">
-                                  <Briefcase className="w-4 h-4 text-muted-foreground" />
-                                  {agent.name}
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                 )}
                 </>
                 )}
