@@ -432,19 +432,17 @@ export default function SalesMonitor() {
                       <TableHead>Date</TableHead>
                       <TableHead>Client Name</TableHead>
                       <TableHead>Client Type</TableHead>
-                      <TableHead>Items</TableHead>
-                      <TableHead className="text-right">Subtotal</TableHead>
-                      <TableHead className="text-right">Discount</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                      <TableHead className="text-right">Deposit Used</TableHead>
-                      <TableHead>Payment</TableHead>
+                      <TableHead className="text-right">Vendor Price</TableHead>
+                      <TableHead className="text-right">MC Addition</TableHead>
+                      <TableHead className="text-right">Grand Total</TableHead>
+                      <TableHead>Payment Method</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {clientInvoices.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                           No invoices yet
                         </TableCell>
                       </TableRow>
@@ -452,7 +450,8 @@ export default function SalesMonitor() {
                       clientInvoices.map((invoice) => {
                         const clientName = getCustomerName(invoice.customerId);
                         const clientType = isAgent(invoice.customerId) ? "Agent" : "Customer";
-                        const items = Array.isArray(invoice.items) ? invoice.items : [];
+                        const vendorPrice = invoice.vendorCost || 0;
+                        const mcAddition = (invoice.total || 0) - vendorPrice;
                         return (
                           <TableRow key={invoice.id} data-testid={`row-invoice-${invoice.id}`}>
                             <TableCell className="font-mono font-medium">
@@ -471,18 +470,14 @@ export default function SalesMonitor() {
                                 )}
                               </Badge>
                             </TableCell>
-                            <TableCell>{items.length} items</TableCell>
                             <TableCell className="text-right font-mono">
-                              {formatCurrency(invoice.subtotal || 0)}
+                              {formatCurrency(vendorPrice)}
                             </TableCell>
-                            <TableCell className="text-right font-mono text-muted-foreground">
-                              {invoice.discountPercent ? `${invoice.discountPercent}%` : "-"}
+                            <TableCell className="text-right font-mono text-primary">
+                              {formatCurrency(mcAddition)}
                             </TableCell>
-                            <TableCell className="text-right font-mono font-medium">
+                            <TableCell className="text-right font-mono font-semibold">
                               {formatCurrency(invoice.total || 0)}
-                            </TableCell>
-                            <TableCell className="text-right font-mono text-orange-600">
-                              {invoice.depositUsed ? formatCurrency(invoice.depositUsed) : "-"}
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1">
@@ -491,8 +486,8 @@ export default function SalesMonitor() {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <Badge variant={invoice.status === "paid" ? "default" : "secondary"}>
-                                {invoice.status}
+                              <Badge variant={invoice.status === "paid" ? "default" : "destructive"}>
+                                {invoice.status === "paid" ? "Paid" : "Unpaid"}
                               </Badge>
                             </TableCell>
                           </TableRow>
