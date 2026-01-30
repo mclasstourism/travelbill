@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -29,7 +29,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Building2, Search, Loader2, Trash2, Plane } from "lucide-react";
+import { Plus, Building2, Search, Loader2, Trash2, Plane, Pencil } from "lucide-react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertVendorSchema, type Vendor, type InsertVendor } from "@shared/schema";
@@ -45,6 +45,8 @@ function formatCurrency(amount: number): string {
 
 export default function VendorsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
@@ -65,10 +67,42 @@ export default function VendorsPage() {
     },
   });
 
+  const editForm = useForm<InsertVendor>({
+    resolver: zodResolver(insertVendorSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      address: "",
+      creditBalance: 0,
+      depositBalance: 0,
+      airlines: [],
+    },
+  });
+
   const { fields: airlineFields, append: appendAirline, remove: removeAirline } = useFieldArray({
     control: form.control,
     name: "airlines",
   });
+
+  const { fields: editAirlineFields, append: appendEditAirline, remove: removeEditAirline } = useFieldArray({
+    control: editForm.control,
+    name: "airlines",
+  });
+
+  useEffect(() => {
+    if (editingVendor) {
+      editForm.reset({
+        name: editingVendor.name,
+        email: editingVendor.email || "",
+        phone: editingVendor.phone,
+        address: editingVendor.address || "",
+        creditBalance: editingVendor.creditBalance,
+        depositBalance: editingVendor.depositBalance,
+        airlines: editingVendor.airlines || [],
+      });
+    }
+  }, [editingVendor, editForm]);
 
   const createMutation = useMutation({
     mutationFn: async (data: InsertVendor) => {
@@ -94,6 +128,31 @@ export default function VendorsPage() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async (data: InsertVendor & { id: string }) => {
+      const { id, ...updateData } = data;
+      const res = await apiRequest("PATCH", `/api/vendors/${id}`, updateData);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
+      setIsEditOpen(false);
+      setEditingVendor(null);
+      toast({
+        title: "Vendor updated",
+        description: "The vendor has been updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update vendor",
+        variant: "destructive",
+      });
+    },
+  });
+
   const filteredVendors = vendors.filter((vendor) =>
     vendor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     vendor.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -102,6 +161,17 @@ export default function VendorsPage() {
 
   const onSubmit = (data: InsertVendor) => {
     createMutation.mutate(data);
+  };
+
+  const onEditSubmit = (data: InsertVendor) => {
+    if (editingVendor) {
+      updateMutation.mutate({ ...data, id: editingVendor.id });
+    }
+  };
+
+  const handleEdit = (vendor: Vendor) => {
+    setEditingVendor(vendor);
+    setIsEditOpen(true);
   };
 
   return (
@@ -155,6 +225,7 @@ export default function VendorsPage() {
                     <TableHead>Airlines</TableHead>
                     <TableHead className="text-right">Credit Balance</TableHead>
                     <TableHead className="text-right">Deposit Balance</TableHead>
+                    <TableHead className="w-16">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -187,6 +258,16 @@ export default function VendorsPage() {
                         <span className="text-green-600 dark:text-green-400">
                           {formatCurrency(vendor.depositBalance)}
                         </span>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEdit(vendor)}
+                          data-testid={`button-edit-vendor-${vendor.id}`}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -345,6 +426,167 @@ export default function VendorsPage() {
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   )}
                   Save Vendor
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isEditOpen} onOpenChange={(open) => {
+        setIsEditOpen(open);
+        if (!open) setEditingVendor(null);
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Vendor</DialogTitle>
+            <DialogDescription>
+              Update the vendor/supplier details below.
+            </DialogDescription>
+          </DialogHeader>
+
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
+              <FormField
+                control={editForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Vendor/Supplier name"
+                        {...field}
+                        data-testid="input-edit-vendor-name"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={editForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="email@example.com"
+                        {...field}
+                        data-testid="input-edit-vendor-email"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={editForm.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="+1 (555) 123-4567"
+                        {...field}
+                        data-testid="input-edit-vendor-phone"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={editForm.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Address</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Business address"
+                        {...field}
+                        data-testid="input-edit-vendor-address"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <FormLabel>Airlines</FormLabel>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => appendEditAirline({ name: "", code: "" })}
+                    data-testid="button-add-edit-airline"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add Airline
+                  </Button>
+                </div>
+                {editAirlineFields.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No airlines registered. Click "Add Airline" to add one.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {editAirlineFields.map((field, index) => (
+                      <div key={field.id} className="flex items-center gap-2">
+                        <Input
+                          placeholder="Airline name (e.g., Emirates)"
+                          {...editForm.register(`airlines.${index}.name`)}
+                          data-testid={`input-edit-airline-name-${index}`}
+                        />
+                        <Input
+                          placeholder="Code (e.g., EK)"
+                          className="w-24"
+                          {...editForm.register(`airlines.${index}.code`)}
+                          data-testid={`input-edit-airline-code-${index}`}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeEditAirline(index)}
+                          data-testid={`button-remove-edit-airline-${index}`}
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setIsEditOpen(false);
+                    setEditingVendor(null);
+                  }}
+                  data-testid="button-cancel-edit-vendor"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={updateMutation.isPending}
+                  data-testid="button-update-vendor"
+                >
+                  {updateMutation.isPending && (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  )}
+                  Update Vendor
                 </Button>
               </div>
             </form>

@@ -344,6 +344,22 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/vendors/:id", async (req, res) => {
+    try {
+      const existing = await storage.getVendor(req.params.id);
+      if (!existing) {
+        res.status(404).json({ error: "Vendor not found" });
+        return;
+      }
+      
+      const updates = req.body;
+      const vendor = await storage.updateVendor(req.params.id, updates);
+      res.json(vendor);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update vendor" });
+    }
+  });
+
   // Invoices
   app.get("/api/invoices", async (req, res) => {
     try {
