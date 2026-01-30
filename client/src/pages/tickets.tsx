@@ -404,17 +404,17 @@ export default function TicketsPage() {
   });
 
   const updateTicketMutation = useMutation({
-    mutationFn: async (data: { id: string; status?: string; ticketNumber?: string; eticketImage?: string }) => {
+    mutationFn: async (data: { id: string; status?: string; ticketNumber?: string; eticketImage?: string; isPaid?: boolean }) => {
       const res = await apiRequest("PATCH", `/api/tickets/${data.id}`, data);
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (updatedTicket) => {
       queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
       queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
-      setIsEditOpen(false);
-      setEditingTicket(null);
-      setEticketFile(null);
-      setEticketPreview(null);
+      // Update editingTicket to reflect the change without closing dialog
+      if (editingTicket && updatedTicket) {
+        setEditingTicket({ ...editingTicket, ...updatedTicket });
+      }
       toast({
         title: "Ticket updated",
         description: "The ticket has been updated successfully.",
@@ -2017,141 +2017,142 @@ export default function TicketsPage() {
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit Ticket</DialogTitle>
+            <DialogTitle>Ticket Details</DialogTitle>
             <DialogDescription>
-              Update ticket status and attach e-ticket image
+              View ticket information and update payment status
             </DialogDescription>
           </DialogHeader>
           
           {editingTicket && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 p-3 bg-muted rounded-lg text-sm">
-                <div>
-                  <span className="text-muted-foreground">Ticket #:</span>
-                  <p className="font-mono font-medium">{editingTicket.ticketNumber}</p>
+              {/* Ticket Info - Read Only */}
+              <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-muted-foreground text-xs">Ticket #</span>
+                    <p className="font-mono font-medium">{editingTicket.ticketNumber || "-"}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">PNR/Booking Ref</span>
+                    <p className="font-medium">{editingTicket.pnr || "-"}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">Passenger</span>
+                    <p className="font-medium">{editingTicket.passengerName}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">Route</span>
+                    <p className="font-medium">{editingTicket.route}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">Airlines</span>
+                    <p className="font-medium">{editingTicket.airlines || "-"}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">Travel Date</span>
+                    <p className="font-medium">{format(new Date(editingTicket.travelDate), "MMM d, yyyy")}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">Trip Type</span>
+                    <p className="font-medium capitalize">{editingTicket.tripType?.replace("_", " ") || "One Way"}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">Passengers</span>
+                    <p className="font-medium">{editingTicket.passengerCount || 1}</p>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Passenger:</span>
-                  <p className="font-medium">{editingTicket.passengerName}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Route:</span>
-                  <p className="font-medium">{editingTicket.route}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Airlines:</span>
-                  <p className="font-medium">{editingTicket.airlines}</p>
+                <div className="border-t pt-3 mt-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Total Amount</span>
+                    <span className="font-mono font-semibold text-primary">{formatCurrency(editingTicket.faceValue)}</span>
+                  </div>
                 </div>
               </div>
 
+              {/* Payment Status - Editable */}
               <div className="space-y-2">
-                <label className="text-sm font-medium">Ticket Number</label>
-                <Input
-                  placeholder="Enter ticket number from airline (e.g., 157-1234567890)"
-                  value={editTicketNumber}
-                  onChange={(e) => setEditTicketNumber(e.target.value)}
-                  data-testid="input-edit-ticket-number"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Enter the ticket number after receiving the e-ticket from airline
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Status</label>
-                <Select value={editStatus} onValueChange={setEditStatus}>
-                  <SelectTrigger data-testid="select-ticket-status">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="processing">Processing</SelectItem>
-                    <SelectItem value="approved">Approved</SelectItem>
-                    <SelectItem value="issued">Issued</SelectItem>
-                    <SelectItem value="used">Used</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                    <SelectItem value="refunded">Refunded</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">E-Ticket Image</label>
-                <div className="border-2 border-dashed rounded-lg p-4 text-center">
-                  {eticketPreview ? (
-                    <div className="space-y-2">
-                      <img 
-                        src={eticketPreview} 
-                        alt="E-Ticket Preview" 
-                        className="max-h-48 mx-auto rounded-lg object-contain"
-                      />
-                      <div className="flex justify-center gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            window.open(eticketPreview, '_blank');
-                          }}
-                        >
-                          <Eye className="w-4 h-4 mr-1" />
-                          View Full
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setEticketFile(null);
-                            setEticketPreview(null);
-                          }}
-                        >
-                          <X className="w-4 h-4 mr-1" />
-                          Remove
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <label className="cursor-pointer block">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleEticketFileChange}
-                        className="hidden"
-                        data-testid="input-eticket-file"
-                      />
-                      <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                        <Upload className="w-8 h-8" />
-                        <span className="text-sm">Click to upload document</span>
-                        <span className="text-xs">PNG, JPG, PDF, or screenshot</span>
-                      </div>
-                    </label>
-                  )}
+                <label className="text-sm font-medium">Payment Status</label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={(editingTicket as any).isPaid ? "outline" : "default"}
+                    className={!(editingTicket as any).isPaid ? "bg-orange-600 hover:bg-orange-700" : ""}
+                    onClick={() => {
+                      updateTicketMutation.mutate({ id: editingTicket.id, isPaid: false });
+                    }}
+                    disabled={updateTicketMutation.isPending}
+                  >
+                    Unpaid
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={(editingTicket as any).isPaid ? "default" : "outline"}
+                    className={(editingTicket as any).isPaid ? "bg-green-600 hover:bg-green-700" : ""}
+                    onClick={() => {
+                      updateTicketMutation.mutate({ id: editingTicket.id, isPaid: true });
+                    }}
+                    disabled={updateTicketMutation.isPending}
+                  >
+                    Paid
+                  </Button>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-4">
+              {/* Uploaded Documents - View Only */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Documents</label>
+                {(editingTicket.eticketFiles && editingTicket.eticketFiles.length > 0) || editingTicket.eticketImage ? (
+                  <div className="grid grid-cols-1 gap-2">
+                    {editingTicket.eticketFiles?.map((fileUrl: string, idx: number) => (
+                      <a 
+                        key={idx}
+                        href={fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-3 border rounded-lg hover-elevate"
+                      >
+                        <FileText className="w-6 h-6 text-red-500" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium">E-Ticket {idx + 1}</p>
+                          <p className="text-xs text-muted-foreground">Click to view/download</p>
+                        </div>
+                        <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                      </a>
+                    ))}
+                    {editingTicket.eticketImage && !editingTicket.eticketFiles?.length && (
+                      <a 
+                        href={editingTicket.eticketImage}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-3 border rounded-lg hover-elevate"
+                      >
+                        <FileText className="w-6 h-6 text-red-500" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium">E-Ticket Document</p>
+                          <p className="text-xs text-muted-foreground">Click to view/download</p>
+                        </div>
+                        <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-4 border-2 border-dashed rounded-lg text-center text-muted-foreground">
+                    <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No documents uploaded</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end pt-4">
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   onClick={() => {
                     setIsEditOpen(false);
                     setEditingTicket(null);
-                    setEticketFile(null);
-                    setEticketPreview(null);
                   }}
                 >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSaveTicket}
-                  disabled={isUploading || updateTicketMutation.isPending}
-                  data-testid="button-save-ticket-edit"
-                >
-                  {(isUploading || updateTicketMutation.isPending) && (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  )}
-                  Save Changes
+                  Close
                 </Button>
               </div>
             </div>
