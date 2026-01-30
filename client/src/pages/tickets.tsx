@@ -652,6 +652,11 @@ export default function TicketsPage() {
   };
 
   const onSubmit = async (data: CreateTicketForm) => {
+    // Prevent double submission
+    if (createMutation.isPending) {
+      return;
+    }
+
     if (!isAuthenticated || !session) {
       toast({
         title: "Authentication required",
