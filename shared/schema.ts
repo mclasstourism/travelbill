@@ -1,4 +1,150 @@
 import { z } from "zod";
+import { pgTable, text, varchar, boolean, timestamp, real, jsonb } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+
+// Drizzle Table Definitions
+export const usersTable = pgTable("users", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  username: varchar("username", { length: 255 }).notNull().unique(),
+  password: text("password").notNull(),
+  email: varchar("email", { length: 255 }),
+  phone: varchar("phone", { length: 50 }),
+  passwordHint: text("password_hint"),
+});
+
+export const passwordResetTokensTable = pgTable("password_reset_tokens", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id", { length: 36 }).notNull(),
+  token: varchar("token", { length: 10 }).notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  used: boolean("used").default(false),
+});
+
+export const billCreatorsTable = pgTable("bill_creators", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 255 }).notNull(),
+  pin: varchar("pin", { length: 8 }).notNull(),
+  active: boolean("active").default(true),
+});
+
+export const customersTable = pgTable("customers", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 255 }).notNull(),
+  phone: varchar("phone", { length: 50 }).notNull(),
+  company: varchar("company", { length: 255 }).default(""),
+  address: text("address").default(""),
+  email: varchar("email", { length: 255 }).default(""),
+  depositBalance: real("deposit_balance").default(0),
+});
+
+export const agentsTable = pgTable("agents", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 255 }).notNull(),
+  phone: varchar("phone", { length: 50 }).notNull(),
+  company: varchar("company", { length: 255 }).default(""),
+  address: text("address").default(""),
+  email: varchar("email", { length: 255 }).default(""),
+  creditBalance: real("credit_balance").default(0),
+  depositBalance: real("deposit_balance").default(0),
+});
+
+export const vendorsTable = pgTable("vendors", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 255 }).notNull(),
+  email: varchar("email", { length: 255 }).default(""),
+  phone: varchar("phone", { length: 50 }).notNull(),
+  address: text("address").default(""),
+  creditBalance: real("credit_balance").default(0),
+  depositBalance: real("deposit_balance").default(0),
+  airlines: jsonb("airlines").default([]),
+});
+
+export const invoicesTable = pgTable("invoices", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  invoiceNumber: varchar("invoice_number", { length: 50 }).notNull().unique(),
+  customerType: varchar("customer_type", { length: 20 }).default("customer"),
+  customerId: varchar("customer_id", { length: 36 }).notNull(),
+  vendorId: varchar("vendor_id", { length: 36 }).notNull(),
+  items: jsonb("items").default([]),
+  subtotal: real("subtotal").default(0),
+  discountPercent: real("discount_percent").default(0),
+  discountAmount: real("discount_amount").default(0),
+  total: real("total").default(0),
+  vendorCost: real("vendor_cost").default(0),
+  paymentMethod: varchar("payment_method", { length: 20 }).notNull(),
+  useCustomerDeposit: boolean("use_customer_deposit").default(false),
+  depositUsed: real("deposit_used").default(0),
+  useVendorBalance: varchar("use_vendor_balance", { length: 20 }).default("none"),
+  vendorBalanceDeducted: real("vendor_balance_deducted").default(0),
+  notes: text("notes").default(""),
+  issuedBy: varchar("issued_by", { length: 36 }).notNull(),
+  status: varchar("status", { length: 20 }).default("issued"),
+  paidAmount: real("paid_amount").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const ticketsTable = pgTable("tickets", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  ticketNumber: varchar("ticket_number", { length: 50 }).notNull().unique(),
+  customerId: varchar("customer_id", { length: 36 }).notNull(),
+  vendorId: varchar("vendor_id", { length: 36 }).notNull(),
+  invoiceId: varchar("invoice_id", { length: 36 }),
+  tripType: varchar("trip_type", { length: 20 }).default("one_way"),
+  ticketType: varchar("ticket_type", { length: 100 }).notNull(),
+  route: varchar("route", { length: 255 }).notNull(),
+  airlines: varchar("airlines", { length: 255 }).notNull(),
+  flightNumber: varchar("flight_number", { length: 50 }).notNull(),
+  flightTime: varchar("flight_time", { length: 10 }).notNull(),
+  travelDate: varchar("travel_date", { length: 20 }).notNull(),
+  returnDate: varchar("return_date", { length: 20 }),
+  passengerName: varchar("passenger_name", { length: 255 }).notNull(),
+  faceValue: real("face_value").default(0),
+  deductFromDeposit: boolean("deduct_from_deposit").default(false),
+  depositDeducted: real("deposit_deducted").default(0),
+  issuedBy: varchar("issued_by", { length: 36 }).notNull(),
+  status: varchar("status", { length: 20 }).default("issued"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const depositTransactionsTable = pgTable("deposit_transactions", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  customerId: varchar("customer_id", { length: 36 }).notNull(),
+  type: varchar("type", { length: 10 }).notNull(),
+  amount: real("amount").notNull(),
+  description: text("description").notNull(),
+  referenceId: varchar("reference_id", { length: 36 }),
+  referenceType: varchar("reference_type", { length: 20 }),
+  balanceAfter: real("balance_after").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const vendorTransactionsTable = pgTable("vendor_transactions", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  vendorId: varchar("vendor_id", { length: 36 }).notNull(),
+  type: varchar("type", { length: 10 }).notNull(),
+  transactionType: varchar("transaction_type", { length: 20 }).notNull(),
+  amount: real("amount").notNull(),
+  description: text("description").notNull(),
+  paymentMethod: varchar("payment_method", { length: 20 }).default("cash"),
+  referenceId: varchar("reference_id", { length: 36 }),
+  referenceType: varchar("reference_type", { length: 20 }),
+  balanceAfter: real("balance_after").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const agentTransactionsTable = pgTable("agent_transactions", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  agentId: varchar("agent_id", { length: 36 }).notNull(),
+  type: varchar("type", { length: 10 }).notNull(),
+  transactionType: varchar("transaction_type", { length: 20 }).notNull(),
+  amount: real("amount").notNull(),
+  description: text("description").notNull(),
+  paymentMethod: varchar("payment_method", { length: 20 }).default("cash"),
+  referenceId: varchar("reference_id", { length: 36 }),
+  referenceType: varchar("reference_type", { length: 20 }),
+  balanceAfter: real("balance_after").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
 
 // Bill Creators (staff who can create invoices with PIN auth)
 export const billCreators = {

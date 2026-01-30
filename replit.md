@@ -28,14 +28,18 @@ MVP fully implemented with:
 
 ### Backend (Express)
 - **Framework**: Express.js with TypeScript
-- **Storage**: In-memory storage (MemStorage class)
+- **Database**: PostgreSQL with Drizzle ORM (PgStorage class)
 - **Validation**: Zod schemas
 - **API Pattern**: REST endpoints under `/api/*`
+- **Email**: Resend integration for password reset emails
 
 ### Key Files
-- `shared/schema.ts` - All data models and Zod schemas
-- `server/storage.ts` - Storage interface and in-memory implementation
+- `shared/schema.ts` - Drizzle table definitions and Zod schemas
+- `server/db.ts` - PostgreSQL database connection
+- `server/pg-storage.ts` - PostgreSQL storage implementation
+- `server/storage.ts` - Storage interface
 - `server/routes.ts` - All API endpoints
+- `server/lib/resend.ts` - Email service for password reset
 - `client/src/App.tsx` - Main app with routing and providers
 - `client/src/lib/pin-context.tsx` - PIN authentication context
 - `client/src/lib/theme-provider.tsx` - Theme context
@@ -52,10 +56,15 @@ MVP fully implemented with:
 
 ## Features
 
+### Staff Login
+- Username/password authentication for staff members
+- Default staff login: username "admin", password "admin123"
+- Email-based password reset using Resend
+
 ### PIN Authentication
 - Bill creators must authenticate with 8-digit PIN before creating invoices or issuing tickets
 - Session persists for 30 minutes in localStorage
-- Default test account: "Admin" with PIN "12345678"
+- Default bill creator: "Admin" with PIN "12345678"
 
 ### Invoice Creation
 - Select party type: Individual Customer or Agent

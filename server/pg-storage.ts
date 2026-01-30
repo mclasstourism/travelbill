@@ -1,0 +1,734 @@
+import { eq, desc } from "drizzle-orm";
+import { db } from "./db";
+import * as schema from "@shared/schema";
+import {
+  type User,
+  type InsertUser,
+  type Customer,
+  type InsertCustomer,
+  type Agent,
+  type InsertAgent,
+  type Vendor,
+  type InsertVendor,
+  type BillCreator,
+  type InsertBillCreator,
+  type Invoice,
+  type InsertInvoice,
+  type Ticket,
+  type InsertTicket,
+  type DepositTransaction,
+  type InsertDepositTransaction,
+  type VendorTransaction,
+  type InsertVendorTransaction,
+  type AgentTransaction,
+  type InsertAgentTransaction,
+  type DashboardMetrics,
+  type PasswordResetToken,
+} from "@shared/schema";
+import { IStorage } from "./storage";
+import bcrypt from "bcryptjs";
+
+export class PgStorage implements IStorage {
+  private invoiceCounter: number = 1000;
+  private ticketCounter: number = 1000;
+  private initialized: boolean = false;
+
+  constructor() {
+    this.initialize();
+  }
+
+  private async initialize() {
+    await this.initializeCounters();
+    await this.seedDefaultData();
+    this.initialized = true;
+  }
+
+  private async initializeCounters() {
+    const invoices = await db.select().from(schema.invoicesTable);
+    const tickets = await db.select().from(schema.ticketsTable);
+    
+    if (invoices.length > 0) {
+      const maxInvoice = Math.max(...invoices.map(i => parseInt(i.invoiceNumber.replace("INV-", "")) || 1000));
+      this.invoiceCounter = maxInvoice;
+    }
+    if (tickets.length > 0) {
+      const maxTicket = Math.max(...tickets.map(t => parseInt(t.ticketNumber.replace("TKT-", "")) || 1000));
+      this.ticketCounter = maxTicket;
+    }
+  }
+
+  private async seedDefaultData() {
+    // Check if admin user exists
+    const existingUsers = await db.select().from(schema.usersTable);
+    if (existingUsers.length === 0) {
+      // Create default admin user (password: admin123)
+      const hashedPassword = bcrypt.hashSync("admin123", 10);
+      await db.insert(schema.usersTable).values({
+        username: "admin",
+        password: hashedPassword,
+        email: "admin@example.com",
+        passwordHint: "Default password is admin followed by 123",
+      });
+      console.log("Created default admin user (username: admin, password: admin123)");
+    }
+
+    // Check if default bill creator exists
+    const existingCreators = await db.select().from(schema.billCreatorsTable);
+    if (existingCreators.length === 0) {
+      await db.insert(schema.billCreatorsTable).values({
+        name: "Admin",
+        pin: "12345678",
+        active: true,
+      });
+      console.log("Created default bill creator (name: Admin, PIN: 12345678)");
+    }
+  }
+
+  // Users
+  async getUser(id: string): Promise<User | undefined> {
+    const result = await db.select().from(schema.usersTable).where(eq(schema.usersTable.id, id));
+    if (result.length === 0) return undefined;
+    return this.mapUser(result[0]);
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const result = await db.select().from(schema.usersTable).where(eq(schema.usersTable.username, username));
+    if (result.length === 0) return undefined;
+    return this.mapUser(result[0]);
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const result = await db.select().from(schema.usersTable).where(eq(schema.usersTable.email, email));
+    if (result.length === 0) return undefined;
+    return this.mapUser(result[0]);
+  }
+
+  async getUserByPhone(phone: string): Promise<User | undefined> {
+    const result = await db.select().from(schema.usersTable).where(eq(schema.usersTable.phone, phone));
+    if (result.length === 0) return undefined;
+    return this.mapUser(result[0]);
+  }
+
+  private mapUser(row: typeof schema.usersTable.$inferSelect): User {
+    return {
+      id: row.id,
+      username: row.username,
+      password: row.password,
+      email: row.email || undefined,
+      phone: row.phone || undefined,
+      passwordHint: row.passwordHint || undefined,
+    };
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const hashedPassword = bcrypt.hashSync(insertUser.password, 10);
+    const result = await db.insert(schema.usersTable).values({
+      username: insertUser.username,
+      password: hashedPassword,
+      email: insertUser.email,
+      phone: insertUser.phone,
+      passwordHint: insertUser.passwordHint,
+    }).returning();
+    return this.mapUser(result[0]);
+  }
+
+  async updateUserPassword(userId: string, newPassword: string): Promise<boolean> {
+    const hashedPassword = bcrypt.hashSync(newPassword, 10);
+    await db.update(schema.usersTable).set({ password: hashedPassword }).where(eq(schema.usersTable.id, userId));
+    return true;
+  }
+
+  async verifyUserPassword(username: string, password: string): Promise<User | null> {
+    const user = await this.getUserByUsername(username);
+    if (!user) return null;
+    const isValid = bcrypt.compareSync(password, user.password);
+    if (!isValid) return null;
+    return user;
+  }
+
+  async getPasswordHint(username: string): Promise<string | null> {
+    const user = await this.getUserByUsername(username);
+    if (!user || !user.passwordHint) return null;
+    return user.passwordHint;
+  }
+
+  // Password Reset Tokens
+  async createPasswordResetToken(userId: string): Promise<PasswordResetToken> {
+    const token = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+    const result = await db.insert(schema.passwordResetTokensTable).values({
+      userId,
+      token,
+      expiresAt,
+      used: false,
+    }).returning();
+    return {
+      id: result[0].id,
+      userId: result[0].userId,
+      token: result[0].token,
+      expiresAt: result[0].expiresAt.getTime(),
+      used: result[0].used || false,
+    };
+  }
+
+  async getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined> {
+    const result = await db.select().from(schema.passwordResetTokensTable).where(eq(schema.passwordResetTokensTable.token, token));
+    if (result.length === 0) return undefined;
+    const row = result[0];
+    if (row.used || row.expiresAt.getTime() < Date.now()) return undefined;
+    return {
+      id: row.id,
+      userId: row.userId,
+      token: row.token,
+      expiresAt: row.expiresAt.getTime(),
+      used: row.used || false,
+    };
+  }
+
+  async markTokenUsed(tokenId: string): Promise<void> {
+    await db.update(schema.passwordResetTokensTable).set({ used: true }).where(eq(schema.passwordResetTokensTable.id, tokenId));
+  }
+
+  // Bill Creators
+  async getBillCreators(): Promise<BillCreator[]> {
+    const result = await db.select().from(schema.billCreatorsTable);
+    return result.map(row => ({
+      id: row.id,
+      name: row.name,
+      pin: row.pin,
+      active: row.active ?? true,
+    }));
+  }
+
+  async getBillCreator(id: string): Promise<BillCreator | undefined> {
+    const result = await db.select().from(schema.billCreatorsTable).where(eq(schema.billCreatorsTable.id, id));
+    if (result.length === 0) return undefined;
+    const row = result[0];
+    return { id: row.id, name: row.name, pin: row.pin, active: row.active ?? true };
+  }
+
+  async createBillCreator(creator: InsertBillCreator): Promise<BillCreator> {
+    const result = await db.insert(schema.billCreatorsTable).values({
+      name: creator.name,
+      pin: creator.pin,
+      active: true,
+    }).returning();
+    return { id: result[0].id, name: result[0].name, pin: result[0].pin, active: result[0].active ?? true };
+  }
+
+  async updateBillCreator(id: string, updates: Partial<BillCreator>): Promise<BillCreator | undefined> {
+    const result = await db.update(schema.billCreatorsTable).set(updates).where(eq(schema.billCreatorsTable.id, id)).returning();
+    if (result.length === 0) return undefined;
+    return { id: result[0].id, name: result[0].name, pin: result[0].pin, active: result[0].active ?? true };
+  }
+
+  async verifyPin(creatorId: string, pin: string): Promise<BillCreator | undefined> {
+    const creator = await this.getBillCreator(creatorId);
+    if (!creator || creator.pin !== pin || !creator.active) return undefined;
+    return creator;
+  }
+
+  // Customers
+  async getCustomers(): Promise<Customer[]> {
+    const result = await db.select().from(schema.customersTable);
+    return result.map(this.mapCustomer);
+  }
+
+  async getCustomer(id: string): Promise<Customer | undefined> {
+    const result = await db.select().from(schema.customersTable).where(eq(schema.customersTable.id, id));
+    if (result.length === 0) return undefined;
+    return this.mapCustomer(result[0]);
+  }
+
+  async findDuplicateCustomer(name: string, phone: string): Promise<Customer | undefined> {
+    const customers = await this.getCustomers();
+    return customers.find(c => c.name.toLowerCase() === name.toLowerCase() || c.phone === phone);
+  }
+
+  private mapCustomer(row: typeof schema.customersTable.$inferSelect): Customer {
+    return {
+      id: row.id,
+      name: row.name,
+      phone: row.phone,
+      company: row.company || "",
+      address: row.address || "",
+      email: row.email || "",
+      depositBalance: row.depositBalance || 0,
+    };
+  }
+
+  async createCustomer(customer: InsertCustomer): Promise<Customer> {
+    const result = await db.insert(schema.customersTable).values({
+      name: customer.name,
+      phone: customer.phone,
+      company: customer.company || "",
+      address: customer.address || "",
+      email: customer.email || "",
+      depositBalance: customer.depositBalance || 0,
+    }).returning();
+    return this.mapCustomer(result[0]);
+  }
+
+  async updateCustomer(id: string, updates: Partial<Customer>): Promise<Customer | undefined> {
+    const result = await db.update(schema.customersTable).set(updates).where(eq(schema.customersTable.id, id)).returning();
+    if (result.length === 0) return undefined;
+    return this.mapCustomer(result[0]);
+  }
+
+  // Agents
+  async getAgents(): Promise<Agent[]> {
+    const result = await db.select().from(schema.agentsTable);
+    return result.map(this.mapAgent);
+  }
+
+  async getAgent(id: string): Promise<Agent | undefined> {
+    const result = await db.select().from(schema.agentsTable).where(eq(schema.agentsTable.id, id));
+    if (result.length === 0) return undefined;
+    return this.mapAgent(result[0]);
+  }
+
+  async findDuplicateAgent(name: string, phone: string): Promise<Agent | undefined> {
+    const agents = await this.getAgents();
+    return agents.find(a => a.name.toLowerCase() === name.toLowerCase() || a.phone === phone);
+  }
+
+  private mapAgent(row: typeof schema.agentsTable.$inferSelect): Agent {
+    return {
+      id: row.id,
+      name: row.name,
+      phone: row.phone,
+      company: row.company || "",
+      address: row.address || "",
+      email: row.email || "",
+      creditBalance: row.creditBalance || 0,
+      depositBalance: row.depositBalance || 0,
+    };
+  }
+
+  async createAgent(agent: InsertAgent): Promise<Agent> {
+    const result = await db.insert(schema.agentsTable).values({
+      name: agent.name,
+      phone: agent.phone,
+      company: agent.company || "",
+      address: agent.address || "",
+      email: agent.email || "",
+      creditBalance: agent.creditBalance || 0,
+      depositBalance: agent.depositBalance || 0,
+    }).returning();
+    return this.mapAgent(result[0]);
+  }
+
+  async updateAgent(id: string, updates: Partial<Agent>): Promise<Agent | undefined> {
+    const result = await db.update(schema.agentsTable).set(updates).where(eq(schema.agentsTable.id, id)).returning();
+    if (result.length === 0) return undefined;
+    return this.mapAgent(result[0]);
+  }
+
+  // Vendors
+  async getVendors(): Promise<Vendor[]> {
+    const result = await db.select().from(schema.vendorsTable);
+    return result.map(this.mapVendor);
+  }
+
+  async getVendor(id: string): Promise<Vendor | undefined> {
+    const result = await db.select().from(schema.vendorsTable).where(eq(schema.vendorsTable.id, id));
+    if (result.length === 0) return undefined;
+    return this.mapVendor(result[0]);
+  }
+
+  async findDuplicateVendor(name: string, phone: string): Promise<Vendor | undefined> {
+    const vendors = await this.getVendors();
+    return vendors.find(v => v.name.toLowerCase() === name.toLowerCase() || v.phone === phone);
+  }
+
+  private mapVendor(row: typeof schema.vendorsTable.$inferSelect): Vendor {
+    return {
+      id: row.id,
+      name: row.name,
+      email: row.email || "",
+      phone: row.phone,
+      address: row.address || "",
+      creditBalance: row.creditBalance || 0,
+      depositBalance: row.depositBalance || 0,
+      airlines: (row.airlines as any[]) || [],
+    };
+  }
+
+  async createVendor(vendor: InsertVendor): Promise<Vendor> {
+    const result = await db.insert(schema.vendorsTable).values({
+      name: vendor.name,
+      email: vendor.email || "",
+      phone: vendor.phone,
+      address: vendor.address || "",
+      creditBalance: vendor.creditBalance || 0,
+      depositBalance: vendor.depositBalance || 0,
+      airlines: vendor.airlines || [],
+    }).returning();
+    return this.mapVendor(result[0]);
+  }
+
+  async updateVendor(id: string, updates: Partial<Vendor>): Promise<Vendor | undefined> {
+    const result = await db.update(schema.vendorsTable).set(updates).where(eq(schema.vendorsTable.id, id)).returning();
+    if (result.length === 0) return undefined;
+    return this.mapVendor(result[0]);
+  }
+
+  // Invoices
+  async getInvoices(): Promise<Invoice[]> {
+    const result = await db.select().from(schema.invoicesTable).orderBy(desc(schema.invoicesTable.createdAt));
+    return result.map(this.mapInvoice);
+  }
+
+  async getInvoice(id: string): Promise<Invoice | undefined> {
+    const result = await db.select().from(schema.invoicesTable).where(eq(schema.invoicesTable.id, id));
+    if (result.length === 0) return undefined;
+    return this.mapInvoice(result[0]);
+  }
+
+  private mapInvoice(row: typeof schema.invoicesTable.$inferSelect): Invoice {
+    return {
+      id: row.id,
+      invoiceNumber: row.invoiceNumber,
+      customerType: (row.customerType as any) || "customer",
+      customerId: row.customerId,
+      vendorId: row.vendorId,
+      items: (row.items as any[]) || [],
+      subtotal: row.subtotal || 0,
+      discountPercent: row.discountPercent || 0,
+      discountAmount: row.discountAmount || 0,
+      total: row.total || 0,
+      vendorCost: row.vendorCost || 0,
+      paymentMethod: row.paymentMethod as any,
+      useCustomerDeposit: row.useCustomerDeposit || false,
+      depositUsed: row.depositUsed || 0,
+      useVendorBalance: (row.useVendorBalance as any) || "none",
+      vendorBalanceDeducted: row.vendorBalanceDeducted || 0,
+      notes: row.notes || "",
+      issuedBy: row.issuedBy,
+      status: (row.status as any) || "issued",
+      paidAmount: row.paidAmount || 0,
+      createdAt: row.createdAt?.toISOString() || new Date().toISOString(),
+    };
+  }
+
+  async createInvoice(invoice: InsertInvoice): Promise<Invoice> {
+    this.invoiceCounter++;
+    const invoiceNumber = `INV-${this.invoiceCounter}`;
+    const result = await db.insert(schema.invoicesTable).values({
+      invoiceNumber,
+      customerType: invoice.customerType || "customer",
+      customerId: invoice.customerId,
+      vendorId: invoice.vendorId,
+      items: invoice.items,
+      subtotal: invoice.subtotal,
+      discountPercent: invoice.discountPercent || 0,
+      discountAmount: invoice.discountAmount || 0,
+      total: invoice.total,
+      vendorCost: invoice.vendorCost || 0,
+      paymentMethod: invoice.paymentMethod,
+      useCustomerDeposit: invoice.useCustomerDeposit || false,
+      depositUsed: invoice.depositUsed || 0,
+      useVendorBalance: invoice.useVendorBalance || "none",
+      vendorBalanceDeducted: invoice.vendorBalanceDeducted || 0,
+      notes: invoice.notes || "",
+      issuedBy: invoice.issuedBy,
+      status: "issued",
+      paidAmount: 0,
+    }).returning();
+    return this.mapInvoice(result[0]);
+  }
+
+  async updateInvoice(id: string, updates: Partial<Invoice>): Promise<Invoice | undefined> {
+    const { createdAt, ...dbUpdates } = updates;
+    const result = await db.update(schema.invoicesTable).set(dbUpdates).where(eq(schema.invoicesTable.id, id)).returning();
+    if (result.length === 0) return undefined;
+    return this.mapInvoice(result[0]);
+  }
+
+  // Tickets
+  async getTickets(): Promise<Ticket[]> {
+    const result = await db.select().from(schema.ticketsTable).orderBy(desc(schema.ticketsTable.createdAt));
+    return result.map(this.mapTicket);
+  }
+
+  async getTicket(id: string): Promise<Ticket | undefined> {
+    const result = await db.select().from(schema.ticketsTable).where(eq(schema.ticketsTable.id, id));
+    if (result.length === 0) return undefined;
+    return this.mapTicket(result[0]);
+  }
+
+  private mapTicket(row: typeof schema.ticketsTable.$inferSelect): Ticket {
+    return {
+      id: row.id,
+      ticketNumber: row.ticketNumber,
+      customerId: row.customerId,
+      vendorId: row.vendorId,
+      invoiceId: row.invoiceId || undefined,
+      tripType: (row.tripType as any) || "one_way",
+      ticketType: row.ticketType,
+      route: row.route,
+      airlines: row.airlines,
+      flightNumber: row.flightNumber,
+      flightTime: row.flightTime,
+      travelDate: row.travelDate,
+      returnDate: row.returnDate || undefined,
+      passengerName: row.passengerName,
+      faceValue: row.faceValue || 0,
+      deductFromDeposit: row.deductFromDeposit || false,
+      depositDeducted: row.depositDeducted || 0,
+      issuedBy: row.issuedBy,
+      status: (row.status as any) || "issued",
+      createdAt: row.createdAt?.toISOString() || new Date().toISOString(),
+    };
+  }
+
+  async createTicket(ticket: InsertTicket): Promise<Ticket> {
+    this.ticketCounter++;
+    const ticketNumber = `TKT-${this.ticketCounter}`;
+    const result = await db.insert(schema.ticketsTable).values({
+      ticketNumber,
+      customerId: ticket.customerId,
+      vendorId: ticket.vendorId,
+      invoiceId: ticket.invoiceId,
+      tripType: ticket.tripType || "one_way",
+      ticketType: ticket.ticketType,
+      route: ticket.route,
+      airlines: ticket.airlines,
+      flightNumber: ticket.flightNumber,
+      flightTime: ticket.flightTime,
+      travelDate: ticket.travelDate,
+      returnDate: ticket.returnDate,
+      passengerName: ticket.passengerName,
+      faceValue: ticket.faceValue,
+      deductFromDeposit: ticket.deductFromDeposit || false,
+      depositDeducted: ticket.depositDeducted || 0,
+      issuedBy: ticket.issuedBy,
+      status: "issued",
+    }).returning();
+    return this.mapTicket(result[0]);
+  }
+
+  async updateTicket(id: string, updates: Partial<Ticket>): Promise<Ticket | undefined> {
+    const { createdAt, ...dbUpdates } = updates;
+    const result = await db.update(schema.ticketsTable).set(dbUpdates).where(eq(schema.ticketsTable.id, id)).returning();
+    if (result.length === 0) return undefined;
+    return this.mapTicket(result[0]);
+  }
+
+  // Deposit Transactions
+  async getDepositTransactions(): Promise<DepositTransaction[]> {
+    const result = await db.select().from(schema.depositTransactionsTable).orderBy(desc(schema.depositTransactionsTable.createdAt));
+    return result.map(this.mapDepositTransaction);
+  }
+
+  async getCustomerDepositTransactions(customerId: string): Promise<DepositTransaction[]> {
+    const result = await db.select().from(schema.depositTransactionsTable)
+      .where(eq(schema.depositTransactionsTable.customerId, customerId))
+      .orderBy(desc(schema.depositTransactionsTable.createdAt));
+    return result.map(this.mapDepositTransaction);
+  }
+
+  private mapDepositTransaction(row: typeof schema.depositTransactionsTable.$inferSelect): DepositTransaction {
+    return {
+      id: row.id,
+      customerId: row.customerId,
+      type: row.type as any,
+      amount: row.amount,
+      description: row.description,
+      referenceId: row.referenceId || undefined,
+      referenceType: row.referenceType || undefined,
+      balanceAfter: row.balanceAfter || 0,
+      createdAt: row.createdAt?.toISOString() || new Date().toISOString(),
+    };
+  }
+
+  async createDepositTransaction(tx: InsertDepositTransaction): Promise<DepositTransaction> {
+    const customer = await this.getCustomer(tx.customerId);
+    let balanceAfter = 0;
+    if (customer) {
+      if (tx.type === "credit") {
+        balanceAfter = customer.depositBalance + tx.amount;
+      } else {
+        balanceAfter = customer.depositBalance - tx.amount;
+      }
+      await this.updateCustomer(tx.customerId, { depositBalance: balanceAfter });
+    }
+
+    const result = await db.insert(schema.depositTransactionsTable).values({
+      customerId: tx.customerId,
+      type: tx.type,
+      amount: tx.amount,
+      description: tx.description,
+      referenceId: tx.referenceId,
+      referenceType: tx.referenceType,
+      balanceAfter,
+    }).returning();
+    return this.mapDepositTransaction(result[0]);
+  }
+
+  // Vendor Transactions
+  async getVendorTransactions(): Promise<VendorTransaction[]> {
+    const result = await db.select().from(schema.vendorTransactionsTable).orderBy(desc(schema.vendorTransactionsTable.createdAt));
+    return result.map(this.mapVendorTransaction);
+  }
+
+  async getVendorTransactionsByVendor(vendorId: string): Promise<VendorTransaction[]> {
+    const result = await db.select().from(schema.vendorTransactionsTable)
+      .where(eq(schema.vendorTransactionsTable.vendorId, vendorId))
+      .orderBy(desc(schema.vendorTransactionsTable.createdAt));
+    return result.map(this.mapVendorTransaction);
+  }
+
+  private mapVendorTransaction(row: typeof schema.vendorTransactionsTable.$inferSelect): VendorTransaction {
+    return {
+      id: row.id,
+      vendorId: row.vendorId,
+      type: row.type as any,
+      transactionType: row.transactionType as any,
+      amount: row.amount,
+      description: row.description,
+      paymentMethod: (row.paymentMethod as any) || "cash",
+      referenceId: row.referenceId || undefined,
+      referenceType: row.referenceType || undefined,
+      balanceAfter: row.balanceAfter || 0,
+      createdAt: row.createdAt?.toISOString() || new Date().toISOString(),
+    };
+  }
+
+  async createVendorTransaction(tx: InsertVendorTransaction): Promise<VendorTransaction> {
+    const vendor = await this.getVendor(tx.vendorId);
+    let balanceAfter = 0;
+
+    if (vendor) {
+      if (tx.transactionType === "credit") {
+        if (tx.type === "credit") {
+          balanceAfter = vendor.creditBalance + tx.amount;
+          await this.updateVendor(tx.vendorId, { creditBalance: balanceAfter });
+        } else {
+          balanceAfter = vendor.creditBalance - tx.amount;
+          await this.updateVendor(tx.vendorId, { creditBalance: balanceAfter });
+        }
+      } else {
+        if (tx.type === "credit") {
+          balanceAfter = vendor.depositBalance + tx.amount;
+          await this.updateVendor(tx.vendorId, { depositBalance: balanceAfter });
+        } else {
+          balanceAfter = vendor.depositBalance - tx.amount;
+          await this.updateVendor(tx.vendorId, { depositBalance: balanceAfter });
+        }
+      }
+    }
+
+    const result = await db.insert(schema.vendorTransactionsTable).values({
+      vendorId: tx.vendorId,
+      type: tx.type,
+      transactionType: tx.transactionType,
+      amount: tx.amount,
+      description: tx.description,
+      paymentMethod: tx.paymentMethod || "cash",
+      referenceId: tx.referenceId,
+      referenceType: tx.referenceType,
+      balanceAfter,
+    }).returning();
+    return this.mapVendorTransaction(result[0]);
+  }
+
+  // Agent Transactions
+  async getAgentTransactions(): Promise<AgentTransaction[]> {
+    const result = await db.select().from(schema.agentTransactionsTable).orderBy(desc(schema.agentTransactionsTable.createdAt));
+    return result.map(this.mapAgentTransaction);
+  }
+
+  async getAgentTransactionsByAgent(agentId: string): Promise<AgentTransaction[]> {
+    const result = await db.select().from(schema.agentTransactionsTable)
+      .where(eq(schema.agentTransactionsTable.agentId, agentId))
+      .orderBy(desc(schema.agentTransactionsTable.createdAt));
+    return result.map(this.mapAgentTransaction);
+  }
+
+  private mapAgentTransaction(row: typeof schema.agentTransactionsTable.$inferSelect): AgentTransaction {
+    return {
+      id: row.id,
+      agentId: row.agentId,
+      type: row.type as any,
+      transactionType: row.transactionType as any,
+      amount: row.amount,
+      description: row.description,
+      paymentMethod: (row.paymentMethod as any) || "cash",
+      referenceId: row.referenceId || undefined,
+      referenceType: row.referenceType || undefined,
+      balanceAfter: row.balanceAfter || 0,
+      createdAt: row.createdAt?.toISOString() || new Date().toISOString(),
+    };
+  }
+
+  async createAgentTransaction(tx: InsertAgentTransaction): Promise<AgentTransaction> {
+    const agent = await this.getAgent(tx.agentId);
+    let balanceAfter = 0;
+
+    if (agent) {
+      if (tx.transactionType === "credit") {
+        if (tx.type === "credit") {
+          balanceAfter = agent.creditBalance + tx.amount;
+          await this.updateAgent(tx.agentId, { creditBalance: balanceAfter });
+        } else {
+          balanceAfter = agent.creditBalance - tx.amount;
+          await this.updateAgent(tx.agentId, { creditBalance: balanceAfter });
+        }
+      } else {
+        if (tx.type === "credit") {
+          balanceAfter = agent.depositBalance + tx.amount;
+          await this.updateAgent(tx.agentId, { depositBalance: balanceAfter });
+        } else {
+          balanceAfter = agent.depositBalance - tx.amount;
+          await this.updateAgent(tx.agentId, { depositBalance: balanceAfter });
+        }
+      }
+    }
+
+    const result = await db.insert(schema.agentTransactionsTable).values({
+      agentId: tx.agentId,
+      type: tx.type,
+      transactionType: tx.transactionType,
+      amount: tx.amount,
+      description: tx.description,
+      paymentMethod: tx.paymentMethod || "cash",
+      referenceId: tx.referenceId,
+      referenceType: tx.referenceType,
+      balanceAfter,
+    }).returning();
+    return this.mapAgentTransaction(result[0]);
+  }
+
+  // Metrics
+  async getDashboardMetrics(): Promise<DashboardMetrics> {
+    const customers = await this.getCustomers();
+    const vendors = await this.getVendors();
+    const invoices = await this.getInvoices();
+    const tickets = await this.getTickets();
+
+    const totalRevenue = invoices
+      .filter((inv) => inv.status !== "cancelled")
+      .reduce((sum, inv) => sum + inv.total, 0);
+
+    const pendingPayments = invoices
+      .filter((inv) => inv.status === "issued" || inv.status === "partial")
+      .reduce((sum, inv) => sum + (inv.total - inv.paidAmount), 0);
+
+    const customerDepositsTotal = customers.reduce((sum, c) => sum + c.depositBalance, 0);
+    const vendorCreditsTotal = vendors.reduce((sum, v) => sum + v.creditBalance, 0);
+
+    return {
+      totalCustomers: customers.length,
+      totalVendors: vendors.length,
+      totalInvoices: invoices.length,
+      totalTickets: tickets.length,
+      totalRevenue,
+      pendingPayments,
+      customerDepositsTotal,
+      vendorCreditsTotal,
+      recentInvoices: invoices.slice(0, 5),
+      recentTickets: tickets.slice(0, 5),
+    };
+  }
+}
