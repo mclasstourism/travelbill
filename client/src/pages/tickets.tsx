@@ -42,7 +42,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Ticket as TicketIcon, Search, Loader2, Lock, Calendar, Plane, Upload, Download, UserPlus, Building2, Check, ChevronsUpDown, Edit, Image, Eye, X, Users, FileText, Printer, Briefcase, ExternalLink } from "lucide-react";
+import { Plus, Ticket as TicketIcon, Search, Loader2, Lock, Calendar, Plane, Upload, Download, UserPlus, Building2, Check, ChevronsUpDown, Edit, Image, Eye, X, Users, FileText, Printer, Briefcase, ExternalLink, DollarSign, CreditCard } from "lucide-react";
 import companyLogo from "@assets/Updated_Logo_1769092146053.png";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
@@ -151,6 +151,8 @@ export default function TicketsPage() {
   const [invoiceTicket, setInvoiceTicket] = useState<Ticket | null>(null);
   const [viewingTicket, setViewingTicket] = useState<Ticket | null>(null);
   const [documentsTicket, setDocumentsTicket] = useState<Ticket | null>(null);
+  const [payingTicket, setPayingTicket] = useState<Ticket | null>(null);
+  const [paymentPin, setPaymentPin] = useState("");
   const { toast } = useToast();
   const { isAuthenticated, session } = usePin();
 
@@ -418,6 +420,34 @@ export default function TicketsPage() {
       toast({
         title: "Error",
         description: error.message || "Failed to update ticket",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const payTicketMutation = useMutation({
+    mutationFn: async (data: { id: string; pin: string }) => {
+      const res = await apiRequest("POST", `/api/tickets/${data.id}/pay`, { pin: data.pin });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Payment failed");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
+      setPayingTicket(null);
+      setPaymentPin("");
+      toast({
+        title: "Payment confirmed",
+        description: "The ticket has been marked as paid.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Payment failed",
+        description: error.message || "Invalid PIN or payment error",
         variant: "destructive",
       });
     },
@@ -752,6 +782,24 @@ export default function TicketsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       {/* Document button - opens uploaded document file */}
+                      {/* Pay button for unpaid tickets */}
+                      {!(ticket as any).isPaid && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => setPayingTicket(ticket)}
+                          data-testid={`button-pay-ticket-mobile-${ticket.id}`}
+                          title="Mark as Paid"
+                          className="text-green-600 dark:text-green-400"
+                        >
+                          <CreditCard className="w-4 h-4" />
+                        </Button>
+                      )}
+                      {(ticket as any).isPaid && (
+                        <Badge variant="outline" className="text-green-600 border-green-600 text-xs">
+                          Paid
+                        </Badge>
+                      )}
                       {(ticket.eticketFiles?.length || ticket.eticketImage) && (
                         <Button
                           size="icon"
@@ -837,6 +885,24 @@ export default function TicketsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
+                          {/* Pay button for unpaid tickets */}
+                          {!(ticket as any).isPaid && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => setPayingTicket(ticket)}
+                              data-testid={`button-pay-ticket-${ticket.id}`}
+                              title="Mark as Paid"
+                              className="text-green-600 dark:text-green-400"
+                            >
+                              <CreditCard className="w-4 h-4" />
+                            </Button>
+                          )}
+                          {(ticket as any).isPaid && (
+                            <Badge variant="outline" className="text-green-600 border-green-600 text-xs">
+                              Paid
+                            </Badge>
+                          )}
                           {/* Document button - opens documents popup */}
                           {(ticket.eticketFiles?.length || ticket.eticketImage) && (
                             <Button
@@ -2489,6 +2555,97 @@ export default function TicketsPage() {
               Close
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment PIN Confirmation Dialog */}
+      <Dialog open={!!payingTicket} onOpenChange={(open) => {
+        if (!open) {
+          setPayingTicket(null);
+          setPaymentPin("");
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-green-600" />
+              Confirm Payment
+            </DialogTitle>
+            <DialogDescription>
+              Enter your PIN to mark this ticket as paid
+            </DialogDescription>
+          </DialogHeader>
+          
+          {payingTicket && (
+            <div className="space-y-4">
+              <div className="bg-muted/30 rounded-lg p-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Client</span>
+                  <span className="font-medium">{customers.find(c => c.id === payingTicket.customerId)?.name || "Unknown"}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Route</span>
+                  <span className="font-medium">{payingTicket.route}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Travel Date</span>
+                  <span className="font-medium">{payingTicket.travelDate}</span>
+                </div>
+                <div className="flex justify-between text-lg font-bold border-t pt-2 mt-2">
+                  <span>Amount</span>
+                  <span className="text-primary font-mono">{formatCurrency(payingTicket.faceValue)}</span>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="payment-pin">Enter PIN to Confirm</Label>
+                <Input
+                  id="payment-pin"
+                  type="password"
+                  placeholder="Enter your 5-digit PIN"
+                  value={paymentPin}
+                  onChange={(e) => setPaymentPin(e.target.value)}
+                  maxLength={5}
+                  className="text-center text-lg tracking-widest font-mono"
+                  data-testid="input-payment-pin"
+                />
+              </div>
+              
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setPayingTicket(null);
+                    setPaymentPin("");
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (payingTicket && paymentPin.length === 5) {
+                      payTicketMutation.mutate({ id: payingTicket.id, pin: paymentPin });
+                    }
+                  }}
+                  disabled={paymentPin.length !== 5 || payTicketMutation.isPending}
+                  className="bg-green-600 hover:bg-green-700"
+                  data-testid="button-confirm-payment"
+                >
+                  {payTicketMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4 mr-2" />
+                      Confirm Payment
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

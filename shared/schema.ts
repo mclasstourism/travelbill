@@ -137,6 +137,9 @@ export const ticketsTable = pgTable("tickets", {
   eticketFiles: text("eticket_files").array(), // Array of e-ticket file URLs (PDF or images)
   issuedBy: varchar("issued_by", { length: 36 }).notNull(),
   status: varchar("status", { length: 20 }).default("pending"), // pending, processing, approved, issued, used, cancelled, refunded
+  isPaid: boolean("is_paid").default(false), // Payment status for the ticket
+  paidAt: timestamp("paid_at"), // When the ticket was paid
+  paidBy: varchar("paid_by", { length: 36 }), // User who confirmed payment
   createdAt: timestamp("created_at").defaultNow(),
 });
 

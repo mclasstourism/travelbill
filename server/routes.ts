@@ -803,6 +803,49 @@ export async function registerRoutes(
     }
   });
 
+  // Mark ticket as paid (requires PIN verification)
+  app.post("/api/tickets/:id/pay", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { pin } = req.body;
+      
+      // Verify PIN
+      const user = await storage.getUser((req as any).userId);
+      if (!user || user.pin !== pin) {
+        res.status(401).json({ error: "Invalid PIN" });
+        return;
+      }
+      
+      // Update ticket as paid - using raw update since isPaid is a new field
+      const updated = await storage.updateTicket(id, {
+        isPaid: true,
+        paidAt: new Date(),
+        paidBy: user.id,
+      } as any);
+      
+      if (!updated) {
+        res.status(404).json({ error: "Ticket not found" });
+        return;
+      }
+      
+      // Log activity
+      await storage.createActivityLog({
+        userId: user.id,
+        userName: user.username,
+        action: "update",
+        entity: "ticket",
+        entityId: id,
+        entityName: updated.ticketNumber || updated.pnr || id,
+        details: `Marked ticket as paid`,
+      });
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Pay ticket error:", error);
+      res.status(500).json({ error: "Failed to process payment" });
+    }
+  });
+
   // Deposit Transactions
   app.get("/api/deposit-transactions", requireAuth, async (req, res) => {
     try {
