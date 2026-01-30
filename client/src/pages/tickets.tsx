@@ -705,8 +705,8 @@ export default function TicketsPage() {
         <div className="flex items-center gap-3">
           <SidebarTrigger className="lg:hidden" data-testid="button-sidebar-toggle" />
           <div>
-            <h1 className="text-xl md:text-2xl font-semibold" data-testid="text-tickets-title">Tickets</h1>
-            <p className="text-sm text-muted-foreground">Issue and manage travel tickets</p>
+            <h1 className="text-xl md:text-2xl font-semibold" data-testid="text-tickets-title">Invoice Management</h1>
+            <p className="text-sm text-muted-foreground">Create and manage travel invoices</p>
           </div>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
