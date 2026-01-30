@@ -731,11 +731,6 @@ export default function TicketsPage() {
                   <div className="flex items-center justify-between pt-2 border-t">
                     <div className="flex flex-col">
                       <span className="font-mono font-semibold text-primary">{formatCurrency(ticket.faceValue)}</span>
-                      {(ticket.passengerCount || 1) > 1 && (
-                        <span className="text-xs text-muted-foreground">
-                          ({formatCurrency(ticket.faceValue / (ticket.passengerCount || 1))}/person)
-                        </span>
-                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       {ticket.invoiceId && (
@@ -813,11 +808,6 @@ export default function TicketsPage() {
                           <span className="font-mono font-semibold text-primary">
                             {formatCurrency(ticket.faceValue)}
                           </span>
-                          {(ticket.passengerCount || 1) > 1 && (
-                            <span className="text-xs text-muted-foreground">
-                              ({formatCurrency(ticket.faceValue / (ticket.passengerCount || 1))}/person)
-                            </span>
-                          )}
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
