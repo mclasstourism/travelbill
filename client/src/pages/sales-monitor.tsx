@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -83,8 +82,6 @@ export default function SalesMonitor() {
     { count: 0, totalAmount: 0, paidAmount: 0, depositUsed: 0 }
   );
   
-  // For ticket-based calculations (vendor tab)
-  const agentSales = tickets;
 
   const calculateTotals = (ticketList: Ticket[]) => {
     return ticketList.reduce(
@@ -366,20 +363,7 @@ export default function SalesMonitor() {
         </Card>
       </div>
 
-      <Tabs defaultValue="clients" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="clients" data-testid="tab-clients">
-            <Users className="w-4 h-4 mr-2" />
-            Clients
-          </TabsTrigger>
-          <TabsTrigger value="vendors" data-testid="tab-vendors">
-            <Building2 className="w-4 h-4 mr-2" />
-            Vendors
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="clients" className="mt-6">
-          <Card>
+      <Card className="mt-6">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="w-5 h-5" />
@@ -441,6 +425,7 @@ export default function SalesMonitor() {
                       <TableHead>Date</TableHead>
                       <TableHead>Client Name</TableHead>
                       <TableHead>Client Type</TableHead>
+                      <TableHead>Vendor</TableHead>
                       <TableHead className="text-right">Vendor Price</TableHead>
                       <TableHead className="text-right">MC Addition</TableHead>
                       <TableHead className="text-right">Grand Total</TableHead>
@@ -451,7 +436,7 @@ export default function SalesMonitor() {
                   <TableBody>
                     {clientInvoices.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                           No invoices yet
                         </TableCell>
                       </TableRow>
@@ -459,6 +444,7 @@ export default function SalesMonitor() {
                       clientInvoices.map((invoice) => {
                         const clientName = getCustomerName(invoice.customerId);
                         const clientType = isAgent(invoice.customerId) ? "Agent" : "Customer";
+                        const vendorName = getVendorName(invoice.vendorId || null);
                         const vendorPrice = invoice.vendorCost || 0;
                         const mcAddition = (invoice.total || 0) - vendorPrice;
                         return (
@@ -479,6 +465,12 @@ export default function SalesMonitor() {
                                 )}
                               </Badge>
                             </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <Building2 className="w-3 h-3 text-muted-foreground" />
+                                <span className="text-sm">{vendorName}</span>
+                              </div>
+                            </TableCell>
                             <TableCell className="text-right font-mono">
                               {formatCurrency(vendorPrice)}
                             </TableCell>
@@ -507,126 +499,7 @@ export default function SalesMonitor() {
                 </Table>
               </div>
             </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="vendors" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="w-5 h-5" />
-                Vendor Invoices
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {/* Vendor Invoice Summary Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                      <FileText className="w-4 h-4" />
-                      Total Invoices
-                    </div>
-                    <div className="text-2xl font-bold">{vendorInvoices.length}</div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                      <Building2 className="w-4 h-4" />
-                      Vendor Price
-                    </div>
-                    <div className="text-2xl font-bold font-mono">
-                      {formatCurrency(vendorInvoiceTotals.vendorPrice)}
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                      <TrendingUp className="w-4 h-4" />
-                      MC Addition
-                    </div>
-                    <div className="text-2xl font-bold font-mono text-primary">
-                      {formatCurrency(vendorInvoiceTotals.mcAddition)}
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                      <DollarSign className="w-4 h-4" />
-                      Grand Total
-                    </div>
-                    <div className="text-2xl font-bold font-mono text-green-600">
-                      {formatCurrency(vendorInvoiceTotals.totalAmount)}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-              
-              <div className="rounded-md border overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Invoice #</TableHead>
-                      <TableHead>Client Name</TableHead>
-                      <TableHead className="text-right">Vendor Price</TableHead>
-                      <TableHead className="text-right">MC Addition</TableHead>
-                      <TableHead className="text-right">Grand Total</TableHead>
-                      <TableHead>Payment Method</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {vendorInvoices.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                          No vendor invoices yet
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      vendorInvoices.map((invoice) => {
-                        const clientName = getCustomerName(invoice.customerId);
-                        const vendorPrice = invoice.vendorCost || 0;
-                        const mcAddition = (invoice.total || 0) - vendorPrice;
-                        return (
-                          <TableRow key={invoice.id} data-testid={`row-vendor-invoice-${invoice.id}`}>
-                            <TableCell className="font-mono font-medium">
-                              {invoice.invoiceNumber}
-                            </TableCell>
-                            <TableCell className="font-medium">{clientName}</TableCell>
-                            <TableCell className="text-right font-mono">
-                              {formatCurrency(vendorPrice)}
-                            </TableCell>
-                            <TableCell className="text-right font-mono text-primary">
-                              {formatCurrency(mcAddition)}
-                            </TableCell>
-                            <TableCell className="text-right font-mono font-semibold">
-                              {formatCurrency(invoice.total || 0)}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1">
-                                {getPaymentIcon(invoice.paymentMethod)}
-                                <span className="capitalize text-sm">{invoice.paymentMethod}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={invoice.status === "paid" ? "default" : "destructive"}>
-                                {invoice.status === "paid" ? "Paid" : "Unpaid"}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      </Card>
     </div>
   );
 }
