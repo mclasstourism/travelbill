@@ -262,11 +262,10 @@ export default function TicketsPage() {
     return ticketPricesList.reduce((sum, price) => sum + (price || 0), 0);
   }, [ticketPricesList]);
 
-  // Auto-calculate face value based on sum of individual prices + MC Addition
+  // Auto-calculate face value based on sum of individual prices + MC Addition (flat, not per passenger)
   useEffect(() => {
     const middleClass = Number(watchMiddleClassPrice) || 0;
-    const mcTotal = middleClass * passengerCount;
-    const total = totalTicketPrices + mcTotal;
+    const total = totalTicketPrices + middleClass;
     form.setValue("faceValue", total);
     // Also update the vendor/airline price to average for backend compatibility
     const avgPrice = passengerCount > 0 ? totalTicketPrices / passengerCount : 0;
@@ -1600,8 +1599,8 @@ export default function TicketsPage() {
                   <span className="font-mono">AED {totalTicketPrices.toFixed(2)}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">MC Addition ({passengerCount}×):</span>
-                  <span className="font-mono">AED {((Number(watchMiddleClassPrice) || 0) * passengerCount).toFixed(2)}</span>
+                  <span className="text-muted-foreground">MC Addition:</span>
+                  <span className="font-mono">AED {(Number(watchMiddleClassPrice) || 0).toFixed(2)}</span>
                 </div>
                 <div className="flex items-center justify-between pt-1 border-t">
                   <span className="font-medium">Total:</span>
