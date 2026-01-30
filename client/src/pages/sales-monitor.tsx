@@ -67,10 +67,12 @@ export default function SalesMonitor() {
     return agents.some((a) => a.id === customerId);
   };
 
-  // Vendor sales = customer sales only (not agents)
-  const vendorTickets = tickets.filter((t) => !isAgent(t.customerId));
-  // Agent sales = tickets sold to agents
-  const agentSales = tickets.filter((t) => isAgent(t.customerId));
+  // Client sales = ALL tickets (both customer and agent sales)
+  const clientSales = tickets;
+  // Vendor/Agency sales = tickets sourced FROM vendors/agencies (vendorId is set)
+  const vendorTickets = tickets.filter((t) => t.vendorId && t.vendorId.trim() !== "");
+  // For backward compatibility
+  const agentSales = clientSales;
 
   const calculateTotals = (ticketList: Ticket[]) => {
     return ticketList.reduce(
@@ -332,7 +334,7 @@ export default function SalesMonitor() {
                 <Building2 className="w-6 h-6 text-orange-600 dark:text-orange-400" />
               </div>
               <div>
-                <div className="text-sm text-muted-foreground">Vendor Sales</div>
+                <div className="text-sm text-muted-foreground">Agency Sales</div>
                 <div className="text-xl font-bold">{vendorTickets.length} Sales</div>
                 <div className="text-sm font-mono text-orange-600 dark:text-orange-400">
                   {formatCurrency(vendorTotals.faceValue)}
@@ -349,9 +351,9 @@ export default function SalesMonitor() {
             <Users className="w-4 h-4 mr-2" />
             Clients
           </TabsTrigger>
-          <TabsTrigger value="vendors" data-testid="tab-vendors">
+          <TabsTrigger value="agencies" data-testid="tab-agencies">
             <Building2 className="w-4 h-4 mr-2" />
-            Vendors
+            Agencies
           </TabsTrigger>
         </TabsList>
 
@@ -403,12 +405,12 @@ export default function SalesMonitor() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="vendors" className="mt-6">
+        <TabsContent value="agencies" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Building2 className="w-5 h-5" />
-                Vendor Sales
+                Agency Sales
               </CardTitle>
             </CardHeader>
             <CardContent>
