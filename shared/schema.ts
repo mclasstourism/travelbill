@@ -399,7 +399,8 @@ export const insertTicketSchema = z.object({
   travelDate: z.string().min(1, "Travel date is required"),
   returnDate: z.string().optional(), // Only for round trip
   passengerName: z.string().min(1, "Passenger name is required"),
-  passengers: z.array(z.string()).optional(), // Additional passengers
+  passengerNames: z.array(z.string()).optional(), // All passenger names
+  passengers: z.array(z.string()).optional(), // Additional passengers (legacy)
   passengerCount: z.number().min(1).default(1), // Total number of passengers
   vendorPrice: z.number().min(0).default(0), // Price from vendor
   airlinePrice: z.number().min(0).default(0), // Airline's price

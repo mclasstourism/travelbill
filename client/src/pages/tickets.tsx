@@ -716,13 +716,17 @@ export default function TicketsPage() {
                           <span className="text-muted-foreground text-sm">No ticket #</span>
                         )}
                       </div>
-                      <p className="font-medium truncate">{ticket.passengerName}</p>
-                      {(ticket.passengerCount || 1) > 1 && (
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Users className="w-3 h-3" />
-                          +{(ticket.passengerCount || 1) - 1} more passengers
-                        </span>
-                      )}
+                      <div className="space-y-0.5">
+                        {(ticket.passengerNames && ticket.passengerNames.length > 0) ? (
+                          ticket.passengerNames.map((name: string, idx: number) => (
+                            <p key={idx} className={`truncate ${idx === 0 ? 'font-medium' : 'text-sm text-muted-foreground'}`}>
+                              {idx === 0 ? name : `• ${name}`}
+                            </p>
+                          ))
+                        ) : (
+                          <p className="font-medium truncate">{ticket.passengerName}</p>
+                        )}
+                      </div>
                     </div>
                     <Badge variant={(ticket.passengerCount || 1) > 1 ? "default" : "outline"} className="shrink-0">
                       {(ticket.passengerCount || 1) > 1 ? `Group (${ticket.passengerCount})` : "Per Person"}
@@ -814,13 +818,15 @@ export default function TicketsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-col">
-                          <span>{ticket.passengerName}</span>
-                          {(ticket.passengerCount || 1) > 1 && (
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Users className="w-3 h-3" />
-                              +{(ticket.passengerCount || 1) - 1} more
-                            </span>
+                        <div className="flex flex-col gap-0.5">
+                          {(ticket.passengerNames && ticket.passengerNames.length > 0) ? (
+                            ticket.passengerNames.map((name: string, idx: number) => (
+                              <span key={idx} className={idx === 0 ? '' : 'text-sm text-muted-foreground'}>
+                                {idx === 0 ? name : `• ${name}`}
+                              </span>
+                            ))
+                          ) : (
+                            <span>{ticket.passengerName}</span>
                           )}
                         </div>
                       </TableCell>
