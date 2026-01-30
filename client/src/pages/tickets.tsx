@@ -718,7 +718,7 @@ export default function TicketsPage() {
                       </div>
                     </div>
                     <Badge variant="outline" className="shrink-0">
-                      {(ticket.passengerCount || 1)} {(ticket.passengerCount || 1) === 1 ? "Customer" : "Customers"}
+                      {(ticket.passengerCount || 1)} {(ticket.passengerCount || 1) === 1 ? "Passenger" : "Passengers"}
                     </Badge>
                   </div>
                   
@@ -812,7 +812,7 @@ export default function TicketsPage() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {(ticket.passengerCount || 1)} {(ticket.passengerCount || 1) === 1 ? "Customer" : "Customers"}
+                          {(ticket.passengerCount || 1)} {(ticket.passengerCount || 1) === 1 ? "Passenger" : "Passengers"}
                         </Badge>
                       </TableCell>
                       <TableCell>
