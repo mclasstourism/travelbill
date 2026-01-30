@@ -409,6 +409,7 @@ export const insertTicketSchema = z.object({
   deductFromDeposit: z.boolean().default(false),
   depositDeducted: z.number().min(0).default(0),
   eticketImage: z.string().optional(), // URL to e-ticket image (PNG/screenshot)
+  eticketFiles: z.array(z.string()).optional(), // Array of e-ticket file URLs (PDF or images)
   issuedBy: z.string().min(1, "Bill creator is required"),
 });
 
