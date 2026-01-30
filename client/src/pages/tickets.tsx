@@ -1397,52 +1397,27 @@ export default function TicketsPage() {
 
               {/* Separator and Trip Details */}
               <div className="border-t pt-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="tripType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Trip Type *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-trip-type">
-                            <SelectValue placeholder="Select trip type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="one_way">One Way</SelectItem>
-                          <SelectItem value="round_trip">Round Trip</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="seatClass"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Class *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-seat-class">
-                            <SelectValue placeholder="Select class" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="economy">Economy</SelectItem>
-                          <SelectItem value="business">Business</SelectItem>
-                          <SelectItem value="first">First Class</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="tripType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Trip Type *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-trip-type">
+                          <SelectValue placeholder="Select trip type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="one_way">One Way</SelectItem>
+                        <SelectItem value="round_trip">Round Trip</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <div>
                 <FormLabel>Route *</FormLabel>
