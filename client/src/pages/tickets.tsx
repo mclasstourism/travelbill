@@ -213,10 +213,13 @@ export default function TicketsPage() {
   const selectedVendor = vendors.find((v) => v.id === watchVendorId);
   const vendorAirlines = selectedVendor?.airlines || [];
 
-  // Helper to get client name by customer ID
+  // Helper to get client name by customer ID (checks both customers and agents)
   const getClientName = (customerId: string) => {
     const customer = customers.find((c) => c.id === customerId);
-    return customer?.name || "Unknown Client";
+    if (customer) return customer.name;
+    const agent = agents.find((a) => a.id === customerId);
+    if (agent) return agent.name;
+    return "Unknown Client";
   };
 
   // Filter customers based on search query
