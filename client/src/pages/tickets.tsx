@@ -749,12 +749,29 @@ export default function TicketsPage() {
                       <span className="font-mono font-semibold text-primary">{formatCurrency(ticket.faceValue)}</span>
                     </div>
                     <div className="flex items-center gap-2">
+                      {/* E-ticket button - opens uploaded e-ticket file */}
+                      {(ticket.eticketFiles?.length || ticket.eticketImage) && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => {
+                            const fileUrl = ticket.eticketFiles?.[0] || ticket.eticketImage;
+                            if (fileUrl) window.open(fileUrl, '_blank');
+                          }}
+                          data-testid={`button-view-eticket-mobile-${ticket.id}`}
+                          title="View E-Ticket"
+                          className="text-blue-600 dark:text-blue-400"
+                        >
+                          <TicketIcon className="w-4 h-4" />
+                        </Button>
+                      )}
                       {ticket.invoiceId && (
                         <Button
                           size="icon"
                           variant="ghost"
                           onClick={() => window.open(`/print-invoice/${ticket.invoiceId}`, '_blank')}
                           data-testid={`button-print-invoice-mobile-${ticket.id}`}
+                          title="Print Invoice"
                         >
                           <Printer className="w-4 h-4" />
                         </Button>
@@ -762,13 +779,11 @@ export default function TicketsPage() {
                       <Button
                         size="icon"
                         variant="ghost"
-                        onClick={() => {
-                          setInvoiceTicket(ticket);
-                          setIsInvoiceOpen(true);
-                        }}
-                        data-testid={`button-view-invoice-mobile-${ticket.id}`}
+                        onClick={() => setViewingTicket(ticket)}
+                        data-testid={`button-view-ticket-mobile-${ticket.id}`}
+                        title="View Details"
                       >
-                        <FileText className="w-4 h-4" />
+                        <Eye className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
@@ -823,14 +838,27 @@ export default function TicketsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {ticket.invoiceId && (
+                          {/* E-ticket button - opens uploaded e-ticket file */}
+                          {(ticket.eticketFiles?.length || ticket.eticketImage) && (
                             <Button
                               size="icon"
                               variant="ghost"
                               onClick={() => {
-                                // Open print invoice in new window
-                                window.open(`/print-invoice/${ticket.invoiceId}`, '_blank');
+                                const fileUrl = ticket.eticketFiles?.[0] || ticket.eticketImage;
+                                if (fileUrl) window.open(fileUrl, '_blank');
                               }}
+                              data-testid={`button-view-eticket-${ticket.id}`}
+                              title="View E-Ticket"
+                              className="text-blue-600 dark:text-blue-400"
+                            >
+                              <TicketIcon className="w-4 h-4" />
+                            </Button>
+                          )}
+                          {ticket.invoiceId && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => window.open(`/print-invoice/${ticket.invoiceId}`, '_blank')}
                               data-testid={`button-print-invoice-${ticket.id}`}
                               title="Print Invoice"
                             >
@@ -840,14 +868,11 @@ export default function TicketsPage() {
                           <Button
                             size="icon"
                             variant="ghost"
-                            onClick={() => {
-                              setInvoiceTicket(ticket);
-                              setIsInvoiceOpen(true);
-                            }}
-                            data-testid={`button-invoice-ticket-${ticket.id}`}
-                            title="View Invoice"
+                            onClick={() => setViewingTicket(ticket)}
+                            data-testid={`button-view-ticket-${ticket.id}`}
+                            title="View Details"
                           >
-                            <FileText className="w-4 h-4" />
+                            <Eye className="w-4 h-4" />
                           </Button>
                           <Button
                             size="icon"
