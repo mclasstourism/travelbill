@@ -1267,66 +1267,57 @@ export default function TicketsPage() {
               <div className="space-y-3">
                 <FormLabel>Ticket Source</FormLabel>
                   <Select 
-                    value={ticketSource} 
-                    onValueChange={(value: "direct" | "vendor") => {
-                      setTicketSource(value);
-                      form.setValue("vendorId", value === "direct" ? "direct" : "");
-                      form.setValue("airlines", "");
-                      if (value === "direct") {
+                    value={ticketSource === "direct" ? `airline:${form.watch("airlines") || ""}` : `vendor:${form.watch("vendorId") || ""}`}
+                    onValueChange={(value: string) => {
+                      if (value.startsWith("airline:")) {
+                        const airlineName = value.replace("airline:", "");
+                        setTicketSource("direct");
+                        form.setValue("vendorId", "");
+                        form.setValue("airlines", airlineName);
                         form.setValue("vendorPrice", 0);
-                      } else {
+                      } else if (value.startsWith("vendor:")) {
+                        const vendorId = value.replace("vendor:", "");
+                        setTicketSource("vendor");
+                        form.setValue("vendorId", vendorId);
+                        form.setValue("airlines", "");
                         form.setValue("airlinePrice", 0);
                       }
                     }}
                   >
                     <SelectTrigger data-testid="select-ticket-source">
-                      <SelectValue placeholder="Select source" />
+                      <SelectValue placeholder="Select agency or airline" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="direct">
-                        <div className="flex items-center gap-2">
-                          <Plane className="w-4 h-4 text-muted-foreground" />
-                          Airlines (direct)
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="vendor">
-                        <div className="flex items-center gap-2">
-                          <Building2 className="w-4 h-4 text-muted-foreground" />
-                          Vendor
-                        </div>
-                      </SelectItem>
+                    <SelectContent className="max-h-80">
+                      {/* Agencies Section */}
+                      {vendors.length > 0 && (
+                        <>
+                          <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Agencies</div>
+                          {vendors.map((vendor) => (
+                            <SelectItem key={`vendor:${vendor.id}`} value={`vendor:${vendor.id}`}>
+                              <div className="flex items-center gap-2">
+                                {vendor.logo ? (
+                                  <img src={vendor.logo} alt={vendor.name} className="w-5 h-5 object-contain rounded" />
+                                ) : (
+                                  <Building2 className="w-4 h-4 text-muted-foreground" />
+                                )}
+                                {vendor.name}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </>
+                      )}
+                      {/* Airlines Section */}
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1 pt-2">Airlines (Direct)</div>
+                      {airlines.map((airline) => (
+                        <SelectItem key={`airline:${airline.name}`} value={`airline:${airline.name}`}>
+                          <div className="flex items-center gap-2">
+                            <img src={airline.logo} alt={airline.name} className="w-5 h-5 object-contain rounded" />
+                            {airline.name}
+                          </div>
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
-                  
-                  {ticketSource === "vendor" && (
-                    <FormField
-                      control={form.control}
-                      name="vendorId"
-                      render={({ field }) => (
-                        <FormItem className="mt-3">
-                          <Select onValueChange={field.onChange} value={field.value || ""}>
-                            <FormControl>
-                              <SelectTrigger data-testid="select-ticket-vendor">
-                                <SelectValue placeholder="Select vendor" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {vendors.map((vendor) => (
-                                <SelectItem key={vendor.id} value={vendor.id}>
-                                  <div className="flex items-center gap-2">
-                                    <Building2 className="w-4 h-4 text-muted-foreground" />
-                                    {vendor.name}
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                  
               </div>
 
               {/* Row 4: Ticket #, Ticket Class, Passenger Name, Ticket Price - Table Form */}
@@ -1677,27 +1668,20 @@ export default function TicketsPage() {
                     <FormItem>
                       <FormLabel>Airlines *</FormLabel>
                       {ticketSource === "direct" ? (
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-airlines-direct">
-                              <SelectValue placeholder="Select airline" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="max-h-80">
-                            {airlines.map((airline) => (
-                              <SelectItem key={airline.id} value={airline.name}>
-                                <div className="flex items-center gap-2">
-                                  <img 
-                                    src={airline.logo} 
-                                    alt={airline.name} 
-                                    className="w-6 h-4 object-contain"
-                                  />
-                                  <span>{airline.name} ({airline.code})</span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        // Direct airline - show as read-only display since it's set from source
+                        <div className="flex items-center gap-2 h-9 px-3 py-2 bg-muted rounded-md border">
+                          {(() => {
+                            const selectedAirline = airlines.find(a => a.name === field.value);
+                            return selectedAirline ? (
+                              <>
+                                <img src={selectedAirline.logo} alt={selectedAirline.name} className="w-5 h-5 object-contain rounded" />
+                                <span className="text-sm">{selectedAirline.name}</span>
+                              </>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">Select from source above</span>
+                            );
+                          })()}
+                        </div>
                       ) : vendorAirlines.length > 0 ? (
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
