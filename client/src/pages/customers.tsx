@@ -1,11 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
@@ -30,7 +29,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Users, Search, Wallet, Loader2 } from "lucide-react";
+import { Plus, Users, Search, Loader2, Pencil } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertCustomerSchema, type Customer, type InsertCustomer } from "@shared/schema";
@@ -45,6 +44,8 @@ function formatCurrency(amount: number): string {
 
 export default function CustomersPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
@@ -63,6 +64,31 @@ export default function CustomersPage() {
       depositBalance: 0,
     },
   });
+
+  const editForm = useForm<InsertCustomer>({
+    resolver: zodResolver(insertCustomerSchema),
+    defaultValues: {
+      name: "",
+      phone: "",
+      company: "",
+      address: "",
+      email: "",
+      depositBalance: 0,
+    },
+  });
+
+  useEffect(() => {
+    if (editingCustomer) {
+      editForm.reset({
+        name: editingCustomer.name,
+        phone: editingCustomer.phone,
+        company: editingCustomer.company || "",
+        address: editingCustomer.address || "",
+        email: editingCustomer.email || "",
+        depositBalance: editingCustomer.depositBalance,
+      });
+    }
+  }, [editingCustomer, editForm]);
 
   const createMutation = useMutation({
     mutationFn: async (data: InsertCustomer) => {
@@ -88,6 +114,32 @@ export default function CustomersPage() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async (data: InsertCustomer) => {
+      if (!editingCustomer) throw new Error("No customer selected");
+      const res = await apiRequest("PATCH", `/api/customers/${editingCustomer.id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
+      setIsEditOpen(false);
+      setEditingCustomer(null);
+      editForm.reset();
+      toast({
+        title: "Customer updated",
+        description: "The customer has been updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update customer",
+        variant: "destructive",
+      });
+    },
+  });
+
   const filteredCustomers = customers.filter((customer) =>
     customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     customer.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -96,6 +148,15 @@ export default function CustomersPage() {
 
   const onSubmit = (data: InsertCustomer) => {
     createMutation.mutate(data);
+  };
+
+  const onEditSubmit = (data: InsertCustomer) => {
+    updateMutation.mutate(data);
+  };
+
+  const handleEditClick = (customer: Customer) => {
+    setEditingCustomer(customer);
+    setIsEditOpen(true);
   };
 
   return (
@@ -148,6 +209,7 @@ export default function CustomersPage() {
                     <TableHead>Phone</TableHead>
                     <TableHead>Company</TableHead>
                     <TableHead className="text-right">Deposit Balance</TableHead>
+                    <TableHead className="w-16">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -164,6 +226,16 @@ export default function CustomersPage() {
                         <span className={customer.depositBalance >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
                           {formatCurrency(customer.depositBalance)}
                         </span>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleEditClick(customer)}
+                          data-testid={`button-edit-customer-${customer.id}`}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -294,6 +366,139 @@ export default function CustomersPage() {
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   )}
                   Save Customer
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isEditOpen} onOpenChange={(open) => {
+        setIsEditOpen(open);
+        if (!open) setEditingCustomer(null);
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Customer</DialogTitle>
+            <DialogDescription>
+              Update the customer details below.
+            </DialogDescription>
+          </DialogHeader>
+
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
+              <FormField
+                control={editForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Customer name"
+                        {...field}
+                        data-testid="input-edit-customer-name"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={editForm.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="+971 50 123 4567"
+                        {...field}
+                        data-testid="input-edit-customer-phone"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={editForm.control}
+                name="company"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Company</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Company name"
+                        {...field}
+                        data-testid="input-edit-customer-company"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={editForm.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Address</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Street address"
+                        {...field}
+                        data-testid="input-edit-customer-address"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={editForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="email@example.com"
+                        {...field}
+                        data-testid="input-edit-customer-email"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setIsEditOpen(false);
+                    setEditingCustomer(null);
+                  }}
+                  data-testid="button-cancel-edit-customer"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={updateMutation.isPending}
+                  data-testid="button-update-customer"
+                >
+                  {updateMutation.isPending && (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  )}
+                  Update Customer
                 </Button>
               </div>
             </form>

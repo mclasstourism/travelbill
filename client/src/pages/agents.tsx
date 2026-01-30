@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -29,7 +29,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Briefcase, Search, Loader2 } from "lucide-react";
+import { Plus, Briefcase, Search, Loader2, Pencil } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertAgentSchema, type Agent, type InsertAgent } from "@shared/schema";
@@ -44,6 +44,8 @@ function formatCurrency(amount: number): string {
 
 export default function AgentsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
@@ -63,6 +65,33 @@ export default function AgentsPage() {
       depositBalance: 0,
     },
   });
+
+  const editForm = useForm<InsertAgent>({
+    resolver: zodResolver(insertAgentSchema),
+    defaultValues: {
+      name: "",
+      phone: "",
+      company: "",
+      address: "",
+      email: "",
+      creditBalance: 0,
+      depositBalance: 0,
+    },
+  });
+
+  useEffect(() => {
+    if (editingAgent) {
+      editForm.reset({
+        name: editingAgent.name,
+        phone: editingAgent.phone,
+        company: editingAgent.company || "",
+        address: editingAgent.address || "",
+        email: editingAgent.email || "",
+        creditBalance: editingAgent.creditBalance,
+        depositBalance: editingAgent.depositBalance,
+      });
+    }
+  }, [editingAgent, editForm]);
 
   const createMutation = useMutation({
     mutationFn: async (data: InsertAgent) => {
@@ -88,6 +117,32 @@ export default function AgentsPage() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async (data: InsertAgent) => {
+      if (!editingAgent) throw new Error("No agent selected");
+      const res = await apiRequest("PATCH", `/api/agents/${editingAgent.id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
+      setIsEditOpen(false);
+      setEditingAgent(null);
+      editForm.reset();
+      toast({
+        title: "Agent updated",
+        description: "The agent has been updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update agent",
+        variant: "destructive",
+      });
+    },
+  });
+
   const filteredAgents = agents.filter((agent) =>
     agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     agent.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -96,6 +151,15 @@ export default function AgentsPage() {
 
   const onSubmit = (data: InsertAgent) => {
     createMutation.mutate(data);
+  };
+
+  const onEditSubmit = (data: InsertAgent) => {
+    updateMutation.mutate(data);
+  };
+
+  const handleEditClick = (agent: Agent) => {
+    setEditingAgent(agent);
+    setIsEditOpen(true);
   };
 
   return (
@@ -149,6 +213,7 @@ export default function AgentsPage() {
                     <TableHead>Phone</TableHead>
                     <TableHead className="text-right">Credit Balance</TableHead>
                     <TableHead className="text-right">Deposit Balance</TableHead>
+                    <TableHead className="w-16">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -170,6 +235,16 @@ export default function AgentsPage() {
                         <span className="text-green-600 dark:text-green-400">
                           {formatCurrency(agent.depositBalance)}
                         </span>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleEditClick(agent)}
+                          data-testid={`button-edit-agent-${agent.id}`}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -300,6 +375,139 @@ export default function AgentsPage() {
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   )}
                   Save Agent
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isEditOpen} onOpenChange={(open) => {
+        setIsEditOpen(open);
+        if (!open) setEditingAgent(null);
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Agent</DialogTitle>
+            <DialogDescription>
+              Update the agent details below.
+            </DialogDescription>
+          </DialogHeader>
+
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
+              <FormField
+                control={editForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Agent name"
+                        {...field}
+                        data-testid="input-edit-agent-name"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={editForm.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="+971 50 123 4567"
+                        {...field}
+                        data-testid="input-edit-agent-phone"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={editForm.control}
+                name="company"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Company</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Company name"
+                        {...field}
+                        data-testid="input-edit-agent-company"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={editForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="email@example.com"
+                        {...field}
+                        data-testid="input-edit-agent-email"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={editForm.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Address</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Business address"
+                        {...field}
+                        data-testid="input-edit-agent-address"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setIsEditOpen(false);
+                    setEditingAgent(null);
+                  }}
+                  data-testid="button-cancel-edit-agent"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={updateMutation.isPending}
+                  data-testid="button-update-agent"
+                >
+                  {updateMutation.isPending && (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  )}
+                  Update Agent
                 </Button>
               </div>
             </form>

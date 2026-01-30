@@ -250,6 +250,22 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/customers/:id", async (req, res) => {
+    try {
+      const existing = await storage.getCustomer(req.params.id);
+      if (!existing) {
+        res.status(404).json({ error: "Customer not found" });
+        return;
+      }
+      
+      const updates = req.body;
+      const customer = await storage.updateCustomer(req.params.id, updates);
+      res.json(customer);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update customer" });
+    }
+  });
+
   // Agents
   app.get("/api/agents", async (req, res) => {
     try {
@@ -294,6 +310,22 @@ export async function registerRoutes(
       } else {
         res.status(500).json({ error: "Failed to create agent" });
       }
+    }
+  });
+
+  app.patch("/api/agents/:id", async (req, res) => {
+    try {
+      const existing = await storage.getAgent(req.params.id);
+      if (!existing) {
+        res.status(404).json({ error: "Agent not found" });
+        return;
+      }
+      
+      const updates = req.body;
+      const agent = await storage.updateAgent(req.params.id, updates);
+      res.json(agent);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update agent" });
     }
   });
 
