@@ -197,13 +197,13 @@ export default function CustomersPage() {
         <div className="flex items-center gap-3">
           <SidebarTrigger className="lg:hidden" data-testid="button-sidebar-toggle" />
           <div>
-            <h1 className="text-xl md:text-2xl font-semibold" data-testid="text-customers-title">Customers</h1>
-            <p className="text-sm text-muted-foreground">Manage your customer database</p>
+            <h1 className="text-xl md:text-2xl font-semibold" data-testid="text-customers-title">Clients</h1>
+            <p className="text-sm text-muted-foreground">Manage clients</p>
           </div>
         </div>
         <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto" data-testid="button-add-customer">
           <Plus className="w-4 h-4 mr-2" />
-          Add Customer
+          Add Client
         </Button>
       </div>
 
