@@ -37,7 +37,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Wallet, Search, Loader2, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
+import { Plus, Wallet, Search, Loader2, ArrowUpCircle, ArrowDownCircle, Eye, ArrowLeft } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
@@ -63,6 +63,7 @@ type AddDepositForm = z.infer<typeof addDepositFormSchema>;
 export default function DepositsPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const { toast } = useToast();
 
   const { data: customers = [], isLoading: isLoadingCustomers } = useQuery<Customer[]>({
@@ -98,7 +99,7 @@ export default function DepositsPage() {
       form.reset();
       toast({
         title: "Deposit added",
-        description: "The deposit has been added successfully.",
+        description: "The deposit has been recorded successfully.",
       });
     },
     onError: (error: Error) => {
@@ -110,27 +111,134 @@ export default function DepositsPage() {
     },
   });
 
-  const customersWithDeposits = customers.filter((c) => c.depositBalance > 0);
-  const totalDeposits = customers.reduce((sum, c) => sum + c.depositBalance, 0);
+  const filteredCustomers = customers.filter((customer) =>
+    customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    customer.phone?.includes(searchQuery)
+  );
 
-  const filteredTransactions = transactions.filter((tx) => {
-    const customer = customers.find((c) => c.id === tx.customerId);
-    return customer?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tx.description.toLowerCase().includes(searchQuery.toLowerCase());
-  });
+  const customerTransactions = selectedCustomer 
+    ? transactions
+        .filter(tx => tx.customerId === selectedCustomer.id)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    : [];
+
+  const totalDeposits = customers.reduce((sum, c) => sum + (c.depositBalance > 0 ? c.depositBalance : 0), 0);
 
   const onSubmit = (data: AddDepositForm) => {
     addDepositMutation.mutate(data);
   };
 
-  const isLoading = isLoadingCustomers || isLoadingTransactions;
+  const handleViewHistory = (customer: Customer) => {
+    setSelectedCustomer(customer);
+  };
+
+  if (selectedCustomer) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => setSelectedCustomer(null)} data-testid="button-back">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-semibold" data-testid="text-customer-history-title">
+              {selectedCustomer.name} - Transaction History
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Phone: {selectedCustomer.phone} | Current Balance: {formatCurrency(selectedCustomer.depositBalance)}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Current Balance</CardTitle>
+              <Wallet className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className={`text-2xl font-bold font-mono ${selectedCustomer.depositBalance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                {formatCurrency(selectedCustomer.depositBalance)}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
+              <ArrowUpCircle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{customerTransactions.length}</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Transaction History</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {customerTransactions.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Wallet className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p className="text-lg font-medium">No transactions found</p>
+                <p className="text-sm">Add a deposit to see transaction history</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead className="text-right">Balance After</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {customerTransactions.map((tx) => (
+                      <TableRow key={tx.id} data-testid={`row-transaction-${tx.id}`}>
+                        <TableCell className="font-mono text-sm">
+                          {format(new Date(tx.createdAt), "dd/MM/yyyy HH:mm")}
+                        </TableCell>
+                        <TableCell>{tx.description}</TableCell>
+                        <TableCell>
+                          {tx.type === "credit" ? (
+                            <Badge variant="default" className="bg-green-600">
+                              <ArrowUpCircle className="w-3 h-3 mr-1" />
+                              Credit
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive">
+                              <ArrowDownCircle className="w-3 h-3 mr-1" />
+                              Debit
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className={`text-right font-mono font-semibold ${tx.type === "credit" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                          {tx.type === "credit" ? "+" : "-"}{formatCurrency(tx.amount)}
+                        </TableCell>
+                        <TableCell className="text-right font-mono font-semibold">
+                          {formatCurrency(tx.balanceAfter)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-semibold" data-testid="text-deposits-title">Customer Deposits</h1>
-          <p className="text-sm text-muted-foreground">Manage customer deposit balances</p>
+          <p className="text-sm text-muted-foreground">Track customer deposit balances and transactions</p>
         </div>
         <Button onClick={() => setIsAddOpen(true)} data-testid="button-add-deposit">
           <Plus className="w-4 h-4 mr-2" />
@@ -138,125 +246,91 @@ export default function DepositsPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Deposits
-            </CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Customer Deposits</CardTitle>
+            <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold font-mono text-green-600 dark:text-green-400">
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400 font-mono">
               {formatCurrency(totalDeposits)}
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Customers with Deposits
-            </CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Customers with Deposits</CardTitle>
+            <ArrowUpCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold">
-              {customersWithDeposits.length}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Transactions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold">
-              {transactions.length}
-            </div>
+            <div className="text-2xl font-bold">{customers.filter(c => c.depositBalance > 0).length}</div>
           </CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader className="pb-4">
-          <div className="flex items-center justify-between gap-4">
-            <CardTitle className="text-lg">Deposit History</CardTitle>
+          <div className="flex items-center gap-4">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search transactions..."
+                placeholder="Search customers..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
-                data-testid="input-search-deposits"
+                data-testid="input-search-customers"
               />
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {isLoadingCustomers ? (
             <div className="space-y-4">
               {Array(5).fill(0).map((_, i) => (
                 <Skeleton key={i} className="h-16 w-full" />
               ))}
             </div>
-          ) : filteredTransactions.length === 0 ? (
+          ) : filteredCustomers.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Wallet className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium">No transactions found</p>
-              <p className="text-sm">Add a deposit to get started</p>
+              <p className="text-lg font-medium">No customers found</p>
+              <p className="text-sm">Add customers first to track deposits</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="text-right">Balance After</TableHead>
+                    <TableHead>Customer Name</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Company</TableHead>
+                    <TableHead className="text-right">Current Balance</TableHead>
+                    <TableHead className="w-24">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTransactions.map((tx) => {
-                    const customer = customers.find((c) => c.id === tx.customerId);
-                    return (
-                      <TableRow key={tx.id} data-testid={`row-deposit-${tx.id}`}>
-                        <TableCell className="text-muted-foreground">
-                          {format(new Date(tx.createdAt), "MMM d, yyyy")}
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {customer?.name || "Unknown"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {tx.description}
-                        </TableCell>
-                        <TableCell>
-                          {tx.type === "credit" ? (
-                            <Badge variant="default" size="sm">
-                              <ArrowUpCircle className="w-3 h-3 mr-1" />
-                              Credit
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary" size="sm">
-                              <ArrowDownCircle className="w-3 h-3 mr-1" />
-                              Debit
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right font-mono font-semibold">
-                          <span className={tx.type === "credit" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
-                            {tx.type === "credit" ? "+" : "-"}{formatCurrency(tx.amount)}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right font-mono">
-                          {formatCurrency(tx.balanceAfter)}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  {filteredCustomers.map((customer) => (
+                    <TableRow key={customer.id} data-testid={`row-customer-${customer.id}`}>
+                      <TableCell className="font-medium">{customer.name}</TableCell>
+                      <TableCell className="text-muted-foreground">{customer.phone || "-"}</TableCell>
+                      <TableCell className="text-muted-foreground">{customer.company || "-"}</TableCell>
+                      <TableCell className={`text-right font-mono font-semibold ${customer.depositBalance >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                        {formatCurrency(customer.depositBalance)}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleViewHistory(customer)}
+                          data-testid={`button-view-history-${customer.id}`}
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          History
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>
@@ -269,7 +343,7 @@ export default function DepositsPage() {
           <DialogHeader>
             <DialogTitle>Add Customer Deposit</DialogTitle>
             <DialogDescription>
-              Add funds to a customer's deposit balance.
+              Record a new deposit for a customer.
             </DialogDescription>
           </DialogHeader>
 
@@ -283,7 +357,7 @@ export default function DepositsPage() {
                     <FormLabel>Customer *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger data-testid="select-deposit-customer">
+                        <SelectTrigger data-testid="select-customer">
                           <SelectValue placeholder="Select customer" />
                         </SelectTrigger>
                       </FormControl>
@@ -305,15 +379,14 @@ export default function DepositsPage() {
                 name="amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Amount *</FormLabel>
+                    <FormLabel>Amount (AED) *</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
-                        min={0.01}
                         step="0.01"
                         placeholder="0.00"
                         {...field}
-                        data-testid="input-deposit-amount"
+                        data-testid="input-amount"
                       />
                     </FormControl>
                     <FormMessage />
@@ -331,7 +404,7 @@ export default function DepositsPage() {
                       <Input
                         placeholder="e.g., Cash deposit"
                         {...field}
-                        data-testid="input-deposit-description"
+                        data-testid="input-description"
                       />
                     </FormControl>
                     <FormMessage />
@@ -344,7 +417,7 @@ export default function DepositsPage() {
                   type="button"
                   variant="ghost"
                   onClick={() => setIsAddOpen(false)}
-                  data-testid="button-cancel-deposit"
+                  data-testid="button-cancel"
                 >
                   Cancel
                 </Button>

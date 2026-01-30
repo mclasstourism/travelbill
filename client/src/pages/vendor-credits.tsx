@@ -37,7 +37,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, CreditCard, Search, Loader2, ArrowUpCircle, ArrowDownCircle, Banknote, Building, FileCheck } from "lucide-react";
+import { Plus, CreditCard, Search, Loader2, ArrowUpCircle, ArrowDownCircle, Banknote, Building, Eye, ArrowLeft } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
@@ -65,6 +65,7 @@ type AddTransactionForm = z.infer<typeof addTransactionFormSchema>;
 export default function VendorCreditsPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const { toast } = useToast();
 
   const { data: vendors = [], isLoading: isLoadingVendors } = useQuery<Vendor[]>({
@@ -102,7 +103,7 @@ export default function VendorCreditsPage() {
       form.reset();
       toast({
         title: "Transaction added",
-        description: "The vendor transaction has been added successfully.",
+        description: "The vendor transaction has been recorded successfully.",
       });
     },
     onError: (error: Error) => {
@@ -114,147 +115,261 @@ export default function VendorCreditsPage() {
     },
   });
 
+  const filteredVendors = vendors.filter((vendor) =>
+    vendor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    vendor.phone?.includes(searchQuery)
+  );
+
+  const vendorTransactions = selectedVendor 
+    ? transactions
+        .filter(tx => tx.vendorId === selectedVendor.id)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    : [];
+
   const totalCredits = vendors.reduce((sum, v) => sum + v.creditBalance, 0);
   const totalDeposits = vendors.reduce((sum, v) => sum + v.depositBalance, 0);
-
-  const filteredTransactions = transactions.filter((tx) => {
-    const vendor = vendors.find((v) => v.id === tx.vendorId);
-    return vendor?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tx.description.toLowerCase().includes(searchQuery.toLowerCase());
-  });
 
   const onSubmit = (data: AddTransactionForm) => {
     addTransactionMutation.mutate(data);
   };
 
-  const isLoading = isLoadingVendors || isLoadingTransactions;
+  const handleViewHistory = (vendor: Vendor) => {
+    setSelectedVendor(vendor);
+  };
+
+  if (selectedVendor) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => setSelectedVendor(null)} data-testid="button-back">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-semibold" data-testid="text-vendor-history-title">
+              {selectedVendor.name} - Transaction History
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Phone: {selectedVendor.phone}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Credit Balance</CardTitle>
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold font-mono text-blue-600 dark:text-blue-400">
+                {formatCurrency(selectedVendor.creditBalance)}
+              </div>
+              <p className="text-xs text-muted-foreground">Credit line from vendor</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Deposit Balance</CardTitle>
+              <Banknote className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold font-mono text-green-600 dark:text-green-400">
+                {formatCurrency(selectedVendor.depositBalance)}
+              </div>
+              <p className="text-xs text-muted-foreground">Advance paid to vendor</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
+              <ArrowUpCircle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{vendorTransactions.length}</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Transaction History</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {vendorTransactions.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p className="text-lg font-medium">No transactions found</p>
+                <p className="text-sm">Add a transaction to see history</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Account Type</TableHead>
+                      <TableHead>Transaction</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead className="text-right">Balance After</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {vendorTransactions.map((tx) => (
+                      <TableRow key={tx.id} data-testid={`row-transaction-${tx.id}`}>
+                        <TableCell className="font-mono text-sm">
+                          {format(new Date(tx.createdAt), "dd/MM/yyyy HH:mm")}
+                        </TableCell>
+                        <TableCell>{tx.description}</TableCell>
+                        <TableCell>
+                          <Badge variant={tx.transactionType === "credit" ? "default" : "secondary"}>
+                            {tx.transactionType === "credit" ? "Credit Line" : "Deposit"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {tx.type === "credit" ? (
+                            <Badge variant="default" className="bg-green-600">
+                              <ArrowUpCircle className="w-3 h-3 mr-1" />
+                              Added
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive">
+                              <ArrowDownCircle className="w-3 h-3 mr-1" />
+                              Used
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className={`text-right font-mono font-semibold ${tx.type === "credit" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                          {tx.type === "credit" ? "+" : "-"}{formatCurrency(tx.amount)}
+                        </TableCell>
+                        <TableCell className="text-right font-mono font-semibold">
+                          {formatCurrency(tx.balanceAfter)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold" data-testid="text-vendor-credits-title">Vendor Credits</h1>
-          <p className="text-sm text-muted-foreground">Manage vendor credit and deposit balances</p>
+          <h1 className="text-2xl font-semibold" data-testid="text-vendor-credits-title">Vendor Credits & Deposits</h1>
+          <p className="text-sm text-muted-foreground">Track vendor credit lines and advance payments</p>
         </div>
-        <Button onClick={() => setIsAddOpen(true)} data-testid="button-add-vendor-transaction">
+        <Button onClick={() => setIsAddOpen(true)} data-testid="button-add-transaction">
           <Plus className="w-4 h-4 mr-2" />
           Add Transaction
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Vendor Credits
-            </CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Vendor Credits</CardTitle>
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold font-mono text-blue-600 dark:text-blue-400">
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 font-mono">
               {formatCurrency(totalCredits)}
             </div>
+            <p className="text-xs text-muted-foreground">Credit lines available</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Vendor Deposits
-            </CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Vendor Deposits</CardTitle>
+            <Banknote className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold font-mono text-green-600 dark:text-green-400">
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400 font-mono">
               {formatCurrency(totalDeposits)}
             </div>
+            <p className="text-xs text-muted-foreground">Advances paid to vendors</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Transactions
-            </CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Vendors</CardTitle>
+            <Building className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold">
-              {transactions.length}
-            </div>
+            <div className="text-2xl font-bold">{vendors.length}</div>
           </CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader className="pb-4">
-          <div className="flex items-center justify-between gap-4">
-            <CardTitle className="text-lg">Transaction History</CardTitle>
+          <div className="flex items-center gap-4">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search transactions..."
+                placeholder="Search vendors..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
-                data-testid="input-search-vendor-transactions"
+                data-testid="input-search-vendors"
               />
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {isLoadingVendors ? (
             <div className="space-y-4">
               {Array(5).fill(0).map((_, i) => (
                 <Skeleton key={i} className="h-16 w-full" />
               ))}
             </div>
-          ) : filteredTransactions.length === 0 ? (
+          ) : filteredVendors.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium">No transactions found</p>
-              <p className="text-sm">Add a credit or deposit to get started</p>
+              <Building className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p className="text-lg font-medium">No vendors found</p>
+              <p className="text-sm">Add vendors first to track credits</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Vendor</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="text-right">Balance After</TableHead>
+                    <TableHead>Vendor Name</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead className="text-right">Credit Balance</TableHead>
+                    <TableHead className="text-right">Deposit Balance</TableHead>
+                    <TableHead className="w-24">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTransactions.map((tx) => {
-                    const vendor = vendors.find((v) => v.id === tx.vendorId);
-                    return (
-                      <TableRow key={tx.id} data-testid={`row-vendor-tx-${tx.id}`}>
-                        <TableCell className="text-muted-foreground">
-                          {format(new Date(tx.createdAt), "MMM d, yyyy")}
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {vendor?.name || "Unknown"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {tx.description}
-                        </TableCell>
-                        <TableCell>
-                          {tx.transactionType === "credit" ? (
-                            <Badge variant="secondary">Credit</Badge>
-                          ) : (
-                            <Badge variant="default">Deposit</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right font-mono font-semibold">
-                          <span className={tx.type === "credit" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
-                            {tx.type === "credit" ? "+" : "-"}{formatCurrency(tx.amount)}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right font-mono">
-                          {formatCurrency(tx.balanceAfter)}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  {filteredVendors.map((vendor) => (
+                    <TableRow key={vendor.id} data-testid={`row-vendor-${vendor.id}`}>
+                      <TableCell className="font-medium">{vendor.name}</TableCell>
+                      <TableCell className="text-muted-foreground">{vendor.phone || "-"}</TableCell>
+                      <TableCell className="text-right font-mono font-semibold text-blue-600 dark:text-blue-400">
+                        {formatCurrency(vendor.creditBalance)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono font-semibold text-green-600 dark:text-green-400">
+                        {formatCurrency(vendor.depositBalance)}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleViewHistory(vendor)}
+                          data-testid={`button-view-history-${vendor.id}`}
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          History
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>
@@ -267,7 +382,7 @@ export default function VendorCreditsPage() {
           <DialogHeader>
             <DialogTitle>Add Vendor Transaction</DialogTitle>
             <DialogDescription>
-              Add credit from vendor or deposit to vendor.
+              Record a new credit or deposit transaction for a vendor.
             </DialogDescription>
           </DialogHeader>
 
@@ -281,7 +396,7 @@ export default function VendorCreditsPage() {
                     <FormLabel>Vendor *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger data-testid="select-vendor-transaction">
+                        <SelectTrigger data-testid="select-vendor">
                           <SelectValue placeholder="Select vendor" />
                         </SelectTrigger>
                       </FormControl>
@@ -307,12 +422,12 @@ export default function VendorCreditsPage() {
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger data-testid="select-transaction-type">
-                          <SelectValue />
+                          <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="credit">Credit (from vendor)</SelectItem>
-                        <SelectItem value="deposit">Deposit (to vendor)</SelectItem>
+                        <SelectItem value="credit">Credit Line (vendor gives us credit)</SelectItem>
+                        <SelectItem value="deposit">Deposit (we pay advance to vendor)</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -325,33 +440,14 @@ export default function VendorCreditsPage() {
                 name="amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Amount *</FormLabel>
+                    <FormLabel>Amount (AED) *</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
-                        min={0.01}
                         step="0.01"
                         placeholder="0.00"
                         {...field}
-                        data-testid="input-vendor-amount"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description *</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="e.g., Credit line extension"
-                        {...field}
-                        data-testid="input-vendor-description"
+                        data-testid="input-amount"
                       />
                     </FormControl>
                     <FormMessage />
@@ -368,7 +464,7 @@ export default function VendorCreditsPage() {
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger data-testid="select-payment-method">
-                          <SelectValue placeholder="Select payment method" />
+                          <SelectValue placeholder="Select method" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -382,19 +478,37 @@ export default function VendorCreditsPage() {
                 )}
               />
 
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g., Credit line increase"
+                        {...field}
+                        data-testid="input-description"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <div className="flex justify-end gap-2 pt-4">
                 <Button
                   type="button"
                   variant="ghost"
                   onClick={() => setIsAddOpen(false)}
-                  data-testid="button-cancel-vendor-transaction"
+                  data-testid="button-cancel"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   disabled={addTransactionMutation.isPending}
-                  data-testid="button-save-vendor-transaction"
+                  data-testid="button-save-transaction"
                 >
                   {addTransactionMutation.isPending && (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />

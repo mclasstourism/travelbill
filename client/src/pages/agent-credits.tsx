@@ -37,7 +37,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, CreditCard, Search, Loader2, ArrowUpCircle, ArrowDownCircle, Banknote, Briefcase, FileCheck } from "lucide-react";
+import { Plus, CreditCard, Search, Loader2, ArrowUpCircle, ArrowDownCircle, Banknote, Briefcase, Eye, ArrowLeft } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
@@ -65,6 +65,7 @@ type AddTransactionForm = z.infer<typeof addTransactionFormSchema>;
 export default function AgentCreditsPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const { toast } = useToast();
 
   const { data: agents = [], isLoading: isLoadingAgents } = useQuery<Agent[]>({
@@ -98,239 +99,296 @@ export default function AgentCreditsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
       queryClient.invalidateQueries({ queryKey: ["/api/agent-transactions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
-      toast({
-        title: "Transaction added",
-        description: "Agent transaction has been recorded successfully.",
-      });
       setIsAddOpen(false);
       form.reset();
+      toast({
+        title: "Transaction added",
+        description: "The agent transaction has been recorded successfully.",
+      });
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: "Failed to add transaction. Please try again.",
+        description: error.message || "Failed to add transaction",
         variant: "destructive",
       });
     },
   });
 
-  const onSubmit = (data: AddTransactionForm) => {
-    addTransactionMutation.mutate(data);
-  };
+  const filteredAgents = agents.filter((agent) =>
+    agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    agent.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    agent.phone?.includes(searchQuery)
+  );
 
-  const filteredTransactions = transactions.filter((tx) => {
-    const agent = agents.find((a) => a.id === tx.agentId);
-    const agentName = agent?.name.toLowerCase() || "";
-    return (
-      agentName.includes(searchQuery.toLowerCase()) ||
-      tx.description.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  });
+  const agentTransactions = selectedAgent 
+    ? transactions
+        .filter(tx => tx.agentId === selectedAgent.id)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    : [];
 
   const totalCredits = agents.reduce((sum, a) => sum + a.creditBalance, 0);
   const totalDeposits = agents.reduce((sum, a) => sum + a.depositBalance, 0);
 
-  const getAgentName = (agentId: string) => {
-    return agents.find((a) => a.id === agentId)?.name || "Unknown";
+  const onSubmit = (data: AddTransactionForm) => {
+    addTransactionMutation.mutate(data);
   };
 
-  const getPaymentMethodLabel = (method: string) => {
-    switch (method) {
-      case "cash": return "Cash";
-      case "cheque": return "Cheque";
-      case "bank_transfer": return "Bank Transfer";
-      default: return method;
-    }
+  const handleViewHistory = (agent: Agent) => {
+    setSelectedAgent(agent);
   };
 
-  if (isLoadingAgents || isLoadingTransactions) {
+  if (selectedAgent) {
     return (
       <div className="p-6 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => setSelectedAgent(null)} data-testid="button-back">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-semibold" data-testid="text-agent-history-title">
+              {selectedAgent.name} - Transaction History
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Phone: {selectedAgent.phone} | Company: {selectedAgent.company || "N/A"}
+            </p>
+          </div>
         </div>
-        <Skeleton className="h-96" />
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Credit Balance</CardTitle>
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold font-mono text-blue-600 dark:text-blue-400">
+                {formatCurrency(selectedAgent.creditBalance)}
+              </div>
+              <p className="text-xs text-muted-foreground">Credit given to agent</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Deposit Balance</CardTitle>
+              <Banknote className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold font-mono text-green-600 dark:text-green-400">
+                {formatCurrency(selectedAgent.depositBalance)}
+              </div>
+              <p className="text-xs text-muted-foreground">Advance received from agent</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
+              <ArrowUpCircle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{agentTransactions.length}</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Transaction History</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {agentTransactions.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p className="text-lg font-medium">No transactions found</p>
+                <p className="text-sm">Add a transaction to see history</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Account Type</TableHead>
+                      <TableHead>Transaction</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead className="text-right">Balance After</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {agentTransactions.map((tx) => (
+                      <TableRow key={tx.id} data-testid={`row-transaction-${tx.id}`}>
+                        <TableCell className="font-mono text-sm">
+                          {format(new Date(tx.createdAt), "dd/MM/yyyy HH:mm")}
+                        </TableCell>
+                        <TableCell>{tx.description}</TableCell>
+                        <TableCell>
+                          <Badge variant={tx.transactionType === "credit" ? "default" : "secondary"}>
+                            {tx.transactionType === "credit" ? "Credit Line" : "Deposit"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {tx.type === "credit" ? (
+                            <Badge variant="default" className="bg-green-600">
+                              <ArrowUpCircle className="w-3 h-3 mr-1" />
+                              Added
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive">
+                              <ArrowDownCircle className="w-3 h-3 mr-1" />
+                              Used
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className={`text-right font-mono font-semibold ${tx.type === "credit" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                          {tx.type === "credit" ? "+" : "-"}{formatCurrency(tx.amount)}
+                        </TableCell>
+                        <TableCell className="text-right font-mono font-semibold">
+                          {formatCurrency(tx.balanceAfter)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold">Agent Credits</h1>
-          <p className="text-muted-foreground">Manage credits given to agents and deposits received from agents</p>
+          <h1 className="text-2xl font-semibold" data-testid="text-agent-credits-title">Agent Credits & Deposits</h1>
+          <p className="text-sm text-muted-foreground">Track agent credit lines and advance payments</p>
         </div>
-        <Button onClick={() => setIsAddOpen(true)} data-testid="button-add-agent-transaction">
+        <Button onClick={() => setIsAddOpen(true)} data-testid="button-add-transaction">
           <Plus className="w-4 h-4 mr-2" />
           Add Transaction
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Credit Given</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Agent Credits</CardTitle>
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono" data-testid="text-total-agent-credits">
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 font-mono">
               {formatCurrency(totalCredits)}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Credit extended to agents
-            </p>
+            <p className="text-xs text-muted-foreground">Credit given to agents</p>
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Deposits Received</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Agent Deposits</CardTitle>
             <Banknote className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono" data-testid="text-total-agent-deposits">
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400 font-mono">
               {formatCurrency(totalDeposits)}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Deposits received from agents
-            </p>
+            <p className="text-xs text-muted-foreground">Advances received from agents</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Agents</CardTitle>
+            <Briefcase className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{agents.length}</div>
           </CardContent>
         </Card>
       </div>
 
       <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <CardTitle>Agent Balances</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {agents.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No agents found</p>
-              <p className="text-sm">Add agents first to manage their credits</p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Agent</TableHead>
-                  <TableHead>Company</TableHead>
-                  <TableHead className="text-right">Credit Balance</TableHead>
-                  <TableHead className="text-right">Deposit Balance</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {agents.map((agent) => (
-                  <TableRow key={agent.id} data-testid={`row-agent-balance-${agent.id}`}>
-                    <TableCell className="font-medium">{agent.name}</TableCell>
-                    <TableCell>{agent.company || "-"}</TableCell>
-                    <TableCell className="text-right font-mono">
-                      <span className={agent.creditBalance > 0 ? "text-blue-600 dark:text-blue-400" : ""}>
-                        {formatCurrency(agent.creditBalance)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right font-mono">
-                      <span className={agent.depositBalance > 0 ? "text-green-600 dark:text-green-400" : ""}>
-                        {formatCurrency(agent.depositBalance)}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <CardTitle>Transaction History</CardTitle>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search transactions..."
+                placeholder="Search agents..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-                data-testid="input-search-agent-transactions"
+                className="pl-9"
+                data-testid="input-search-agents"
               />
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          {filteredTransactions.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <FileCheck className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No transactions found</p>
-              <p className="text-sm">Add a transaction to see it here</p>
+          {isLoadingAgents ? (
+            <div className="space-y-4">
+              {Array(5).fill(0).map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          ) : filteredAgents.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p className="text-lg font-medium">No agents found</p>
+              <p className="text-sm">Add agents first to track credits</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Agent</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Payment</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-right">Balance After</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredTransactions.map((tx) => (
-                  <TableRow key={tx.id} data-testid={`row-agent-transaction-${tx.id}`}>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {format(new Date(tx.createdAt), "dd MMM yyyy")}
-                    </TableCell>
-                    <TableCell className="font-medium">{getAgentName(tx.agentId)}</TableCell>
-                    <TableCell>
-                      <Badge variant={tx.transactionType === "credit" ? "default" : "secondary"}>
-                        {tx.transactionType === "credit" ? "Credit Given" : "Deposit Received"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{tx.description}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {getPaymentMethodLabel(tx.paymentMethod)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {tx.type === "credit" ? (
-                          <ArrowUpCircle className="w-4 h-4 text-green-500" />
-                        ) : (
-                          <ArrowDownCircle className="w-4 h-4 text-red-500" />
-                        )}
-                        <span className="font-mono">
-                          {formatCurrency(tx.amount)}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right font-mono">
-                      {formatCurrency(tx.balanceAfter)}
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Agent Name</TableHead>
+                    <TableHead>Company</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead className="text-right">Credit Balance</TableHead>
+                    <TableHead className="text-right">Deposit Balance</TableHead>
+                    <TableHead className="w-24">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredAgents.map((agent) => (
+                    <TableRow key={agent.id} data-testid={`row-agent-${agent.id}`}>
+                      <TableCell className="font-medium">{agent.name}</TableCell>
+                      <TableCell className="text-muted-foreground">{agent.company || "-"}</TableCell>
+                      <TableCell className="text-muted-foreground">{agent.phone || "-"}</TableCell>
+                      <TableCell className="text-right font-mono font-semibold text-blue-600 dark:text-blue-400">
+                        {formatCurrency(agent.creditBalance)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono font-semibold text-green-600 dark:text-green-400">
+                        {formatCurrency(agent.depositBalance)}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleViewHistory(agent)}
+                          data-testid={`button-view-history-${agent.id}`}
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          History
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
 
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Add Agent Transaction</DialogTitle>
             <DialogDescription>
-              Record a credit given to agent or deposit received from agent.
+              Record a new credit or deposit transaction for an agent.
             </DialogDescription>
           </DialogHeader>
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -338,7 +396,7 @@ export default function AgentCreditsPage() {
                 name="agentId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Agent</FormLabel>
+                    <FormLabel>Agent *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger data-testid="select-agent">
@@ -363,7 +421,7 @@ export default function AgentCreditsPage() {
                 name="transactionType"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Transaction Type</FormLabel>
+                    <FormLabel>Transaction Type *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger data-testid="select-transaction-type">
@@ -371,8 +429,8 @@ export default function AgentCreditsPage() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="credit">Credit Given to Agent</SelectItem>
-                        <SelectItem value="deposit">Deposit Received from Agent</SelectItem>
+                        <SelectItem value="credit">Credit (we give credit to agent)</SelectItem>
+                        <SelectItem value="deposit">Deposit (agent pays advance to us)</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -385,7 +443,7 @@ export default function AgentCreditsPage() {
                 name="amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Amount (AED)</FormLabel>
+                    <FormLabel>Amount (AED) *</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -405,7 +463,7 @@ export default function AgentCreditsPage() {
                 name="paymentMethod"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Payment Method</FormLabel>
+                    <FormLabel>Payment Method *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger data-testid="select-payment-method">
@@ -428,10 +486,10 @@ export default function AgentCreditsPage() {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel>Description *</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="e.g., Monthly credit line, Advance deposit"
+                        placeholder="e.g., Credit line increase"
                         {...field}
                         data-testid="input-description"
                       />
@@ -444,24 +502,21 @@ export default function AgentCreditsPage() {
               <div className="flex justify-end gap-2 pt-4">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   onClick={() => setIsAddOpen(false)}
+                  data-testid="button-cancel"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   disabled={addTransactionMutation.isPending}
-                  data-testid="button-submit-agent-transaction"
+                  data-testid="button-save-transaction"
                 >
-                  {addTransactionMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Adding...
-                    </>
-                  ) : (
-                    "Add Transaction"
+                  {addTransactionMutation.isPending && (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   )}
+                  Add Transaction
                 </Button>
               </div>
             </form>
