@@ -1,21 +1,13 @@
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard,
-  FileText,
   Users,
   Building2,
   Ticket,
   Settings,
-  Lock,
   LogOut,
-  BarChart3,
-  Briefcase,
   User,
-  TrendingUp,
-  Calendar,
-  Activity,
   UserCog,
-  Plane,
   Monitor,
 } from "lucide-react";
 import companyLogo from "@assets/Updated_Logo_1769092146053.png";
@@ -53,11 +45,6 @@ const partyItems = [
   { title: "Vendors", url: "/vendors", icon: Building2 },
 ];
 
-const reportsItems = [
-  { title: "Reports", url: "/reports", icon: BarChart3 },
-  { title: "Analytics", url: "/analytics", icon: TrendingUp },
-  { title: "Activity Logs", url: "/activity-logs", icon: Activity },
-];
 
 const settingsItems = [
   { title: "User Management", url: "/settings/users", icon: UserCog },
@@ -153,29 +140,6 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        {user?.role === "superadmin" && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Reports</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {reportsItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={location === item.url}
-                    >
-                      <Link href={item.url} onClick={handleNavClick} data-testid={`link-nav-${item.title.toLowerCase().replace(" ", "-")}`}>
-                        <item.icon className="w-4 h-4" />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
 
         {user?.role === "superadmin" && (
           <SidebarGroup>
