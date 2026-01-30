@@ -1554,21 +1554,6 @@ export default function TicketsPage() {
                     </span>
                   </div>
                 </div>
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  disabled={createMutation.isPending}
-                  data-testid="button-issue-ticket"
-                >
-                  {createMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    "Issue Ticket"
-                  )}
-                </Button>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
