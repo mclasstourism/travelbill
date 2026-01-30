@@ -693,6 +693,9 @@ export class DatabaseStorage implements IStorage {
     if (updates.returnDate !== undefined) updateData.returnDate = updates.returnDate;
     if (updates.passengerName !== undefined) updateData.passengerName = updates.passengerName;
     if (updates.faceValue !== undefined) updateData.faceValue = updates.faceValue;
+    if ((updates as any).isPaid !== undefined) updateData.isPaid = (updates as any).isPaid;
+    if ((updates as any).paidAt !== undefined) updateData.paidAt = (updates as any).paidAt;
+    if ((updates as any).paidBy !== undefined) updateData.paidBy = (updates as any).paidBy;
     
     if (Object.keys(updateData).length === 0) {
       return this.getTicket(id);
