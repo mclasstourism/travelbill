@@ -2,6 +2,12 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +43,7 @@ import {
   MapPin,
   User,
   Ticket as TicketIcon,
+  Eye,
 } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from "date-fns";
@@ -103,6 +110,7 @@ export default function SalesMonitor() {
   const [dateRange, setDateRange] = useState<DateRange>("this_month");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
+  const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
 
   const { data: tickets = [], isLoading: ticketsLoading } = useQuery<Ticket[]>({
     queryKey: ["/api/tickets"],
@@ -365,7 +373,12 @@ export default function SalesMonitor() {
                         const vendorPrice = invoice.vendorCost || 0;
                         const mcAddition = (invoice.total || 0) - vendorPrice;
                         return (
-                          <TableRow key={invoice.id} data-testid={`row-invoice-${invoice.id}`}>
+                          <TableRow 
+                            key={invoice.id} 
+                            data-testid={`row-invoice-${invoice.id}`}
+                            className="cursor-pointer hover-elevate"
+                            onClick={() => setViewingInvoice(invoice)}
+                          >
                             <TableCell className="font-mono font-medium">
                               {invoice.invoiceNumber}
                             </TableCell>
@@ -921,6 +934,120 @@ export default function SalesMonitor() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!viewingInvoice} onOpenChange={(open) => !open && setViewingInvoice(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="w-5 h-5" />
+              Invoice Details
+            </DialogTitle>
+          </DialogHeader>
+          
+          {viewingInvoice && (() => {
+            const clientName = getCustomerName(viewingInvoice.customerId);
+            const clientType = isAgent(viewingInvoice.customerId) ? "Agent" : "Customer";
+            const vendorName = getVendorName(viewingInvoice.vendorId || null);
+            const vendorPrice = viewingInvoice.vendorCost || 0;
+            const mcAddition = (viewingInvoice.total || 0) - vendorPrice;
+            
+            return (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-xs">Invoice Number</Label>
+                    <div className="font-mono font-semibold text-lg">{viewingInvoice.invoiceNumber}</div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-xs">Date</Label>
+                    <div>{formatDate(viewingInvoice.createdAt)}</div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-xs">Client Name</Label>
+                    <div className="font-medium">{clientName}</div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-xs">Client Type</Label>
+                    <Badge variant={clientType === "Agent" ? "outline" : "secondary"}>
+                      {clientType === "Agent" ? (
+                        <><Briefcase className="w-3 h-3 mr-1" /> Agent</>
+                      ) : (
+                        <><Users className="w-3 h-3 mr-1" /> Customer</>
+                      )}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-xs">Vendor/Supplier</Label>
+                    <div className="flex items-center gap-1">
+                      <Building2 className="w-4 h-4 text-muted-foreground" />
+                      <span>{vendorName}</span>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-xs">Payment Method</Label>
+                    <div className="flex items-center gap-1 capitalize">
+                      {getPaymentIcon(viewingInvoice.paymentMethod)}
+                      <span>{viewingInvoice.paymentMethod}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4 space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Vendor Price</span>
+                    <span className="font-mono">{formatCurrency(vendorPrice)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">MC Addition</span>
+                    <span className="font-mono text-primary">{formatCurrency(mcAddition)}</span>
+                  </div>
+                  {(viewingInvoice.discountPercent ?? 0) > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Discount ({viewingInvoice.discountPercent}%)</span>
+                      <span className="font-mono text-red-600">
+                        -{formatCurrency(viewingInvoice.discountAmount ?? 0)}
+                      </span>
+                    </div>
+                  )}
+                  {viewingInvoice.depositUsed > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Deposit Used</span>
+                      <span className="font-mono text-orange-600">-{formatCurrency(viewingInvoice.depositUsed)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between border-t pt-2">
+                    <span className="font-semibold">Grand Total</span>
+                    <span className="font-mono font-bold text-lg">{formatCurrency(viewingInvoice.total)}</span>
+                  </div>
+                  <div className="text-sm text-muted-foreground italic">
+                    {numberToWords(viewingInvoice.total)}
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center border-t pt-4">
+                  <span className="text-muted-foreground">Status</span>
+                  <Badge variant={viewingInvoice.status === "paid" ? "default" : "destructive"} className="text-sm">
+                    {viewingInvoice.status === "paid" ? "Paid" : "Unpaid"}
+                  </Badge>
+                </div>
+
+                {viewingInvoice.notes && (
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-xs">Notes</Label>
+                    <div className="text-sm bg-muted p-3 rounded-md">{viewingInvoice.notes}</div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
