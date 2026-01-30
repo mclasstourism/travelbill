@@ -777,61 +777,13 @@ export default function TicketsPage() {
                   </div>
                   
                   <div className="flex items-center justify-between pt-2 border-t">
-                    <div className="flex flex-col">
-                      <span className="font-mono font-semibold text-primary">{formatCurrency(ticket.faceValue)}</span>
-                    </div>
                     <div className="flex items-center gap-2">
-                      {/* Document button - opens uploaded document file */}
-                      {/* Pay button for unpaid tickets */}
-                      {!(ticket as any).isPaid && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => setPayingTicket(ticket)}
-                          data-testid={`button-pay-ticket-mobile-${ticket.id}`}
-                          title="Mark as Paid"
-                          className="text-green-600 dark:text-green-400"
-                        >
-                          <CreditCard className="w-4 h-4" />
-                        </Button>
-                      )}
+                      <span className="font-mono font-semibold text-primary">{formatCurrency(ticket.faceValue)}</span>
                       {(ticket as any).isPaid && (
                         <Badge variant="outline" className="text-green-600 border-green-600 text-xs">
                           Paid
                         </Badge>
                       )}
-                      {(ticket.eticketFiles?.length || ticket.eticketImage) && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => setDocumentsTicket(ticket)}
-                          data-testid={`button-view-document-mobile-${ticket.id}`}
-                          title="View Documents"
-                          className="text-blue-600 dark:text-blue-400"
-                        >
-                          <FileText className="w-4 h-4" />
-                        </Button>
-                      )}
-                      {ticket.invoiceId && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => window.open(`/print-invoice/${ticket.invoiceId}`, '_blank')}
-                          data-testid={`button-print-invoice-mobile-${ticket.id}`}
-                          title="Print Invoice"
-                        >
-                          <Printer className="w-4 h-4" />
-                        </Button>
-                      )}
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => setViewingTicket(ticket)}
-                        data-testid={`button-view-ticket-mobile-${ticket.id}`}
-                        title="View Details"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Button>
                     </div>
                   </div>
                 </div>
@@ -848,7 +800,7 @@ export default function TicketsPage() {
                     <TableHead>Route</TableHead>
                     <TableHead>Travel Date</TableHead>
                     <TableHead className="text-right">Ticket Price</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="text-right">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -877,74 +829,20 @@ export default function TicketsPage() {
                         {format(new Date(ticket.travelDate), "MMM d, yyyy")}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex flex-col items-end">
-                          <span className="font-mono font-semibold text-primary">
-                            {formatCurrency(ticket.faceValue)}
-                          </span>
-                        </div>
+                        <span className="font-mono font-semibold text-primary">
+                          {formatCurrency(ticket.faceValue)}
+                        </span>
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {/* Pay button for unpaid tickets */}
-                          {!(ticket as any).isPaid && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => setPayingTicket(ticket)}
-                              data-testid={`button-pay-ticket-${ticket.id}`}
-                              title="Mark as Paid"
-                              className="text-green-600 dark:text-green-400"
-                            >
-                              <CreditCard className="w-4 h-4" />
-                            </Button>
-                          )}
-                          {(ticket as any).isPaid && (
-                            <Badge variant="outline" className="text-green-600 border-green-600 text-xs">
-                              Paid
-                            </Badge>
-                          )}
-                          {/* Document button - opens documents popup */}
-                          {(ticket.eticketFiles?.length || ticket.eticketImage) && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => setDocumentsTicket(ticket)}
-                              data-testid={`button-view-document-${ticket.id}`}
-                              title="View Documents"
-                              className="text-blue-600 dark:text-blue-400"
-                            >
-                              <FileText className="w-4 h-4" />
-                            </Button>
-                          )}
-                          {ticket.invoiceId && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => window.open(`/print-invoice/${ticket.invoiceId}`, '_blank')}
-                              data-testid={`button-print-invoice-${ticket.id}`}
-                              title="Print Invoice"
-                            >
-                              <Printer className="w-4 h-4" />
-                            </Button>
-                          )}
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => setViewingTicket(ticket)}
-                            data-testid={`button-view-ticket-${ticket.id}`}
-                            title="View Details"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => handleEditTicket(ticket)}
-                            data-testid={`button-edit-ticket-${ticket.id}`}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                        </div>
+                        {(ticket as any).isPaid ? (
+                          <Badge variant="outline" className="text-green-600 border-green-600">
+                            Paid
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-orange-600 border-orange-600">
+                            Unpaid
+                          </Badge>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -2445,11 +2343,50 @@ export default function TicketsPage() {
                 </div>
               </div>
 
+              {/* Documents Section */}
+              {(viewingTicket.eticketFiles?.length || viewingTicket.eticketImage) && (
+                <div className="space-y-3">
+                  <h4 className="font-semibold flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    Documents
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {viewingTicket.eticketFiles?.map((fileUrl: string, idx: number) => (
+                      <Card 
+                        key={idx} 
+                        className="overflow-hidden cursor-pointer hover-elevate"
+                        onClick={() => window.open(fileUrl, '_blank')}
+                      >
+                        <div className="aspect-square bg-muted flex items-center justify-center">
+                          <FileText className="w-8 h-8 text-red-500" />
+                        </div>
+                        <CardContent className="p-2 text-center">
+                          <span className="text-xs">PDF {idx + 1}</span>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Actions */}
-              <div className="flex justify-end gap-2 border-t pt-4">
-                <Button variant="outline" onClick={() => setViewingTicket(null)}>
-                  Close
-                </Button>
+              <div className="flex flex-wrap gap-2 border-t pt-4">
+                {/* Pay button for unpaid tickets */}
+                {!(viewingTicket as any).isPaid && (
+                  <Button 
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={() => {
+                      setPayingTicket(viewingTicket);
+                      setViewingTicket(null);
+                    }}
+                    data-testid="button-pay-from-popup"
+                  >
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    Pay Now
+                  </Button>
+                )}
+                
+                {/* Print Invoice button */}
                 {viewingTicket.invoiceId && (
                   <Button 
                     variant="outline"
@@ -2459,7 +2396,10 @@ export default function TicketsPage() {
                     Print Invoice
                   </Button>
                 )}
+                
+                {/* Edit Ticket button */}
                 <Button 
+                  variant="outline"
                   onClick={() => {
                     setEditingTicket(viewingTicket);
                     setEditTicketNumber(viewingTicket.ticketNumber || "");
@@ -2469,92 +2409,26 @@ export default function TicketsPage() {
                   <Edit className="w-4 h-4 mr-2" />
                   Edit Ticket
                 </Button>
+
+                {/* Upload PDF button */}
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setEditingTicket(viewingTicket);
+                    setEditTicketNumber(viewingTicket.ticketNumber || "");
+                    setViewingTicket(null);
+                  }}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload PDF
+                </Button>
+                
+                <Button variant="outline" onClick={() => setViewingTicket(null)}>
+                  Close
+                </Button>
               </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Documents Viewer Dialog */}
-      <Dialog open={!!documentsTicket} onOpenChange={(open) => !open && setDocumentsTicket(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              Documents
-            </DialogTitle>
-            <DialogDescription>
-              {documentsTicket && (
-                <>
-                  {customers.find(c => c.id === documentsTicket.customerId)?.name || "Customer"} - {documentsTicket.route}
-                </>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          
-          {documentsTicket && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-              {/* Show all eticketFiles */}
-              {documentsTicket.eticketFiles && documentsTicket.eticketFiles.map((fileUrl: string, idx: number) => (
-                <Card 
-                  key={idx} 
-                  className="overflow-hidden cursor-pointer hover-elevate"
-                  onClick={() => window.open(fileUrl, '_blank')}
-                >
-                  <div className="aspect-[4/3] bg-muted flex items-center justify-center overflow-hidden">
-                    {fileUrl.toLowerCase().endsWith('.pdf') ? (
-                      <div className="flex flex-col items-center gap-2 p-4">
-                        <FileText className="w-16 h-16 text-red-500" />
-                        <span className="text-sm text-muted-foreground">PDF Document</span>
-                      </div>
-                    ) : (
-                      <img 
-                        src={fileUrl} 
-                        alt={`Document ${idx + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                  </div>
-                  <CardContent className="p-3">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">Document {idx + 1}</span>
-                      <ExternalLink className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">Click to view full size</p>
-                  </CardContent>
-                </Card>
-              ))}
-              
-              {/* Fallback to legacy eticketImage if no eticketFiles */}
-              {(!documentsTicket.eticketFiles || documentsTicket.eticketFiles.length === 0) && documentsTicket.eticketImage && (
-                <Card 
-                  className="overflow-hidden cursor-pointer hover-elevate"
-                  onClick={() => window.open(documentsTicket.eticketImage, '_blank')}
-                >
-                  <div className="aspect-[4/3] bg-muted flex items-center justify-center overflow-hidden">
-                    <img 
-                      src={documentsTicket.eticketImage} 
-                      alt="Document"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <CardContent className="p-3">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">Document</span>
-                      <ExternalLink className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">Click to view full size</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          )}
-          
-          <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
-            <Button variant="outline" onClick={() => setDocumentsTicket(null)}>
-              Close
-            </Button>
-          </div>
         </DialogContent>
       </Dialog>
 
