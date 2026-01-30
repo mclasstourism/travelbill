@@ -694,14 +694,10 @@ export default function TicketsPage() {
   };
 
   const handleCreateClick = () => {
-    if (!isAuthenticated) {
-      setIsPinModalOpen(true);
-    } else {
-      setTicketSource("direct");
-      form.setValue("vendorId", "direct");
-      form.setValue("airlines", "");
-      setIsCreateOpen(true);
-    }
+    setTicketSource("direct");
+    form.setValue("vendorId", "direct");
+    form.setValue("airlines", "");
+    setIsCreateOpen(true);
   };
 
   const onSubmit = async (data: CreateTicketForm) => {
@@ -843,7 +839,6 @@ export default function TicketsPage() {
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
           <Button onClick={handleCreateClick} className="w-full sm:w-auto" data-testid="button-issue-ticket">
-            {!isAuthenticated && <Lock className="w-4 h-4 mr-2" />}
             <Plus className="w-4 h-4 mr-2" />
             Create Invoice
           </Button>
