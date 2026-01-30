@@ -667,6 +667,9 @@ export class DatabaseStorage implements IStorage {
       passengerCount: ticket.passengerCount || 1,
       ticketNumbers: ticket.ticketNumbers || null,
       baggageAllowance: ticket.baggageAllowance || null,
+      vendorPrice: ticket.vendorPrice || 0,
+      airlinePrice: ticket.airlinePrice || 0,
+      middleClassPrice: ticket.middleClassPrice || 0,
       faceValue: ticket.faceValue,
       deductFromDeposit: ticket.deductFromDeposit || false,
       depositDeducted: ticket.depositDeducted || 0,
@@ -693,6 +696,9 @@ export class DatabaseStorage implements IStorage {
     if (updates.returnDate !== undefined) updateData.returnDate = updates.returnDate;
     if (updates.passengerName !== undefined) updateData.passengerName = updates.passengerName;
     if (updates.faceValue !== undefined) updateData.faceValue = updates.faceValue;
+    if (updates.vendorPrice !== undefined) updateData.vendorPrice = updates.vendorPrice;
+    if (updates.airlinePrice !== undefined) updateData.airlinePrice = updates.airlinePrice;
+    if (updates.middleClassPrice !== undefined) updateData.middleClassPrice = updates.middleClassPrice;
     if ((updates as any).isPaid !== undefined) updateData.isPaid = (updates as any).isPaid;
     if ((updates as any).paidAt !== undefined) updateData.paidAt = (updates as any).paidAt;
     if ((updates as any).paidBy !== undefined) updateData.paidBy = (updates as any).paidBy;
