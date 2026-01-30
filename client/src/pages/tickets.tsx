@@ -778,7 +778,7 @@ export default function TicketsPage() {
                     <TableHead>No. of Passengers</TableHead>
                     <TableHead>Route</TableHead>
                     <TableHead>Travel Date</TableHead>
-                    <TableHead className="text-right">Face Value</TableHead>
+                    <TableHead className="text-right">Ticket Price</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
