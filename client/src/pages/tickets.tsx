@@ -761,7 +761,7 @@ export default function TicketsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Client</TableHead>
+                    <TableHead>Client Name</TableHead>
                     <TableHead>No. of Passengers</TableHead>
                     <TableHead>Route</TableHead>
                     <TableHead>Travel Date</TableHead>
