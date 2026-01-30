@@ -1550,21 +1550,38 @@ export default function TicketsPage() {
               </div>
 
               {/* Total Price Summary */}
-              <div className="p-3 bg-primary/10 rounded-md space-y-1">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Ticket Prices:</span>
-                  <span className="font-mono">AED {totalTicketPrices.toFixed(2)}</span>
+              <div className="p-3 bg-primary/10 rounded-md space-y-2">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Ticket Prices:</span>
+                    <span className="font-mono">AED {totalTicketPrices.toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">MC Addition:</span>
+                    <span className="font-mono">AED {(Number(watchMiddleClassPrice) || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-1 border-t">
+                    <span className="font-medium">Total:</span>
+                    <span className="text-lg font-bold text-primary font-mono" data-testid="text-total-price">
+                      AED {calculations.faceValue.toFixed(2)}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">MC Addition:</span>
-                  <span className="font-mono">AED {(Number(watchMiddleClassPrice) || 0).toFixed(2)}</span>
-                </div>
-                <div className="flex items-center justify-between pt-1 border-t">
-                  <span className="font-medium">Total:</span>
-                  <span className="text-lg font-bold text-primary font-mono" data-testid="text-total-price">
-                    AED {calculations.faceValue.toFixed(2)}
-                  </span>
-                </div>
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={createMutation.isPending}
+                  data-testid="button-pay-now"
+                >
+                  {createMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    "Pay Now"
+                  )}
+                </Button>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

@@ -123,6 +123,7 @@ export default function InvoicesPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "unpaid" | "paid">("all");
   const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
   const { toast } = useToast();
   const { isAuthenticated, session } = usePin();
@@ -264,9 +265,37 @@ export default function InvoicesPage() {
     },
   });
 
-  const filteredInvoices = invoices.filter((invoice) =>
-    invoice.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const markAsPaidMutation = useMutation({
+    mutationFn: async (invoiceId: string) => {
+      const res = await apiRequest("PATCH", `/api/invoices/${invoiceId}`, { 
+        status: "paid",
+        paidAmount: invoices.find(i => i.id === invoiceId)?.total || 0
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      toast({
+        title: "Invoice marked as paid",
+        description: "The invoice status has been updated.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update invoice",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const filteredInvoices = invoices.filter((invoice) => {
+    const matchesSearch = invoice.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === "all" 
+      || (statusFilter === "paid" && invoice.status === "paid")
+      || (statusFilter === "unpaid" && invoice.status !== "paid" && invoice.status !== "cancelled");
+    return matchesSearch && matchesStatus;
+  });
 
   const handleCreateClick = () => {
     if (!isAuthenticated) {
@@ -350,7 +379,7 @@ export default function InvoicesPage() {
 
       <Card>
         <CardHeader className="pb-4">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <div className="relative flex-1 sm:max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -360,6 +389,32 @@ export default function InvoicesPage() {
                 className="pl-9"
                 data-testid="input-search-invoices"
               />
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={statusFilter === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter("all")}
+                data-testid="button-filter-all"
+              >
+                All
+              </Button>
+              <Button
+                variant={statusFilter === "unpaid" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter("unpaid")}
+                data-testid="button-filter-unpaid"
+              >
+                Unpaid
+              </Button>
+              <Button
+                variant={statusFilter === "paid" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter("paid")}
+                data-testid="button-filter-paid"
+              >
+                Paid
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -416,6 +471,21 @@ export default function InvoicesPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
+                            {invoice.status !== "paid" && invoice.status !== "cancelled" && (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={() => markAsPaidMutation.mutate(invoice.id)}
+                                disabled={markAsPaidMutation.isPending}
+                                data-testid={`button-pay-invoice-${invoice.id}`}
+                              >
+                                {markAsPaidMutation.isPending ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  "Pay Now"
+                                )}
+                              </Button>
+                            )}
                             <Button
                               size="icon"
                               variant="ghost"
