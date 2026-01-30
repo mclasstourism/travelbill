@@ -239,9 +239,9 @@ export default function VendorCreditsPage() {
                         </TableCell>
                         <TableCell>
                           {tx.transactionType === "credit" ? (
-                            <Badge variant="secondary" size="sm">Credit</Badge>
+                            <Badge variant="secondary">Credit</Badge>
                           ) : (
-                            <Badge variant="default" size="sm">Deposit</Badge>
+                            <Badge variant="default">Deposit</Badge>
                           )}
                         </TableCell>
                         <TableCell className="text-right font-mono font-semibold">

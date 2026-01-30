@@ -17,6 +17,8 @@ import {
   type InsertDepositTransaction,
   type VendorTransaction,
   type InsertVendorTransaction,
+  type AgentTransaction,
+  type InsertAgentTransaction,
   type DashboardMetrics,
   type PasswordResetToken,
 } from "@shared/schema";
@@ -89,6 +91,11 @@ export interface IStorage {
   getVendorTransactionsByVendor(vendorId: string): Promise<VendorTransaction[]>;
   createVendorTransaction(tx: InsertVendorTransaction): Promise<VendorTransaction>;
 
+  // Agent Transactions
+  getAgentTransactions(): Promise<AgentTransaction[]>;
+  getAgentTransactionsByAgent(agentId: string): Promise<AgentTransaction[]>;
+  createAgentTransaction(tx: InsertAgentTransaction): Promise<AgentTransaction>;
+
   // Metrics
   getDashboardMetrics(): Promise<DashboardMetrics>;
 }
@@ -104,6 +111,7 @@ export class MemStorage implements IStorage {
   private tickets: Map<string, Ticket>;
   private depositTransactions: Map<string, DepositTransaction>;
   private vendorTransactions: Map<string, VendorTransaction>;
+  private agentTransactions: Map<string, AgentTransaction>;
   private invoiceCounter: number;
   private ticketCounter: number;
 
@@ -118,6 +126,7 @@ export class MemStorage implements IStorage {
     this.tickets = new Map();
     this.depositTransactions = new Map();
     this.vendorTransactions = new Map();
+    this.agentTransactions = new Map();
     this.invoiceCounter = 1000;
     this.ticketCounter = 1000;
 
@@ -617,6 +626,57 @@ export class MemStorage implements IStorage {
       createdAt: new Date().toISOString(),
     };
     this.vendorTransactions.set(id, newTx);
+    return newTx;
+  }
+
+  // Agent Transactions
+  async getAgentTransactions(): Promise<AgentTransaction[]> {
+    return Array.from(this.agentTransactions.values()).sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }
+
+  async getAgentTransactionsByAgent(agentId: string): Promise<AgentTransaction[]> {
+    return Array.from(this.agentTransactions.values())
+      .filter((tx) => tx.agentId === agentId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async createAgentTransaction(tx: InsertAgentTransaction): Promise<AgentTransaction> {
+    const id = randomUUID();
+    const agent = await this.getAgent(tx.agentId);
+    let balanceAfter = 0;
+
+    if (agent) {
+      if (tx.transactionType === "credit") {
+        // Credit given to agent
+        if (tx.type === "credit") {
+          balanceAfter = agent.creditBalance + tx.amount;
+          await this.updateAgent(tx.agentId, { creditBalance: balanceAfter });
+        } else {
+          balanceAfter = agent.creditBalance - tx.amount;
+          await this.updateAgent(tx.agentId, { creditBalance: balanceAfter });
+        }
+      } else {
+        // Deposit received from agent
+        if (tx.type === "credit") {
+          balanceAfter = agent.depositBalance + tx.amount;
+          await this.updateAgent(tx.agentId, { depositBalance: balanceAfter });
+        } else {
+          balanceAfter = agent.depositBalance - tx.amount;
+          await this.updateAgent(tx.agentId, { depositBalance: balanceAfter });
+        }
+      }
+    }
+
+    const newTx: AgentTransaction = {
+      ...tx,
+      id,
+      balanceAfter,
+      paymentMethod: tx.paymentMethod || "cash",
+      createdAt: new Date().toISOString(),
+    };
+    this.agentTransactions.set(id, newTx);
     return newTx;
   }
 

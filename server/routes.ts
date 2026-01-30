@@ -10,6 +10,7 @@ import {
   insertTicketSchema,
   insertDepositTransactionSchema,
   insertVendorTransactionSchema,
+  insertAgentTransactionSchema,
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -507,6 +508,39 @@ export async function registerRoutes(
         res.status(400).json({ error: error.errors });
       } else {
         res.status(500).json({ error: "Failed to create vendor transaction" });
+      }
+    }
+  });
+
+  // Agent Transactions
+  app.get("/api/agent-transactions", async (req, res) => {
+    try {
+      const transactions = await storage.getAgentTransactions();
+      res.json(transactions);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch agent transactions" });
+    }
+  });
+
+  app.get("/api/agents/:id/transactions", async (req, res) => {
+    try {
+      const transactions = await storage.getAgentTransactionsByAgent(req.params.id);
+      res.json(transactions);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch agent transactions" });
+    }
+  });
+
+  app.post("/api/agent-transactions", async (req, res) => {
+    try {
+      const data = insertAgentTransactionSchema.parse(req.body);
+      const transaction = await storage.createAgentTransaction(data);
+      res.status(201).json(transaction);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create agent transaction" });
       }
     }
   });

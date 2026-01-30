@@ -19,6 +19,7 @@ import InvoicesPage from "@/pages/invoices";
 import TicketsPage from "@/pages/tickets";
 import DepositsPage from "@/pages/deposits";
 import VendorCreditsPage from "@/pages/vendor-credits";
+import AgentCreditsPage from "@/pages/agent-credits";
 import BillCreatorsPage from "@/pages/bill-creators";
 import ReportsPage from "@/pages/reports";
 import LoginPage from "@/pages/login";
@@ -35,6 +36,7 @@ function Router() {
       <Route path="/tickets" component={TicketsPage} />
       <Route path="/deposits" component={DepositsPage} />
       <Route path="/vendor-credits" component={VendorCreditsPage} />
+      <Route path="/agent-credits" component={AgentCreditsPage} />
       <Route path="/reports" component={ReportsPage} />
       <Route path="/settings/bill-creators" component={BillCreatorsPage} />
       <Route component={NotFound} />

@@ -47,6 +47,7 @@ const partyItems = [
 
 const financeItems = [
   { title: "Customer Deposits", url: "/deposits", icon: Wallet },
+  { title: "Agent Credits", url: "/agent-credits", icon: Briefcase },
   { title: "Vendor Credits", url: "/vendor-credits", icon: CreditCard },
 ];
 

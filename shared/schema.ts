@@ -230,6 +230,26 @@ export type VendorTransaction = InsertVendorTransaction & {
   createdAt: string;
 };
 
+// Agent credit transactions
+export const insertAgentTransactionSchema = z.object({
+  agentId: z.string().min(1, "Agent is required"),
+  type: z.enum(depositTransactionTypes),
+  transactionType: z.enum(["credit", "deposit"] as const), // credit given to agent or deposit received from agent
+  amount: z.number().min(0.01, "Amount must be positive"),
+  description: z.string().min(1, "Description is required"),
+  paymentMethod: z.enum(vendorPaymentMethods).optional(),
+  referenceId: z.string().optional(),
+  referenceType: z.string().optional(),
+});
+
+export type InsertAgentTransaction = z.infer<typeof insertAgentTransactionSchema>;
+export type AgentTransaction = InsertAgentTransaction & {
+  id: string;
+  balanceAfter: number;
+  paymentMethod: VendorPaymentMethod;
+  createdAt: string;
+};
+
 // Dashboard metrics
 export type DashboardMetrics = {
   totalCustomers: number;
