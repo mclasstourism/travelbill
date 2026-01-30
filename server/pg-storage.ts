@@ -579,7 +579,7 @@ export class PgStorage implements IStorage {
       vendorId: row.vendorId,
       invoiceId: row.invoiceId || undefined,
       tripType: (row.tripType as any) || "one_way",
-      ticketType: row.ticketType,
+      ticketType: (row.ticketType as any) || "economy",
       route: row.route,
       airlines: row.airlines,
       flightNumber: row.flightNumber,
@@ -590,6 +590,8 @@ export class PgStorage implements IStorage {
       faceValue: row.faceValue || 0,
       deductFromDeposit: row.deductFromDeposit || false,
       depositDeducted: row.depositDeducted || 0,
+      useVendorBalance: (row.useVendorBalance as any) || "none",
+      vendorBalanceDeducted: row.vendorBalanceDeducted || 0,
       issuedBy: row.issuedBy,
       status: (row.status as any) || "issued",
       createdAt: row.createdAt?.toISOString() || new Date().toISOString(),
@@ -616,6 +618,8 @@ export class PgStorage implements IStorage {
       faceValue: ticket.faceValue,
       deductFromDeposit: ticket.deductFromDeposit || false,
       depositDeducted: ticket.depositDeducted || 0,
+      useVendorBalance: ticket.useVendorBalance || "none",
+      vendorBalanceDeducted: ticket.vendorBalanceDeducted || 0,
       issuedBy: ticket.issuedBy,
       status: "issued",
     }).returning();
@@ -638,6 +642,40 @@ export class PgStorage implements IStorage {
           type: "debit",
           amount: ticket.depositDeducted,
           description: `Ticket ${ticketNumber} - ${ticket.passengerName} - Deposit used for ticket`,
+          referenceId: createdTicket.id,
+          referenceType: "ticket",
+          balanceAfter: newBalance,
+        });
+      }
+    }
+    
+    // Record vendor balance deduction transaction
+    if (ticket.useVendorBalance && ticket.useVendorBalance !== "none" && ticket.vendorBalanceDeducted && ticket.vendorBalanceDeducted > 0) {
+      const vendor = await this.getVendor(ticket.vendorId);
+      if (vendor) {
+        let newBalance: number;
+        const transactionType = ticket.useVendorBalance as "credit" | "deposit";
+        
+        if (transactionType === "credit") {
+          newBalance = vendor.creditBalance - ticket.vendorBalanceDeducted;
+          await db.update(schema.vendorsTable)
+            .set({ creditBalance: newBalance })
+            .where(eq(schema.vendorsTable.id, ticket.vendorId));
+        } else {
+          newBalance = vendor.depositBalance - ticket.vendorBalanceDeducted;
+          await db.update(schema.vendorsTable)
+            .set({ depositBalance: newBalance })
+            .where(eq(schema.vendorsTable.id, ticket.vendorId));
+        }
+        
+        // Create vendor transaction record
+        await db.insert(schema.vendorTransactionsTable).values({
+          vendorId: ticket.vendorId,
+          type: "debit",
+          transactionType: transactionType,
+          amount: ticket.vendorBalanceDeducted,
+          description: `Ticket ${ticketNumber} - ${ticket.passengerName} - ${transactionType === "credit" ? "Credit" : "Deposit"} used for ticket`,
+          paymentMethod: "cash",
           referenceId: createdTicket.id,
           referenceType: "ticket",
           balanceAfter: newBalance,

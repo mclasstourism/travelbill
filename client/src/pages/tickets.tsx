@@ -70,6 +70,8 @@ function getStatusBadgeVariant(status: string): "default" | "secondary" | "destr
   }
 }
 
+const vendorBalanceSources = ["none", "credit", "deposit"] as const;
+
 const createTicketFormSchema = z.object({
   customerId: z.string().min(1, "Customer is required"),
   vendorId: z.string().min(1, "Vendor is required"),
@@ -84,6 +86,7 @@ const createTicketFormSchema = z.object({
   passengerName: z.string().min(1, "Passenger name is required"),
   faceValue: z.coerce.number().min(1, "Face value is required and must be greater than 0"),
   deductFromDeposit: z.boolean().default(false),
+  useVendorBalance: z.enum(vendorBalanceSources).default("none"),
 });
 
 type CreateTicketForm = z.infer<typeof createTicketFormSchema>;
@@ -123,6 +126,7 @@ export default function TicketsPage() {
       passengerName: "",
       faceValue: 0,
       deductFromDeposit: false,
+      useVendorBalance: "none",
     },
   });
 
@@ -132,6 +136,7 @@ export default function TicketsPage() {
   const watchCustomerId = form.watch("customerId");
   const watchDeductFromDeposit = form.watch("deductFromDeposit");
   const watchFaceValue = form.watch("faceValue");
+  const watchUseVendorBalance = form.watch("useVendorBalance");
 
   const selectedCustomer = customers.find((c) => c.id === watchCustomerId);
   const selectedVendor = vendors.find((v) => v.id === watchVendorId);
@@ -143,9 +148,19 @@ export default function TicketsPage() {
     if (watchDeductFromDeposit && selectedCustomer) {
       depositDeducted = Math.min(selectedCustomer.depositBalance, faceValue);
     }
+    
+    // Calculate vendor balance deduction
+    let vendorBalanceDeducted = 0;
+    if (watchUseVendorBalance && watchUseVendorBalance !== "none" && selectedVendor) {
+      const vendorBalance = watchUseVendorBalance === "credit" 
+        ? selectedVendor.creditBalance 
+        : selectedVendor.depositBalance;
+      vendorBalanceDeducted = Math.min(vendorBalance, faceValue);
+    }
+    
     const amountDue = faceValue - depositDeducted;
-    return { faceValue, depositDeducted, amountDue };
-  }, [watchFaceValue, watchDeductFromDeposit, selectedCustomer]);
+    return { faceValue, depositDeducted, amountDue, vendorBalanceDeducted };
+  }, [watchFaceValue, watchDeductFromDeposit, selectedCustomer, watchUseVendorBalance, selectedVendor]);
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -155,7 +170,9 @@ export default function TicketsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
       queryClient.invalidateQueries({ queryKey: ["/api/deposit-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendor-transactions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
       setIsCreateOpen(false);
       form.reset();
@@ -204,10 +221,20 @@ export default function TicketsPage() {
       depositDeducted = Math.min(selectedCustomer.depositBalance, faceValue);
     }
 
+    // Calculate vendor balance deduction
+    let vendorBalanceDeducted = 0;
+    if (data.useVendorBalance && data.useVendorBalance !== "none" && selectedVendor) {
+      const vendorBalance = data.useVendorBalance === "credit" 
+        ? selectedVendor.creditBalance 
+        : selectedVendor.depositBalance;
+      vendorBalanceDeducted = Math.min(vendorBalance, faceValue);
+    }
+
     const ticketData = {
       ...data,
       faceValue,
       depositDeducted,
+      vendorBalanceDeducted,
       issuedBy: session.billCreatorId,
     };
 
@@ -641,6 +668,50 @@ export default function TicketsPage() {
                         <span>Amount Due</span>
                         <span className="font-mono">{formatCurrency(calculations.amountDue)}</span>
                       </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {selectedVendor && (selectedVendor.creditBalance > 0 || selectedVendor.depositBalance > 0) && (
+                <FormField
+                  control={form.control}
+                  name="useVendorBalance"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Use Vendor Balance</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-vendor-balance">
+                            <SelectValue placeholder="Select vendor balance source" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          {selectedVendor.creditBalance > 0 && (
+                            <SelectItem value="credit">
+                              Credit (Available: {formatCurrency(selectedVendor.creditBalance)})
+                            </SelectItem>
+                          )}
+                          {selectedVendor.depositBalance > 0 && (
+                            <SelectItem value="deposit">
+                              Deposit (Available: {formatCurrency(selectedVendor.depositBalance)})
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {calculations.vendorBalanceDeducted > 0 && (
+                <Card className="bg-green-50 dark:bg-green-900/20">
+                  <CardContent className="pt-4">
+                    <div className="flex justify-between text-sm text-green-700 dark:text-green-400">
+                      <span>Vendor {watchUseVendorBalance === "credit" ? "Credit" : "Deposit"} Used</span>
+                      <span className="font-mono">-{formatCurrency(calculations.vendorBalanceDeducted)}</span>
                     </div>
                   </CardContent>
                 </Card>

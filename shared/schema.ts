@@ -101,6 +101,8 @@ export const ticketsTable = pgTable("tickets", {
   faceValue: real("face_value").default(0),
   deductFromDeposit: boolean("deduct_from_deposit").default(false),
   depositDeducted: real("deposit_deducted").default(0),
+  useVendorBalance: varchar("use_vendor_balance", { length: 20 }).default("none"),
+  vendorBalanceDeducted: real("vendor_balance_deducted").default(0),
   issuedBy: varchar("issued_by", { length: 36 }).notNull(),
   status: varchar("status", { length: 20 }).default("issued"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -321,6 +323,8 @@ export const insertTicketSchema = z.object({
   faceValue: z.number().min(0, "Face value must be positive"),
   deductFromDeposit: z.boolean().default(false),
   depositDeducted: z.number().min(0).default(0),
+  useVendorBalance: z.enum(vendorBalanceSources).default("none"),
+  vendorBalanceDeducted: z.number().min(0).default(0),
   issuedBy: z.string().min(1, "Bill creator is required"),
 });
 
