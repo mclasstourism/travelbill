@@ -1565,63 +1565,31 @@ export default function TicketsPage() {
                 </div>
               </div>
 
-              {/* Source Cost and MC Addition */}
-              <div className="grid grid-cols-2 gap-3">
-                <FormField
-                  control={form.control}
-                  name={ticketSource === "direct" ? "airlinePrice" : "vendorPrice"}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Source Cost (AED)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="any"
-                          placeholder="0"
-                          value={field.value || ""}
-                          onChange={(e) => {
-                            const val = parseFloat(e.target.value) || 0;
-                            field.onChange(val);
-                            // Sync to both fields for proper storage
-                            if (ticketSource === "direct") {
-                              form.setValue("airlinePrice", val);
-                            } else {
-                              form.setValue("vendorPrice", val);
-                            }
-                          }}
-                          data-testid="input-source-cost"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="middleClassPrice"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>MC Addition (AED)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="any"
-                          placeholder="0"
-                          value={field.value || ""}
-                          onChange={(e) => {
-                            const val = parseFloat(e.target.value) || 0;
-                            field.onChange(val);
-                          }}
-                          data-testid="input-mc-price-inline"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              {/* MC Addition */}
+              <FormField
+                control={form.control}
+                name="middleClassPrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>MC Addition (AED)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="any"
+                        placeholder="0"
+                        value={field.value || ""}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          field.onChange(val);
+                        }}
+                        data-testid="input-mc-price-inline"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               {/* Total Price Summary */}
               <div className="p-3 bg-primary/10 rounded-md space-y-2">
