@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
   Users,
   Building2,
@@ -44,16 +43,16 @@ function MetricCard({
 }) {
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
-        <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground truncate">
+      <CardHeader className="flex flex-row items-center justify-between gap-4 pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
         </CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+        <Icon className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
-        <div className="text-lg sm:text-2xl font-semibold font-mono truncate">{value}</div>
+        <div className="text-2xl font-semibold font-mono">{value}</div>
         {description && (
-          <p className="text-xs text-muted-foreground mt-1 hidden sm:block">{description}</p>
+          <p className="text-xs text-muted-foreground mt-1">{description}</p>
         )}
         {trend && (
           <div className="flex items-center gap-1 mt-2">
@@ -75,7 +74,7 @@ function MetricCard({
 function MetricCardSkeleton() {
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
+      <CardHeader className="flex flex-row items-center justify-between gap-4 pb-2">
         <Skeleton className="h-4 w-24" />
         <Skeleton className="h-4 w-4" />
       </CardHeader>
@@ -109,43 +108,29 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-full">
-        <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b p-4 md:p-6 md:pb-4">
-          <div className="flex items-center gap-3">
-            <SidebarTrigger className="lg:hidden flex-shrink-0" data-testid="button-sidebar-toggle" />
-            <div className="min-w-0">
-              <h1 className="text-xl md:text-2xl font-semibold truncate">Dashboard</h1>
-              <p className="text-sm text-muted-foreground truncate">Overview of your travel agency</p>
-            </div>
-          </div>
+      <div className="p-6 space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">Overview of your travel agency billing</p>
         </div>
 
-        <div className="p-4 md:p-6">
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-            {Array(8).fill(0).map((_, i) => (
-              <MetricCardSkeleton key={i} />
-            ))}
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array(8).fill(0).map((_, i) => (
+            <MetricCardSkeleton key={i} />
+          ))}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-full">
-      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b p-4 md:p-6 md:pb-4">
-        <div className="flex items-center gap-3">
-          <SidebarTrigger className="lg:hidden flex-shrink-0" data-testid="button-sidebar-toggle" />
-          <div className="min-w-0">
-            <h1 className="text-xl md:text-2xl font-semibold truncate" data-testid="text-dashboard-title">Dashboard</h1>
-            <p className="text-sm text-muted-foreground truncate">Overview of your travel agency</p>
-          </div>
-        </div>
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold" data-testid="text-dashboard-title">Dashboard</h1>
+        <p className="text-sm text-muted-foreground">Overview of your travel agency billing</p>
       </div>
-      
-      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
 
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="Total Revenue"
           value={formatCurrency(metrics?.totalRevenue || 0)}
@@ -190,7 +175,7 @@ export default function Dashboard() {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between gap-4">
@@ -231,7 +216,7 @@ export default function Dashboard() {
                       <span className="text-sm font-mono font-semibold">
                         {formatCurrency(invoice.total)}
                       </span>
-                      <Badge variant={getStatusBadgeVariant(invoice.status)} className="text-xs">
+                      <Badge variant={getStatusBadgeVariant(invoice.status)} size="sm">
                         {invoice.status}
                       </Badge>
                     </div>
@@ -282,7 +267,7 @@ export default function Dashboard() {
                       <span className="text-sm font-mono font-semibold">
                         {formatCurrency(ticket.faceValue)}
                       </span>
-                      <Badge variant={getStatusBadgeVariant(ticket.status)} className="text-xs">
+                      <Badge variant={getStatusBadgeVariant(ticket.status)} size="sm">
                         {ticket.status}
                       </Badge>
                     </div>
@@ -292,7 +277,6 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
-      </div>
       </div>
     </div>
   );

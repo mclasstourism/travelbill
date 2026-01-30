@@ -11,13 +11,20 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Lock, AlertCircle, Loader2, User } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
+import { Lock, AlertCircle, Loader2 } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { usePin } from "@/lib/pin-context";
-import { useAuth } from "@/lib/auth-context";
+import type { BillCreator } from "@shared/schema";
 
 interface PinModalProps {
   open: boolean;
@@ -26,19 +33,24 @@ interface PinModalProps {
 }
 
 export function PinModal({ open, onOpenChange, onSuccess }: PinModalProps) {
+  const [selectedCreatorId, setSelectedCreatorId] = useState<string>("");
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const { authenticate } = usePin();
-  const { user } = useAuth();
+
+  const { data: billCreators = [], isLoading: isLoadingCreators } = useQuery<BillCreator[]>({
+    queryKey: ["/api/bill-creators"],
+    enabled: open,
+  });
 
   const verifyMutation = useMutation({
-    mutationFn: async ({ userId, pin }: { userId: string; pin: string }) => {
-      const res = await apiRequest("POST", "/api/auth/verify-user-pin", { userId, pin });
+    mutationFn: async ({ creatorId, pin }: { creatorId: string; pin: string }) => {
+      const res = await apiRequest("POST", "/api/auth/verify-pin", { creatorId, pin });
       return res.json();
     },
     onSuccess: (data) => {
-      if (data.success && data.user) {
-        authenticate(data.user);
+      if (data.success && data.billCreator) {
+        authenticate(data.billCreator);
         setPin("");
         setError("");
         onOpenChange(false);
@@ -55,17 +67,20 @@ export function PinModal({ open, onOpenChange, onSuccess }: PinModalProps) {
   });
 
   useEffect(() => {
-    if (pin.length === 5 && user) {
-      verifyMutation.mutate({ userId: user.id, pin });
+    if (pin.length === 8 && selectedCreatorId) {
+      verifyMutation.mutate({ creatorId: selectedCreatorId, pin });
     }
-  }, [pin, user]);
+  }, [pin, selectedCreatorId]);
 
   useEffect(() => {
     if (!open) {
       setPin("");
       setError("");
+      setSelectedCreatorId("");
     }
   }, [open]);
+
+  const activeCreators = billCreators.filter((c) => c.active);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -76,62 +91,87 @@ export function PinModal({ open, onOpenChange, onSuccess }: PinModalProps) {
             PIN Authentication
           </DialogTitle>
           <DialogDescription>
-            Enter your 5-digit PIN to authenticate this transaction.
+            Select your account and enter your 8-digit PIN to authenticate.
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-6 py-4">
-          {user && (
-            <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <User className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="font-medium">{user.name || user.username}</p>
-                <p className="text-sm text-muted-foreground">
-                  {user.role === "superadmin" ? "Administrator" : "Staff"}
-                </p>
-              </div>
-            </div>
-          )}
-
-          <div className="flex flex-col items-center gap-4">
-            <Label>Enter 5-digit PIN</Label>
-            <InputOTP
-              maxLength={5}
-              value={pin}
-              onChange={setPin}
-              disabled={verifyMutation.isPending}
-              data-testid="input-pin"
-            >
-              <InputOTPGroup>
-                <InputOTPSlot index={0} />
-                <InputOTPSlot index={1} />
-                <InputOTPSlot index={2} />
-                <InputOTPSlot index={3} />
-                <InputOTPSlot index={4} />
-              </InputOTPGroup>
-            </InputOTP>
-
-            {verifyMutation.isPending && (
-              <div className="flex items-center gap-2 text-muted-foreground">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="bill-creator">Bill Creator</Label>
+            {isLoadingCreators ? (
+              <div className="flex items-center gap-2 h-10 text-muted-foreground">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Verifying...
+                Loading...
               </div>
-            )}
-
-            {error && (
-              <div className="flex items-center gap-2 text-destructive text-sm">
-                <AlertCircle className="w-4 h-4" />
-                {error}
+            ) : activeCreators.length === 0 ? (
+              <div className="text-sm text-muted-foreground">
+                No bill creators found. Please add one in Settings.
               </div>
+            ) : (
+              <Select
+                value={selectedCreatorId}
+                onValueChange={(value) => {
+                  setSelectedCreatorId(value);
+                  setPin("");
+                  setError("");
+                }}
+              >
+                <SelectTrigger data-testid="select-bill-creator">
+                  <SelectValue placeholder="Select bill creator" />
+                </SelectTrigger>
+                <SelectContent>
+                  {activeCreators.map((creator) => (
+                    <SelectItem key={creator.id} value={creator.id}>
+                      {creator.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
           </div>
+
+          {selectedCreatorId && (
+            <div className="flex flex-col items-center gap-4">
+              <Label>Enter PIN</Label>
+              <InputOTP
+                maxLength={8}
+                value={pin}
+                onChange={setPin}
+                disabled={verifyMutation.isPending}
+                data-testid="input-pin"
+              >
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                  <InputOTPSlot index={3} />
+                  <InputOTPSlot index={4} />
+                  <InputOTPSlot index={5} />
+                  <InputOTPSlot index={6} />
+                  <InputOTPSlot index={7} />
+                </InputOTPGroup>
+              </InputOTP>
+
+              {verifyMutation.isPending && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Verifying...
+                </div>
+              )}
+
+              {error && (
+                <div className="flex items-center gap-2 text-sm text-destructive">
+                  <AlertCircle className="w-4 h-4" />
+                  {error}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end">
           <Button
-            variant="outline"
+            variant="ghost"
             onClick={() => onOpenChange(false)}
             data-testid="button-cancel-pin"
           >

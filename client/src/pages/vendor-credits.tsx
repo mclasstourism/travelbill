@@ -38,7 +38,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Plus, CreditCard, Search, Loader2, ArrowUpCircle, ArrowDownCircle, Banknote, Building, FileCheck } from "lucide-react";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
@@ -131,22 +130,19 @@ export default function VendorCreditsPage() {
   const isLoading = isLoadingVendors || isLoadingTransactions;
 
   return (
-    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-        <div className="flex items-center gap-3">
-          <SidebarTrigger className="lg:hidden" data-testid="button-sidebar-toggle" />
-          <div>
-            <h1 className="text-xl md:text-2xl font-semibold" data-testid="text-vendor-credits-title">Vendor Credits</h1>
-            <p className="text-sm text-muted-foreground">Manage vendor credit and deposit balances</p>
-          </div>
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-semibold" data-testid="text-vendor-credits-title">Vendor Credits</h1>
+          <p className="text-sm text-muted-foreground">Manage vendor credit and deposit balances</p>
         </div>
-        <Button onClick={() => setIsAddOpen(true)} className="w-full sm:w-auto" data-testid="button-add-vendor-transaction">
+        <Button onClick={() => setIsAddOpen(true)} data-testid="button-add-vendor-transaction">
           <Plus className="w-4 h-4 mr-2" />
           Add Transaction
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
