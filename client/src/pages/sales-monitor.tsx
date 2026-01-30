@@ -66,10 +66,8 @@ export default function SalesMonitor() {
     return agents.some((a) => a.id === customerId);
   };
 
-  // Client sales = ALL invoices (both customer and agent invoices)
+  // All invoices (both customer and agent invoices)
   const clientInvoices = invoices;
-  // Vendor/Agency sales = invoices with a vendorId set
-  const vendorInvoices = invoices.filter((inv) => inv.vendorId && inv.vendorId.trim() !== "");
   
   // Calculate invoice totals
   const invoiceTotals = clientInvoices.reduce(
@@ -83,26 +81,6 @@ export default function SalesMonitor() {
   );
   
 
-  const calculateTotals = (ticketList: Ticket[]) => {
-    return ticketList.reduce(
-      (acc, t) => ({
-        count: acc.count + 1,
-        vendorCost: acc.vendorCost + (t.vendorPrice || 0),
-        airlineCost: acc.airlineCost + (t.airlinePrice || 0),
-        mcAddition: acc.mcAddition + (t.middleClassPrice || 0),
-        faceValue: acc.faceValue + (t.faceValue || 0),
-        profit: acc.profit + (t.middleClassPrice || 0),
-        depositUsed: acc.depositUsed + (t.depositDeducted || 0),
-      }),
-      { count: 0, vendorCost: 0, airlineCost: 0, mcAddition: 0, faceValue: 0, profit: 0, depositUsed: 0 }
-    );
-  };
-
-  const getPaymentMethod = (invoice: Invoice | null | undefined) => {
-    if (!invoice) return null;
-    return invoice.paymentMethod;
-  };
-
   const getPaymentIcon = (method: string | null) => {
     switch (method) {
       case "cash":
@@ -115,18 +93,6 @@ export default function SalesMonitor() {
         return <DollarSign className="w-3 h-3" />;
     }
   };
-
-  // Vendor invoice totals
-  const vendorInvoiceTotals = vendorInvoices.reduce(
-    (acc, inv) => ({
-      count: acc.count + 1,
-      vendorPrice: acc.vendorPrice + (inv.vendorCost || 0),
-      mcAddition: acc.mcAddition + ((inv.total || 0) - (inv.vendorCost || 0)),
-      totalAmount: acc.totalAmount + (inv.total || 0),
-      paidAmount: acc.paidAmount + (inv.status === "paid" ? (inv.total || 0) : 0),
-    }),
-    { count: 0, vendorPrice: 0, mcAddition: 0, totalAmount: 0, paidAmount: 0 }
-  );
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-AE", {
@@ -163,7 +129,7 @@ export default function SalesMonitor() {
     const isAgentSale = isAgent(ticket.customerId);
     const isDirect = ticket.vendorId === "direct" || !ticket.vendorId;
     const vendorName = getVendorName(ticket.vendorId || null);
-    const paymentMethod = getPaymentMethod(invoice);
+    const paymentMethod = invoice?.paymentMethod || null;
     const depositUsed = ticket.depositDeducted || 0;
     
     return (
@@ -327,43 +293,7 @@ export default function SalesMonitor() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-purple-100 dark:bg-purple-900 rounded-lg">
-                <FileText className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground">Client Invoices</div>
-                <div className="text-xl font-bold">{clientInvoices.length} Invoices</div>
-                <div className="text-sm font-mono text-purple-600 dark:text-purple-400">
-                  {formatCurrency(invoiceTotals.totalAmount)}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-orange-100 dark:bg-orange-900 rounded-lg">
-                <Building2 className="w-6 h-6 text-orange-600 dark:text-orange-400" />
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground">Vendor Invoices</div>
-                <div className="text-xl font-bold">{vendorInvoices.length} Invoices</div>
-                <div className="text-sm font-mono text-orange-600 dark:text-orange-400">
-                  {formatCurrency(vendorInvoiceTotals.totalAmount)}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="mt-6">
+      <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="w-5 h-5" />
