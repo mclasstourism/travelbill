@@ -146,6 +146,7 @@ export default function TicketsPage() {
   const [passengerNamesList, setPassengerNamesList] = useState<string[]>([""]);
   const [createEticketFiles, setCreateEticketFiles] = useState<File[]>([]);
   const [createEticketPreviews, setCreateEticketPreviews] = useState<{name: string, type: string, url?: string}[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
   const [invoiceTicket, setInvoiceTicket] = useState<Ticket | null>(null);
   const [viewingTicket, setViewingTicket] = useState<Ticket | null>(null);
@@ -1700,18 +1701,39 @@ export default function TicketsPage() {
 
               <div className="space-y-2">
                 <Label>Documents (PDF or Images)</Label>
-                <div className="flex items-center gap-4">
-                  <Input
-                    type="file"
-                    accept="image/*,.pdf,application/pdf"
-                    multiple
-                    onChange={(e) => {
-                      const files = e.target.files;
-                      if (files && files.length > 0) {
-                        const fileArray = Array.from(files);
+                <div 
+                  className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                    isDragging 
+                      ? 'border-primary bg-primary/5' 
+                      : 'border-muted-foreground/25 hover:border-muted-foreground/50'
+                  }`}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsDragging(true);
+                  }}
+                  onDragEnter={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsDragging(false);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsDragging(false);
+                    
+                    const files = e.dataTransfer.files;
+                    if (files && files.length > 0) {
+                      const fileArray = Array.from(files).filter(file => 
+                        file.type.startsWith('image/') || file.type === 'application/pdf'
+                      );
+                      if (fileArray.length > 0) {
                         setCreateEticketFiles(prev => [...prev, ...fileArray]);
-                        
-                        // Create previews for each file
                         fileArray.forEach(file => {
                           if (file.type.startsWith('image/')) {
                             const reader = new FileReader();
@@ -1724,7 +1746,37 @@ export default function TicketsPage() {
                             };
                             reader.readAsDataURL(file);
                           } else {
-                            // PDF - no preview URL needed
+                            setCreateEticketPreviews(prev => [...prev, {
+                              name: file.name,
+                              type: file.type
+                            }]);
+                          }
+                        });
+                      }
+                    }
+                  }}
+                >
+                  <input
+                    type="file"
+                    accept="image/*,.pdf,application/pdf"
+                    multiple
+                    onChange={(e) => {
+                      const files = e.target.files;
+                      if (files && files.length > 0) {
+                        const fileArray = Array.from(files);
+                        setCreateEticketFiles(prev => [...prev, ...fileArray]);
+                        fileArray.forEach(file => {
+                          if (file.type.startsWith('image/')) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setCreateEticketPreviews(prev => [...prev, {
+                                name: file.name,
+                                type: file.type,
+                                url: reader.result as string
+                              }]);
+                            };
+                            reader.readAsDataURL(file);
+                          } else {
                             setCreateEticketPreviews(prev => [...prev, {
                               name: file.name,
                               type: file.type
@@ -1733,10 +1785,20 @@ export default function TicketsPage() {
                         });
                       }
                     }}
-                    className="flex-1"
-                    data-testid="input-eticket-upload"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    data-testid="input-document-upload"
                   />
-                  {createEticketFiles.length > 0 && (
+                  <div className="flex flex-col items-center gap-2 pointer-events-none">
+                    <Upload className={`w-8 h-8 ${isDragging ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <p className="text-sm font-medium">
+                      {isDragging ? 'Drop files here' : 'Drag & drop files here'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">or click to browse</p>
+                    <p className="text-xs text-muted-foreground">PDF, PNG, JPG accepted</p>
+                  </div>
+                </div>
+                {createEticketFiles.length > 0 && (
+                  <div className="flex justify-end">
                     <Button
                       type="button"
                       variant="outline"
@@ -1748,8 +1810,8 @@ export default function TicketsPage() {
                     >
                       Clear All
                     </Button>
-                  )}
-                </div>
+                  </div>
+                )}
                 {createEticketPreviews.length > 0 && (
                   <div className="mt-2 space-y-2">
                     {createEticketPreviews.map((preview, idx) => (
