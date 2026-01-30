@@ -666,6 +666,16 @@ export default function TicketsPage() {
       return;
     }
 
+    // Validate client selection - must have a customer selected
+    if (!data.customerId || data.customerId.trim() === "") {
+      toast({
+        title: "Client required",
+        description: "Please select a client before creating an invoice",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Validate passenger names - at least first passenger name is required
     if (!passengerNamesList[0] || passengerNamesList[0].trim() === "") {
       toast({
