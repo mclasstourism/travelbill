@@ -213,7 +213,7 @@ export default function CustomersPage() {
             <div className="relative flex-1 sm:max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search customers..."
+                placeholder="Search clients..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
@@ -232,15 +232,15 @@ export default function CustomersPage() {
           ) : filteredCustomers.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium">No customers found</p>
-              <p className="text-sm">Add your first customer to get started</p>
+              <p className="text-lg font-medium">No clients found</p>
+              <p className="text-sm">Add your first client to get started</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
+                    <TableHead>Client Name</TableHead>
                     <TableHead>Phone</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Address</TableHead>
@@ -307,10 +307,10 @@ export default function CustomersPage() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name (as per passport) *</FormLabel>
+                    <FormLabel>Client Name *</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Enter name..."
+                        placeholder="Enter client name..."
                         {...field}
                         data-testid="input-customer-name"
                       />
@@ -424,10 +424,10 @@ export default function CustomersPage() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name (as per passport) *</FormLabel>
+                    <FormLabel>Client Name *</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Enter name..."
+                        placeholder="Enter client name..."
                         {...field}
                         data-testid="input-edit-customer-name"
                       />
