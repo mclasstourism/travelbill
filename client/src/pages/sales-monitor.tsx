@@ -67,8 +67,8 @@ export default function SalesMonitor() {
     return agents.some((a) => a.id === customerId);
   };
 
-  const directAirlineTickets = tickets.filter((t) => t.vendorId === "direct" || !t.vendorId);
-  const vendorTickets = tickets.filter((t) => t.vendorId && t.vendorId !== "direct");
+  // All tickets go to vendors tab (includes both agency/vendor tickets and direct airline tickets)
+  const vendorTickets = tickets;
   const agentSales = tickets.filter((t) => isAgent(t.customerId));
 
   const calculateTotals = (ticketList: Ticket[]) => {
@@ -104,7 +104,6 @@ export default function SalesMonitor() {
     }
   };
 
-  const directTotals = calculateTotals(directAirlineTickets);
   const vendorTotals = calculateTotals(vendorTickets);
   const agentTotals = calculateTotals(agentSales);
 
@@ -141,7 +140,8 @@ export default function SalesMonitor() {
   const TicketRow = ({ ticket, showSource = false, showDeposit = false }: { ticket: Ticket; showSource?: boolean; showDeposit?: boolean }) => {
     const invoice = getInvoice(ticket.invoiceId || null);
     const isAgentSale = isAgent(ticket.customerId);
-    const source = ticket.vendorId === "direct" || !ticket.vendorId ? "Direct" : "Vendor";
+    const isDirect = ticket.vendorId === "direct" || !ticket.vendorId;
+    const vendorName = getVendorName(ticket.vendorId || null);
     const paymentMethod = getPaymentMethod(invoice);
     const depositUsed = ticket.depositDeducted || 0;
     
@@ -165,11 +165,11 @@ export default function SalesMonitor() {
         <TableCell>{formatDate(ticket.travelDate)}</TableCell>
         {showSource && (
           <TableCell>
-            <Badge variant={source === "Direct" ? "default" : "secondary"}>
-              {source === "Direct" ? (
+            <Badge variant={isDirect ? "default" : "secondary"}>
+              {isDirect ? (
                 <><Plane className="w-3 h-3 mr-1" /> Airlines</>
               ) : (
-                <><Building2 className="w-3 h-3 mr-1" /> Vendor</>
+                <><Building2 className="w-3 h-3 mr-1" /> {vendorName}</>
               )}
             </Badge>
           </TableCell>
@@ -185,7 +185,7 @@ export default function SalesMonitor() {
         </TableCell>
         <TableCell>{getCustomerName(ticket.customerId)}</TableCell>
         <TableCell className="text-right font-mono">
-          {ticket.vendorId === "direct" || !ticket.vendorId
+          {isDirect
             ? formatCurrency(ticket.airlinePrice || 0)
             : formatCurrency(ticket.vendorPrice || 0)}
         </TableCell>
@@ -304,24 +304,7 @@ export default function SalesMonitor() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                <Plane className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground">Direct Airlines</div>
-                <div className="text-xl font-bold">{directAirlineTickets.length} Sales</div>
-                <div className="text-sm font-mono text-blue-600 dark:text-blue-400">
-                  {formatCurrency(directTotals.faceValue)}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -357,12 +340,8 @@ export default function SalesMonitor() {
         </Card>
       </div>
 
-      <Tabs defaultValue="direct" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="direct" data-testid="tab-direct-airlines">
-            <Plane className="w-4 h-4 mr-2" />
-            Direct Airlines
-          </TabsTrigger>
+      <Tabs defaultValue="agents" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="agents" data-testid="tab-agents">
             <Briefcase className="w-4 h-4 mr-2" />
             Agents
@@ -372,53 +351,6 @@ export default function SalesMonitor() {
             Vendors
           </TabsTrigger>
         </TabsList>
-
-        <TabsContent value="direct" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Plane className="w-5 h-5" />
-                Direct Airlines Sales
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <SummaryCards totals={directTotals} type="direct" />
-              
-              <div className="rounded-md border overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Ticket #</TableHead>
-                      <TableHead>Passenger</TableHead>
-                      <TableHead>Airlines</TableHead>
-                      <TableHead>Travel Date</TableHead>
-                      <TableHead>Client Type</TableHead>
-                      <TableHead>Client Name</TableHead>
-                      <TableHead className="text-right">Airline Price</TableHead>
-                      <TableHead className="text-right">MC Addition</TableHead>
-                      <TableHead className="text-right">Face Value</TableHead>
-                      <TableHead className="text-right">Deposit Used</TableHead>
-                      <TableHead>Invoice / Payment</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {directAirlineTickets.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
-                          No direct airline sales yet
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      directAirlineTickets.map((ticket) => (
-                        <TicketRow key={ticket.id} ticket={ticket} showDeposit />
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="agents" className="mt-6">
           <Card>
@@ -487,9 +419,10 @@ export default function SalesMonitor() {
                       <TableHead>Passenger</TableHead>
                       <TableHead>Airlines</TableHead>
                       <TableHead>Travel Date</TableHead>
+                      <TableHead>Source</TableHead>
                       <TableHead>Client Type</TableHead>
                       <TableHead>Client Name</TableHead>
-                      <TableHead className="text-right">Vendor Price</TableHead>
+                      <TableHead className="text-right">Source Cost</TableHead>
                       <TableHead className="text-right">MC Addition</TableHead>
                       <TableHead className="text-right">Face Value</TableHead>
                       <TableHead className="text-right">Deposit Used</TableHead>
@@ -499,13 +432,13 @@ export default function SalesMonitor() {
                   <TableBody>
                     {vendorTickets.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
                           No vendor sales yet
                         </TableCell>
                       </TableRow>
                     ) : (
                       vendorTickets.map((ticket) => (
-                        <TicketRow key={ticket.id} ticket={ticket} showDeposit />
+                        <TicketRow key={ticket.id} ticket={ticket} showSource showDeposit />
                       ))
                     )}
                   </TableBody>
