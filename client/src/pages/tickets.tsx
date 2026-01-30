@@ -1413,7 +1413,6 @@ export default function TicketsPage() {
                         <TableRow key={index}>
                           <TableCell className="p-2">
                             <Input
-                              placeholder={`Ticket #`}
                               value={ticketNum}
                               onChange={(e) => {
                                 const newList = [...ticketNumbersList];
@@ -1445,7 +1444,6 @@ export default function TicketsPage() {
                           </TableCell>
                           <TableCell className="p-2">
                             <Input
-                              placeholder={`Passenger ${index + 1} name`}
                               value={passengerNamesList[index] || ""}
                               onChange={(e) => {
                                 const newNames = [...passengerNamesList];
@@ -1461,7 +1459,6 @@ export default function TicketsPage() {
                               type="number"
                               min="0"
                               step="any"
-                              placeholder="0"
                               value={ticketPricesList[index] || ""}
                               onChange={(e) => {
                                 const val = parseFloat(e.target.value) || 0;
@@ -1493,7 +1490,6 @@ export default function TicketsPage() {
                       
                       <div className="space-y-2">
                         <Input
-                          placeholder="Passenger name"
                           value={passengerNamesList[index] || ""}
                           onChange={(e) => {
                             const newNames = [...passengerNamesList];
@@ -1509,7 +1505,6 @@ export default function TicketsPage() {
                         <div className="space-y-1">
                           <Label className="text-xs text-muted-foreground">Ticket #</Label>
                           <Input
-                            placeholder="Ticket number"
                             value={ticketNum}
                             onChange={(e) => {
                               const newList = [...ticketNumbersList];
@@ -1526,7 +1521,6 @@ export default function TicketsPage() {
                             type="number"
                             min="0"
                             step="any"
-                            placeholder="0"
                             value={ticketPricesList[index] || ""}
                             onChange={(e) => {
                               const val = parseFloat(e.target.value) || 0;
