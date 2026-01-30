@@ -1933,16 +1933,102 @@ export default function TicketsPage() {
                   Cancel
                 </Button>
                 {formViewingTicket ? (
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      setIsCreateOpen(false);
-                      setFormViewingTicket(null);
-                    }}
-                    data-testid="button-close-invoice"
-                  >
-                    Close
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        // Open print dialog with invoice data
+                        const printWindow = window.open('', '_blank');
+                        if (printWindow) {
+                          const clientName = getClientName(formViewingTicket.customerId);
+                          const vendorName = formViewingTicket.vendorId === "direct" 
+                            ? `Direct - ${formViewingTicket.airlines}` 
+                            : vendors?.find(v => v.id === formViewingTicket.vendorId)?.name || "Unknown";
+                          printWindow.document.write(`
+                            <html>
+                              <head>
+                                <title>Invoice ${formViewingTicket.pnr || formViewingTicket.ticketNumber}</title>
+                                <style>
+                                  body { font-family: Arial, sans-serif; padding: 40px; }
+                                  .header { text-align: center; margin-bottom: 30px; }
+                                  .header h1 { margin: 0; color: #333; }
+                                  .info-row { display: flex; justify-content: space-between; margin: 10px 0; }
+                                  .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+                                  .label { color: #666; font-size: 14px; }
+                                  .value { font-weight: bold; }
+                                  .total { font-size: 24px; color: #2563eb; }
+                                  .status { padding: 4px 12px; border-radius: 4px; display: inline-block; }
+                                  .paid { background: #dcfce7; color: #166534; }
+                                  .unpaid { background: #fee2e2; color: #991b1b; }
+                                </style>
+                              </head>
+                              <body>
+                                <div class="header">
+                                  <h1>INVOICE</h1>
+                                  <p>Invoice #: ${formViewingTicket.pnr || formViewingTicket.ticketNumber || 'N/A'}</p>
+                                </div>
+                                <div class="section">
+                                  <div class="info-row">
+                                    <span class="label">Client:</span>
+                                    <span class="value">${clientName}</span>
+                                  </div>
+                                  <div class="info-row">
+                                    <span class="label">Vendor:</span>
+                                    <span class="value">${vendorName}</span>
+                                  </div>
+                                  <div class="info-row">
+                                    <span class="label">Route:</span>
+                                    <span class="value">${formViewingTicket.route || 'N/A'}</span>
+                                  </div>
+                                  <div class="info-row">
+                                    <span class="label">Travel Date:</span>
+                                    <span class="value">${formViewingTicket.travelDate || 'N/A'}</span>
+                                  </div>
+                                  <div class="info-row">
+                                    <span class="label">Passengers:</span>
+                                    <span class="value">${formViewingTicket.passengerCount || 1}</span>
+                                  </div>
+                                </div>
+                                <div class="section">
+                                  <div class="info-row">
+                                    <span class="label">Total Amount:</span>
+                                    <span class="value total">AED ${(formViewingTicket.faceValue || 0).toLocaleString()}</span>
+                                  </div>
+                                  <div class="info-row">
+                                    <span class="label">Status:</span>
+                                    <span class="status ${(formViewingTicket as any).isPaid ? 'paid' : 'unpaid'}">
+                                      ${(formViewingTicket as any).isPaid ? 'PAID' : 'UNPAID'}
+                                    </span>
+                                  </div>
+                                </div>
+                                <script>window.print();</script>
+                              </body>
+                            </html>
+                          `);
+                          printWindow.document.close();
+                        }
+                      }}
+                      data-testid="button-print-invoice"
+                    >
+                      <Printer className="w-4 h-4 mr-2" />
+                      Print Invoice
+                    </Button>
+                    {!(formViewingTicket as any).isPaid && (
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          setPayingTicket(formViewingTicket);
+                          setIsCreateOpen(false);
+                          setFormViewingTicket(null);
+                        }}
+                        data-testid="button-pay-invoice"
+                      >
+                        <CreditCard className="w-4 h-4 mr-2" />
+                        Pay Invoice
+                      </Button>
+                    )}
+                  </div>
                 ) : (
                   <Button
                     type="submit"
