@@ -67,8 +67,9 @@ export default function SalesMonitor() {
     return agents.some((a) => a.id === customerId);
   };
 
-  // All tickets go to vendors tab (includes both agency/vendor tickets and direct airline tickets)
-  const vendorTickets = tickets;
+  // Vendor sales = customer sales only (not agents)
+  const vendorTickets = tickets.filter((t) => !isAgent(t.customerId));
+  // Agent sales = tickets sold to agents
   const agentSales = tickets.filter((t) => isAgent(t.customerId));
 
   const calculateTotals = (ticketList: Ticket[]) => {
@@ -137,7 +138,7 @@ export default function SalesMonitor() {
     );
   }
 
-  const TicketRow = ({ ticket, showSource = false, showDeposit = false }: { ticket: Ticket; showSource?: boolean; showDeposit?: boolean }) => {
+  const TicketRow = ({ ticket, showSource = false, showDeposit = false, hideClientType = false }: { ticket: Ticket; showSource?: boolean; showDeposit?: boolean; hideClientType?: boolean }) => {
     const invoice = getInvoice(ticket.invoiceId || null);
     const isAgentSale = isAgent(ticket.customerId);
     const isDirect = ticket.vendorId === "direct" || !ticket.vendorId;
@@ -174,15 +175,17 @@ export default function SalesMonitor() {
             </Badge>
           </TableCell>
         )}
-        <TableCell>
-          <Badge variant={isAgentSale ? "outline" : "secondary"}>
-            {isAgentSale ? (
-              <><Briefcase className="w-3 h-3 mr-1" /> Agent</>
-            ) : (
-              <><Users className="w-3 h-3 mr-1" /> Customer</>
-            )}
-          </Badge>
-        </TableCell>
+        {!hideClientType && (
+          <TableCell>
+            <Badge variant={isAgentSale ? "outline" : "secondary"}>
+              {isAgentSale ? (
+                <><Briefcase className="w-3 h-3 mr-1" /> Agent</>
+              ) : (
+                <><Users className="w-3 h-3 mr-1" /> Customer</>
+              )}
+            </Badge>
+          </TableCell>
+        )}
         <TableCell>{getCustomerName(ticket.customerId)}</TableCell>
         <TableCell className="text-right font-mono">
           {isDirect
@@ -420,8 +423,7 @@ export default function SalesMonitor() {
                       <TableHead>Airlines</TableHead>
                       <TableHead>Travel Date</TableHead>
                       <TableHead>Source</TableHead>
-                      <TableHead>Client Type</TableHead>
-                      <TableHead>Client Name</TableHead>
+                      <TableHead>Customer Name</TableHead>
                       <TableHead className="text-right">Source Cost</TableHead>
                       <TableHead className="text-right">MC Addition</TableHead>
                       <TableHead className="text-right">Face Value</TableHead>
@@ -432,13 +434,13 @@ export default function SalesMonitor() {
                   <TableBody>
                     {vendorTickets.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
-                          No vendor sales yet
+                        <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                          No customer sales yet
                         </TableCell>
                       </TableRow>
                     ) : (
                       vendorTickets.map((ticket) => (
-                        <TicketRow key={ticket.id} ticket={ticket} showSource showDeposit />
+                        <TicketRow key={ticket.id} ticket={ticket} showSource showDeposit hideClientType />
                       ))
                     )}
                   </TableBody>
