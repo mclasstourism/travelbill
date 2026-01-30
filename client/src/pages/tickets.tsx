@@ -423,11 +423,9 @@ export default function TicketsPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="flight">Flight</SelectItem>
-                          <SelectItem value="bus">Bus</SelectItem>
-                          <SelectItem value="train">Train</SelectItem>
-                          <SelectItem value="ferry">Ferry</SelectItem>
-                          <SelectItem value="cruise">Cruise</SelectItem>
+                          <SelectItem value="first_class">First Class</SelectItem>
+                          <SelectItem value="business_class">Business Class</SelectItem>
+                          <SelectItem value="economy">Economy</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
