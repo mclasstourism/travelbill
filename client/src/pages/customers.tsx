@@ -45,6 +45,7 @@ import { Plus, Users, Search, Loader2, Pencil, Trash2, Briefcase } from "lucide-
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertCustomerSchema, type Customer, type InsertCustomer, type Agent } from "@shared/schema";
@@ -56,6 +57,7 @@ export default function CustomersPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"all" | "customers" | "agents">("all");
+  const [newClientType, setNewClientType] = useState<"customer" | "agent">("customer");
   const { toast } = useToast();
   const { user } = useAuth();
   const isAdmin = user?.role === "superadmin";
@@ -91,18 +93,22 @@ export default function CustomersPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: InsertCustomer) => {
-      const res = await apiRequest("POST", "/api/customers", data);
+    mutationFn: async (data: InsertCustomer & { clientType: "customer" | "agent" }) => {
+      const { clientType, ...clientData } = data;
+      const endpoint = clientType === "agent" ? "/api/agents" : "/api/customers";
+      const res = await apiRequest("POST", endpoint, clientData);
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
       queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
       setIsCreateOpen(false);
       createForm.reset();
+      setNewClientType("customer");
       toast({
-        title: "Customer created",
-        description: "The customer has been added successfully.",
+        title: "Client created",
+        description: `The ${newClientType} has been added successfully.`,
       });
     },
     onError: (error: Error) => {
@@ -209,7 +215,7 @@ export default function CustomersPage() {
   });
 
   const onCreateSubmit = (data: InsertCustomer) => {
-    createMutation.mutate(data);
+    createMutation.mutate({ ...data, clientType: newClientType });
   };
 
   const onEditSubmit = (data: InsertCustomer) => {
@@ -388,17 +394,49 @@ export default function CustomersPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+      <Dialog open={isCreateOpen} onOpenChange={(open) => {
+        setIsCreateOpen(open);
+        if (!open) {
+          setNewClientType("customer");
+          createForm.reset();
+        }
+      }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add New Customer</DialogTitle>
+            <DialogTitle>Add New Client</DialogTitle>
             <DialogDescription>
-              Enter the customer details below.
+              Enter the client details below.
             </DialogDescription>
           </DialogHeader>
 
           <Form {...createForm}>
             <form onSubmit={createForm.handleSubmit(onCreateSubmit)} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Client Type *</Label>
+                <Select value={newClientType} onValueChange={(v: "customer" | "agent") => setNewClientType(v)}>
+                  <SelectTrigger data-testid="select-client-type">
+                    <SelectValue placeholder="Select client type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="customer">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        Customer
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="agent">
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="w-4 h-4" />
+                        Agent
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {newClientType === "customer" ? "Individual client" : "Bulk ticket buyer"}
+                </p>
+              </div>
+
               <FormField
                 control={createForm.control}
                 name="name"
@@ -409,7 +447,7 @@ export default function CustomersPage() {
                       <Input
                         placeholder="Enter client name..."
                         {...field}
-                        data-testid="input-customer-name"
+                        data-testid="input-client-name"
                       />
                     </FormControl>
                     <FormMessage />
@@ -492,12 +530,12 @@ export default function CustomersPage() {
                 <Button
                   type="submit"
                   disabled={createMutation.isPending}
-                  data-testid="button-save-customer"
+                  data-testid="button-save-client"
                 >
                   {createMutation.isPending && (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   )}
-                  Save Customer
+                  Save Client
                 </Button>
               </div>
             </form>
