@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { usePin } from "@/lib/pin-context";
+import { useAuth } from "@/lib/auth-context";
 import { PinModal } from "@/components/pin-modal";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,12 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
+import { AlertCircle } from "lucide-react";
 import { Plus, Ticket as TicketIcon, Search, Loader2, Lock, Calendar, Plane, Upload, Download, UserPlus, Building2, Check, ChevronsUpDown, Edit, Image, Eye, X, Users, FileText, Printer, Briefcase, ExternalLink, DollarSign, CreditCard, ArrowLeftRight, ArrowRight } from "lucide-react";
 import companyLogo from "@assets/Updated_Logo_1769092146053.png";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -123,6 +130,8 @@ export default function TicketsPage() {
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [confirmPin, setConfirmPin] = useState("");
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
   const [editStatus, setEditStatus] = useState<string>("pending");
   const [editTicketNumber, setEditTicketNumber] = useState<string>("");
@@ -155,7 +164,9 @@ export default function TicketsPage() {
   const [payingTicket, setPayingTicket] = useState<Ticket | null>(null);
   const [paymentPin, setPaymentPin] = useState("");
   const { toast } = useToast();
-  const { isAuthenticated, session } = usePin();
+  const { isAuthenticated, session, authenticate } = usePin();
+  const { user } = useAuth();
+  const [confirmPinError, setConfirmPinError] = useState("");
 
   const { data: tickets = [], isLoading } = useQuery<Ticket[]>({
     queryKey: ["/api/tickets"],
@@ -272,6 +283,21 @@ export default function TicketsPage() {
     });
   }, [passengerCount]);
 
+  // Auto-verify confirmation PIN when 5 digits entered
+  useEffect(() => {
+    if (confirmPin.length === 5 && user && !confirmPinMutation.isPending) {
+      confirmPinMutation.mutate({ userId: user.id, pin: confirmPin });
+    }
+  }, [confirmPin, user]);
+
+  // Reset confirmation dialog state when closed
+  useEffect(() => {
+    if (!isConfirmOpen) {
+      setConfirmPin("");
+      setConfirmPinError("");
+    }
+  }, [isConfirmOpen]);
+
   // Calculate total from individual ticket prices + MC Addition
   const totalTicketPrices = useMemo(() => {
     return ticketPricesList.reduce((sum, price) => sum + (price || 0), 0);
@@ -358,6 +384,29 @@ export default function TicketsPage() {
         description: error.message || "Failed to issue ticket",
         variant: "destructive",
       });
+    },
+  });
+
+  const confirmPinMutation = useMutation({
+    mutationFn: async ({ userId, pin }: { userId: string; pin: string }) => {
+      const res = await apiRequest("POST", "/api/auth/verify-user-pin", { userId, pin });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.success && data.user) {
+        authenticate(data.user);
+        setConfirmPin("");
+        setConfirmPinError("");
+        setIsConfirmOpen(false);
+        form.handleSubmit(onSubmit)();
+      } else {
+        setConfirmPinError("Invalid PIN. Please try again.");
+        setConfirmPin("");
+      }
+    },
+    onError: () => {
+      setConfirmPinError("Invalid PIN. Please try again.");
+      setConfirmPin("");
     },
   });
 
@@ -1997,7 +2046,14 @@ export default function TicketsPage() {
                   </div>
                 ) : (
                   <Button
-                    type="submit"
+                    type="button"
+                    onClick={() => {
+                      form.trigger().then((isValid) => {
+                        if (isValid) {
+                          setIsConfirmOpen(true);
+                        }
+                      });
+                    }}
                     disabled={createMutation.isPending}
                     data-testid="button-save-ticket"
                   >
@@ -2010,6 +2066,80 @@ export default function TicketsPage() {
               </div>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmation Dialog with PIN */}
+      <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="w-5 h-5 text-primary" />
+              Confirm Invoice Creation
+            </DialogTitle>
+            <DialogDescription className="text-base">
+              Are all the information correct? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-6 py-4">
+            {user && (
+              <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Users className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium">{user.name || user.username}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {user.role === "superadmin" ? "Administrator" : "Staff"}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-col items-center gap-4">
+              <Label>Enter your 5-digit PIN to confirm</Label>
+              <InputOTP
+                maxLength={5}
+                value={confirmPin}
+                onChange={setConfirmPin}
+                disabled={confirmPinMutation.isPending}
+                data-testid="input-confirm-pin"
+              >
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                  <InputOTPSlot index={3} />
+                  <InputOTPSlot index={4} />
+                </InputOTPGroup>
+              </InputOTP>
+
+              {confirmPinMutation.isPending && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Verifying...
+                </div>
+              )}
+
+              {confirmPinError && (
+                <div className="flex items-center gap-2 text-destructive text-sm">
+                  <AlertCircle className="w-4 h-4" />
+                  {confirmPinError}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsConfirmOpen(false)}
+              data-testid="button-cancel-confirm"
+            >
+              Cancel
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
