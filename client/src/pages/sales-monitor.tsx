@@ -67,12 +67,24 @@ export default function SalesMonitor() {
     return agents.some((a) => a.id === customerId);
   };
 
-  // Client sales = ALL tickets (both customer and agent sales)
-  const clientSales = tickets;
+  // Client sales = ALL invoices (both customer and agent invoices)
+  const clientInvoices = invoices;
   // Vendor/Agency sales = tickets sourced FROM vendors/agencies (vendorId is set)
   const vendorTickets = tickets.filter((t) => t.vendorId && t.vendorId.trim() !== "");
-  // For backward compatibility
-  const agentSales = clientSales;
+  
+  // Calculate invoice totals
+  const invoiceTotals = clientInvoices.reduce(
+    (acc, inv) => ({
+      count: acc.count + 1,
+      totalAmount: acc.totalAmount + (inv.total || 0),
+      paidAmount: acc.paidAmount + (inv.status === "paid" ? (inv.total || 0) : 0),
+      depositUsed: acc.depositUsed + (inv.depositUsed || 0),
+    }),
+    { count: 0, totalAmount: 0, paidAmount: 0, depositUsed: 0 }
+  );
+  
+  // For ticket-based calculations (vendor tab)
+  const agentSales = tickets;
 
   const calculateTotals = (ticketList: Ticket[]) => {
     return ticketList.reduce(
@@ -314,13 +326,13 @@ export default function SalesMonitor() {
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-purple-100 dark:bg-purple-900 rounded-lg">
-                <Briefcase className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                <FileText className="w-6 h-6 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
-                <div className="text-sm text-muted-foreground">Client Sales</div>
-                <div className="text-xl font-bold">{agentSales.length} Sales</div>
+                <div className="text-sm text-muted-foreground">Client Invoices</div>
+                <div className="text-xl font-bold">{clientInvoices.length} Invoices</div>
                 <div className="text-sm font-mono text-purple-600 dark:text-purple-400">
-                  {formatCurrency(agentTotals.faceValue)}
+                  {formatCurrency(invoiceTotals.totalAmount)}
                 </div>
               </div>
             </div>
@@ -361,42 +373,131 @@ export default function SalesMonitor() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Client Sales
+                <FileText className="w-5 h-5" />
+                Client Invoices
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <SummaryCards totals={agentTotals} type="agent" />
+              {/* Invoice Summary Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                      <FileText className="w-4 h-4" />
+                      Total Invoices
+                    </div>
+                    <div className="text-2xl font-bold">{clientInvoices.length}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                      <DollarSign className="w-4 h-4" />
+                      Total Amount
+                    </div>
+                    <div className="text-2xl font-bold font-mono text-primary">
+                      {formatCurrency(invoiceTotals.totalAmount)}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                      <TrendingUp className="w-4 h-4" />
+                      Paid Amount
+                    </div>
+                    <div className="text-2xl font-bold font-mono text-green-600">
+                      {formatCurrency(invoiceTotals.paidAmount)}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                      <Wallet className="w-4 h-4" />
+                      Deposit Used
+                    </div>
+                    <div className="text-2xl font-bold font-mono text-orange-600">
+                      {formatCurrency(invoiceTotals.depositUsed)}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
               
               <div className="rounded-md border overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Ticket #</TableHead>
-                      <TableHead>Passenger</TableHead>
-                      <TableHead>Airlines</TableHead>
-                      <TableHead>Travel Date</TableHead>
-                      <TableHead>Source</TableHead>
+                      <TableHead>Invoice #</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Client Name</TableHead>
                       <TableHead>Client Type</TableHead>
-                      <TableHead>Agent Name</TableHead>
-                      <TableHead className="text-right">Source Cost</TableHead>
-                      <TableHead className="text-right">MC Addition</TableHead>
-                      <TableHead className="text-right">Price to Agent</TableHead>
+                      <TableHead>Items</TableHead>
+                      <TableHead className="text-right">Subtotal</TableHead>
+                      <TableHead className="text-right">Discount</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
                       <TableHead className="text-right">Deposit Used</TableHead>
-                      <TableHead>Invoice / Payment</TableHead>
+                      <TableHead>Payment</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {agentSales.length === 0 ? (
+                    {clientInvoices.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
-                          No agent sales yet
+                        <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                          No invoices yet
                         </TableCell>
                       </TableRow>
                     ) : (
-                      agentSales.map((ticket) => (
-                        <TicketRow key={ticket.id} ticket={ticket} showSource showDeposit />
-                      ))
+                      clientInvoices.map((invoice) => {
+                        const clientName = getCustomerName(invoice.customerId);
+                        const clientType = isAgent(invoice.customerId) ? "Agent" : "Customer";
+                        const items = Array.isArray(invoice.items) ? invoice.items : [];
+                        return (
+                          <TableRow key={invoice.id} data-testid={`row-invoice-${invoice.id}`}>
+                            <TableCell className="font-mono font-medium">
+                              {invoice.invoiceNumber}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {formatDate(invoice.createdAt)}
+                            </TableCell>
+                            <TableCell className="font-medium">{clientName}</TableCell>
+                            <TableCell>
+                              <Badge variant={clientType === "Agent" ? "outline" : "secondary"}>
+                                {clientType === "Agent" ? (
+                                  <><Briefcase className="w-3 h-3 mr-1" /> Agent</>
+                                ) : (
+                                  <><Users className="w-3 h-3 mr-1" /> Customer</>
+                                )}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{items.length} items</TableCell>
+                            <TableCell className="text-right font-mono">
+                              {formatCurrency(invoice.subtotal || 0)}
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-muted-foreground">
+                              {invoice.discountPercent ? `${invoice.discountPercent}%` : "-"}
+                            </TableCell>
+                            <TableCell className="text-right font-mono font-medium">
+                              {formatCurrency(invoice.total || 0)}
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-orange-600">
+                              {invoice.depositUsed ? formatCurrency(invoice.depositUsed) : "-"}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                {getPaymentIcon(invoice.paymentMethod)}
+                                <span className="capitalize text-sm">{invoice.paymentMethod}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={invoice.status === "paid" ? "default" : "secondary"}>
+                                {invoice.status}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>
