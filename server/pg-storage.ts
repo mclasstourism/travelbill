@@ -845,4 +845,52 @@ export class PgStorage implements IStorage {
       recentTickets: tickets.slice(0, 5),
     };
   }
+
+  // Admin Operations
+  async resetFinanceData(): Promise<void> {
+    // Delete all transactions
+    await db.delete(schema.depositTransactionsTable);
+    await db.delete(schema.vendorTransactionsTable);
+    await db.delete(schema.agentTransactionsTable);
+    
+    // Reset all customer balances
+    await db.update(schema.customersTable).set({ depositBalance: 0 });
+    
+    // Reset all agent balances
+    await db.update(schema.agentsTable).set({ creditBalance: 0, depositBalance: 0 });
+    
+    // Reset all vendor balances
+    await db.update(schema.vendorsTable).set({ creditBalance: 0, depositBalance: 0 });
+  }
+
+  async resetInvoices(): Promise<void> {
+    await db.delete(schema.invoicesTable);
+    this.invoiceCounter = 1000;
+  }
+
+  async resetTickets(): Promise<void> {
+    await db.delete(schema.ticketsTable);
+    this.ticketCounter = 1000;
+  }
+
+  async deleteCustomer(id: string): Promise<boolean> {
+    // Delete associated deposit transactions first
+    await db.delete(schema.depositTransactionsTable).where(eq(schema.depositTransactionsTable.customerId, id));
+    const result = await db.delete(schema.customersTable).where(eq(schema.customersTable.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async deleteAgent(id: string): Promise<boolean> {
+    // Delete associated agent transactions first
+    await db.delete(schema.agentTransactionsTable).where(eq(schema.agentTransactionsTable.agentId, id));
+    const result = await db.delete(schema.agentsTable).where(eq(schema.agentsTable.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async deleteVendor(id: string): Promise<boolean> {
+    // Delete associated vendor transactions first
+    await db.delete(schema.vendorTransactionsTable).where(eq(schema.vendorTransactionsTable.vendorId, id));
+    const result = await db.delete(schema.vendorsTable).where(eq(schema.vendorsTable.id, id)).returning();
+    return result.length > 0;
+  }
 }

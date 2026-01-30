@@ -98,6 +98,14 @@ export interface IStorage {
 
   // Metrics
   getDashboardMetrics(): Promise<DashboardMetrics>;
+
+  // Admin Operations
+  resetFinanceData(): Promise<void>;
+  resetInvoices(): Promise<void>;
+  resetTickets(): Promise<void>;
+  deleteCustomer(id: string): Promise<boolean>;
+  deleteAgent(id: string): Promise<boolean>;
+  deleteVendor(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -710,6 +718,53 @@ export class MemStorage implements IStorage {
       recentInvoices: invoices.slice(0, 5),
       recentTickets: tickets.slice(0, 5),
     };
+  }
+
+  // Admin Operations
+  async resetFinanceData(): Promise<void> {
+    this.depositTransactions.clear();
+    this.vendorTransactions.clear();
+    this.agentTransactions.clear();
+    for (const [id, customer] of this.customers) {
+      this.customers.set(id, { ...customer, depositBalance: 0 });
+    }
+    for (const [id, agent] of this.agents) {
+      this.agents.set(id, { ...agent, creditBalance: 0, depositBalance: 0 });
+    }
+    for (const [id, vendor] of this.vendors) {
+      this.vendors.set(id, { ...vendor, creditBalance: 0, depositBalance: 0 });
+    }
+  }
+
+  async resetInvoices(): Promise<void> {
+    this.invoices.clear();
+    this.invoiceCounter = 1000;
+  }
+
+  async resetTickets(): Promise<void> {
+    this.tickets.clear();
+    this.ticketCounter = 1000;
+  }
+
+  async deleteCustomer(id: string): Promise<boolean> {
+    for (const [txId, tx] of this.depositTransactions) {
+      if (tx.customerId === id) this.depositTransactions.delete(txId);
+    }
+    return this.customers.delete(id);
+  }
+
+  async deleteAgent(id: string): Promise<boolean> {
+    for (const [txId, tx] of this.agentTransactions) {
+      if (tx.agentId === id) this.agentTransactions.delete(txId);
+    }
+    return this.agents.delete(id);
+  }
+
+  async deleteVendor(id: string): Promise<boolean> {
+    for (const [txId, tx] of this.vendorTransactions) {
+      if (tx.vendorId === id) this.vendorTransactions.delete(txId);
+    }
+    return this.vendors.delete(id);
   }
 }
 

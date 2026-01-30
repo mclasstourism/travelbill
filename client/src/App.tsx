@@ -22,6 +22,7 @@ import VendorCreditsPage from "@/pages/vendor-credits";
 import AgentCreditsPage from "@/pages/agent-credits";
 import BillCreatorsPage from "@/pages/bill-creators";
 import ReportsPage from "@/pages/reports";
+import AdminSettingsPage from "@/pages/admin-settings";
 import LoginPage from "@/pages/login";
 import { Loader2, LogOut } from "lucide-react";
 
@@ -39,6 +40,7 @@ function Router() {
       <Route path="/agent-credits" component={AgentCreditsPage} />
       <Route path="/reports" component={ReportsPage} />
       <Route path="/settings/bill-creators" component={BillCreatorsPage} />
+      <Route path="/settings/admin" component={AdminSettingsPage} />
       <Route component={NotFound} />
     </Switch>
   );

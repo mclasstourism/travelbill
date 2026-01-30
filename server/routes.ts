@@ -603,5 +603,124 @@ export async function registerRoutes(
     }
   });
 
+  // Admin Reset Operations
+  app.post("/api/admin/reset", async (req, res) => {
+    try {
+      const { type, password } = req.body;
+      
+      if (!type || !password) {
+        res.status(400).json({ error: "Type and password are required" });
+        return;
+      }
+
+      // Verify admin password
+      const user = await storage.verifyUserPassword("admin", password);
+      if (!user) {
+        res.status(401).json({ error: "Invalid admin password" });
+        return;
+      }
+
+      let message = "";
+      switch (type) {
+        case "finance":
+          await storage.resetFinanceData();
+          message = "All finance data has been reset. Transaction histories cleared and balances reset to zero.";
+          break;
+        case "invoices":
+          await storage.resetInvoices();
+          message = "All invoice records have been deleted.";
+          break;
+        case "tickets":
+          await storage.resetTickets();
+          message = "All ticket records have been deleted.";
+          break;
+        default:
+          res.status(400).json({ error: "Invalid reset type" });
+          return;
+      }
+
+      res.json({ success: true, message });
+    } catch (error) {
+      console.error("Admin reset error:", error);
+      res.status(500).json({ error: "Failed to perform reset operation" });
+    }
+  });
+
+  // Delete individual party with password verification
+  app.delete("/api/customers/:id", async (req, res) => {
+    try {
+      const { password } = req.body;
+      if (!password) {
+        res.status(400).json({ error: "Admin password is required" });
+        return;
+      }
+
+      const user = await storage.verifyUserPassword("admin", password);
+      if (!user) {
+        res.status(401).json({ error: "Invalid admin password" });
+        return;
+      }
+
+      const deleted = await storage.deleteCustomer(req.params.id);
+      if (!deleted) {
+        res.status(404).json({ error: "Customer not found" });
+        return;
+      }
+      res.json({ success: true, message: "Customer deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete customer" });
+    }
+  });
+
+  app.delete("/api/agents/:id", async (req, res) => {
+    try {
+      const { password } = req.body;
+      if (!password) {
+        res.status(400).json({ error: "Admin password is required" });
+        return;
+      }
+
+      const user = await storage.verifyUserPassword("admin", password);
+      if (!user) {
+        res.status(401).json({ error: "Invalid admin password" });
+        return;
+      }
+
+      const deleted = await storage.deleteAgent(req.params.id);
+      if (!deleted) {
+        res.status(404).json({ error: "Agent not found" });
+        return;
+      }
+      res.json({ success: true, message: "Agent deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete agent" });
+    }
+  });
+
+  app.delete("/api/vendors/:id", async (req, res) => {
+    try {
+      const { password } = req.body;
+      if (!password) {
+        res.status(400).json({ error: "Admin password is required" });
+        return;
+      }
+
+      const user = await storage.verifyUserPassword("admin", password);
+      if (!user) {
+        res.status(401).json({ error: "Invalid admin password" });
+        return;
+      }
+
+      const deleted = await storage.deleteVendor(req.params.id);
+      if (!deleted) {
+        res.status(404).json({ error: "Vendor not found" });
+        return;
+      }
+      res.json({ success: true, message: "Vendor deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete vendor" });
+    }
+  });
+
   return httpServer;
 }

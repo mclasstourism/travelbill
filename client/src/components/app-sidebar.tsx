@@ -13,6 +13,7 @@ import {
   BarChart3,
   Briefcase,
   User,
+  Shield,
 } from "lucide-react";
 import companyLogo from "@assets/Updated_Logo_1769092146053.png";
 import {
@@ -53,6 +54,7 @@ const financeItems = [
 
 const settingsItems = [
   { title: "Bill Creators", url: "/settings/bill-creators", icon: Lock },
+  { title: "Admin Settings", url: "/settings/admin", icon: Shield },
 ];
 
 export function AppSidebar() {
