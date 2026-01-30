@@ -1313,6 +1313,84 @@ export default function TicketsPage() {
                   </Select>
               </div>
 
+              {/* Trip Type and Route - below Ticket Source */}
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="tripType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Trip Type *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-trip-type">
+                            <SelectValue placeholder="Select trip type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="one_way">One Way</SelectItem>
+                          <SelectItem value="round_trip">Round Trip</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div>
+                  <FormLabel>Route *</FormLabel>
+                  <div className="flex items-center gap-2 mt-2">
+                    <FormField
+                      control={form.control}
+                      name="routeFrom"
+                      render={({ field }) => (
+                        <FormItem className="flex-1">
+                          <FormControl>
+                            <Input
+                              {...field}
+                              placeholder="DXB"
+                              value={field.value}
+                              onChange={(e) => {
+                                const upperValue = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
+                                field.onChange(upperValue);
+                              }}
+                              className="font-mono text-center tracking-widest"
+                              maxLength={4}
+                              data-testid="input-route-from"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Plane className="h-4 w-4 text-muted-foreground" />
+                    <FormField
+                      control={form.control}
+                      name="routeTo"
+                      render={({ field }) => (
+                        <FormItem className="flex-1">
+                          <FormControl>
+                            <Input
+                              {...field}
+                              placeholder="MNL"
+                              value={field.value}
+                              onChange={(e) => {
+                                const upperValue = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
+                                field.onChange(upperValue);
+                              }}
+                              className="font-mono text-center tracking-widest"
+                              maxLength={4}
+                              data-testid="input-route-to"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* Row 4: Ticket #, Ticket Class, Passenger Name, Ticket Price - Table Form */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">
@@ -1485,90 +1563,6 @@ export default function TicketsPage() {
                     </div>
                   ))}
                 </div>
-              </div>
-
-              {/* Separator and Trip Details */}
-              <div className="border-t pt-4 space-y-4">
-              <FormField
-                control={form.control}
-                name="tripType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Trip Type *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger data-testid="select-trip-type">
-                          <SelectValue placeholder="Select trip type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="one_way">One Way</SelectItem>
-                        <SelectItem value="round_trip">Round Trip</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div>
-                <FormLabel>Route *</FormLabel>
-                <div className="flex items-center gap-2 mt-2">
-                  <FormField
-                    control={form.control}
-                    name="routeFrom"
-                    render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <FormControl>
-                          <Input
-                            {...field}
-                            placeholder="DXB"
-                            value={field.value}
-                            onChange={(e) => {
-                              const upperValue = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
-                              field.onChange(upperValue);
-                            }}
-                            className="font-mono text-center tracking-widest text-lg"
-                            maxLength={4}
-                            data-testid="input-route-from"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="flex items-center justify-center w-12">
-                    <div className="flex items-center gap-1">
-                      <div className="w-3 h-0.5 bg-primary rounded"></div>
-                      <Plane className="h-5 w-5 text-primary" />
-                      <div className="w-3 h-0.5 bg-primary rounded"></div>
-                    </div>
-                  </div>
-                  <FormField
-                    control={form.control}
-                    name="routeTo"
-                    render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <FormControl>
-                          <Input
-                            {...field}
-                            placeholder="LHR"
-                            value={field.value}
-                            onChange={(e) => {
-                              const upperValue = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
-                              field.onChange(upperValue);
-                            }}
-                            className="font-mono text-center tracking-widest text-lg"
-                            maxLength={4}
-                            data-testid="input-route-to"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
               </div>
 
               {/* Source Cost and MC Addition */}
