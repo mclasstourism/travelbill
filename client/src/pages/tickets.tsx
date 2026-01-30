@@ -96,7 +96,7 @@ function getStatusBadgeVariant(status: string): "default" | "secondary" | "destr
 
 const createTicketFormSchema = z.object({
   ticketNumber: z.string().optional(), // Validated separately via ticketNumbersList state
-  pnr: z.string().optional(),
+  pnr: z.string().min(1, "PNR is required"),
   customerId: z.string().min(1, "Customer is required"),
   vendorId: z.string().optional(), // Optional - "direct" means direct from airline
   tripType: z.enum(["one_way", "round_trip"]).default("one_way"),
@@ -879,7 +879,7 @@ export default function TicketsPage() {
                   name="pnr"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>PNR / Booking Ref</FormLabel>
+                      <FormLabel>PNR / Booking Ref *</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="e.g., ABC123"
