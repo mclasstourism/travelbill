@@ -487,9 +487,9 @@ export default function TicketsPage() {
       travelDate: ticket.travelDate || "",
       returnDate: ticket.returnDate || "",
       passengerName: ticket.passengerName || "",
-      vendorPrice: 0,
-      airlinePrice: 0,
-      middleClassPrice: 0,
+      vendorPrice: ticket.vendorPrice || 0,
+      airlinePrice: ticket.airlinePrice || 0,
+      middleClassPrice: ticket.middleClassPrice || 0,
       faceValue: ticket.faceValue || 0,
       deductFromDeposit: ticket.deductFromDeposit || false,
     });
@@ -512,8 +512,9 @@ export default function TicketsPage() {
       setTicketNumbersList([""]);
     }
 
-    // Set prices
-    const pricePerPassenger = ticket.faceValue / (ticket.passengerCount || 1);
+    // Set prices - calculate from source cost (vendor or airline price)
+    const sourceCost = ticket.vendorPrice || ticket.airlinePrice || 0;
+    const pricePerPassenger = sourceCost / (ticket.passengerCount || 1);
     setTicketPricesList(Array(ticket.passengerCount || 1).fill(pricePerPassenger));
 
     // Set classes
