@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -242,6 +243,7 @@ export default function AdminSettingsPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center gap-3">
+        <SidebarTrigger data-testid="button-sidebar-toggle" />
         <Shield className="w-8 h-8 text-primary" />
         <div>
           <h1 className="text-2xl font-semibold" data-testid="text-admin-settings-title">Admin Settings</h1>

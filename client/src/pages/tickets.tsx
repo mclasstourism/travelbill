@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { usePin } from "@/lib/pin-context";
 import { PinModal } from "@/components/pin-modal";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -81,7 +82,7 @@ const createTicketFormSchema = z.object({
   travelDate: z.string().min(1, "Travel date is required"),
   returnDate: z.string().optional(),
   passengerName: z.string().min(1, "Passenger name is required"),
-  faceValue: z.coerce.number().min(0, "Face value must be positive"),
+  faceValue: z.coerce.number().min(1, "Face value is required and must be greater than 0"),
   deductFromDeposit: z.boolean().default(false),
 });
 
@@ -216,9 +217,12 @@ export default function TicketsPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-semibold" data-testid="text-tickets-title">Tickets</h1>
-          <p className="text-sm text-muted-foreground">Issue and manage travel tickets</p>
+        <div className="flex items-center gap-2">
+          <SidebarTrigger data-testid="button-sidebar-toggle" />
+          <div>
+            <h1 className="text-2xl font-semibold" data-testid="text-tickets-title">Tickets</h1>
+            <p className="text-sm text-muted-foreground">Issue and manage travel tickets</p>
+          </div>
         </div>
         <Button onClick={handleCreateClick} data-testid="button-issue-ticket">
           {!isAuthenticated && <Lock className="w-4 h-4 mr-2" />}
@@ -521,6 +525,7 @@ export default function TicketsPage() {
                           <Input
                             type="date"
                             className="pl-9"
+                            min={new Date().toISOString().split('T')[0]}
                             {...field}
                             data-testid="input-travel-date"
                           />
@@ -563,6 +568,7 @@ export default function TicketsPage() {
                           <Input
                             type="date"
                             className="pl-9"
+                            min={new Date().toISOString().split('T')[0]}
                             {...field}
                             data-testid="input-return-date"
                           />

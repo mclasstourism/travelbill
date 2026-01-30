@@ -59,25 +59,22 @@ function AuthenticatedApp() {
         <div className="flex h-screen w-full">
           <AppSidebar />
           <div className="flex flex-col flex-1 overflow-hidden">
-            <header className="flex items-center justify-between gap-4 p-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-              <SidebarTrigger data-testid="button-sidebar-toggle" />
-              <div className="flex items-center gap-2">
-                {user && (
-                  <span className="text-sm text-muted-foreground hidden sm:inline">
-                    {user.username}
-                  </span>
-                )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={logout}
-                  title="Sign out"
-                  data-testid="button-logout-header"
-                >
-                  <LogOut className="w-4 h-4" />
-                </Button>
-                <ThemeToggle />
-              </div>
+            <header className="flex items-center justify-end gap-2 p-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+              {user && (
+                <span className="text-sm text-muted-foreground hidden sm:inline">
+                  {user.username}
+                </span>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={logout}
+                title="Sign out"
+                data-testid="button-logout-header"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
+              <ThemeToggle />
             </header>
             <main className="flex-1 overflow-auto bg-muted/30">
               <Router />

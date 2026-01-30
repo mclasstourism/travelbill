@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -113,9 +114,12 @@ export default function BillCreatorsPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-semibold" data-testid="text-bill-creators-title">Bill Creators</h1>
-          <p className="text-sm text-muted-foreground">Manage staff who can create invoices and issue tickets</p>
+        <div className="flex items-center gap-2">
+          <SidebarTrigger data-testid="button-sidebar-toggle" />
+          <div>
+            <h1 className="text-2xl font-semibold" data-testid="text-bill-creators-title">Bill Creators</h1>
+            <p className="text-sm text-muted-foreground">Manage staff who can create invoices and issue tickets</p>
+          </div>
         </div>
         <Button onClick={() => setIsCreateOpen(true)} data-testid="button-add-bill-creator">
           <Plus className="w-4 h-4 mr-2" />
