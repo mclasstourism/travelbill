@@ -207,6 +207,12 @@ export default function TicketsPage() {
   const selectedVendor = vendors.find((v) => v.id === watchVendorId);
   const vendorAirlines = selectedVendor?.airlines || [];
 
+  // Helper to get client name by customer ID
+  const getClientName = (customerId: string) => {
+    const customer = customers.find((c) => c.id === customerId);
+    return customer?.name || "Unknown Client";
+  };
+
   // Filter customers based on search query
   const filteredCustomers = useMemo(() => {
     if (!customerSearchQuery) return customers;
@@ -701,17 +707,7 @@ export default function TicketsPage() {
                 <div key={ticket.id} className="border rounded-lg p-4 space-y-3" data-testid={`card-ticket-${ticket.id}`}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <div className="space-y-0.5">
-                        {(ticket.passengerNames && ticket.passengerNames.length > 0) ? (
-                          ticket.passengerNames.map((name: string, idx: number) => (
-                            <p key={idx} className={`truncate ${idx === 0 ? 'font-medium' : 'text-sm text-muted-foreground'}`}>
-                              {idx === 0 ? name : `• ${name}`}
-                            </p>
-                          ))
-                        ) : (
-                          <p className="font-medium truncate">{ticket.passengerName}</p>
-                        )}
-                      </div>
+                      <p className="font-medium truncate">{getClientName(ticket.customerId)}</p>
                     </div>
                     <Badge variant="outline" className="shrink-0">
                       {(ticket.passengerCount || 1)}
@@ -765,7 +761,7 @@ export default function TicketsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Customer</TableHead>
+                    <TableHead>Client</TableHead>
                     <TableHead>No. of Passengers</TableHead>
                     <TableHead>Route</TableHead>
                     <TableHead>Travel Date</TableHead>
@@ -777,17 +773,7 @@ export default function TicketsPage() {
                   {filteredTickets.map((ticket) => (
                     <TableRow key={ticket.id} data-testid={`row-ticket-${ticket.id}`}>
                       <TableCell>
-                        <div className="flex flex-col gap-0.5">
-                          {(ticket.passengerNames && ticket.passengerNames.length > 0) ? (
-                            ticket.passengerNames.map((name: string, idx: number) => (
-                              <span key={idx} className={idx === 0 ? '' : 'text-sm text-muted-foreground'}>
-                                {idx === 0 ? name : `• ${name}`}
-                              </span>
-                            ))
-                          ) : (
-                            <span>{ticket.passengerName}</span>
-                          )}
-                        </div>
+                        <span>{getClientName(ticket.customerId)}</span>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
