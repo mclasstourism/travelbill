@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -38,12 +39,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Wallet, Search, Loader2, ArrowUpCircle, ArrowDownCircle, Eye, ArrowLeft } from "lucide-react";
+import { Plus, Wallet, Search, Loader2, ArrowUpCircle, ArrowDownCircle, Eye, ArrowLeft, Download, Printer, Calendar } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format } from "date-fns";
+import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval, parseISO } from "date-fns";
 import { z } from "zod";
 import type { Customer, DepositTransaction } from "@shared/schema";
+
+type DateRange = "all" | "today" | "this_month" | "this_year" | "custom";
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("en-AE", {
@@ -65,6 +68,9 @@ export default function DepositsPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [dateRange, setDateRange] = useState<DateRange>("all");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
   const { toast } = useToast();
 
   const { data: customers = [], isLoading: isLoadingCustomers } = useQuery<Customer[]>({
@@ -117,13 +123,170 @@ export default function DepositsPage() {
     customer.phone?.includes(searchQuery)
   );
 
-  const customerTransactions = selectedCustomer 
-    ? transactions
-        .filter(tx => tx.customerId === selectedCustomer.id)
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    : [];
+  const dateFilter = useMemo(() => {
+    const now = new Date();
+    switch (dateRange) {
+      case "today":
+        return { start: startOfDay(now), end: endOfDay(now) };
+      case "this_month":
+        return { start: startOfMonth(now), end: endOfMonth(now) };
+      case "this_year":
+        return { start: startOfYear(now), end: endOfYear(now) };
+      case "custom":
+        if (customStartDate && customEndDate) {
+          return { start: startOfDay(parseISO(customStartDate)), end: endOfDay(parseISO(customEndDate)) };
+        }
+        return null;
+      default:
+        return null;
+    }
+  }, [dateRange, customStartDate, customEndDate]);
+
+  const customerTransactions = useMemo(() => {
+    if (!selectedCustomer) return [];
+    
+    let filtered = transactions
+      .filter(tx => tx.customerId === selectedCustomer.id)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    
+    if (dateFilter) {
+      filtered = filtered.filter(tx => {
+        const txDate = new Date(tx.createdAt);
+        return isWithinInterval(txDate, { start: dateFilter.start, end: dateFilter.end });
+      });
+    }
+    
+    return filtered;
+  }, [selectedCustomer, transactions, dateFilter]);
 
   const totalDeposits = customers.reduce((sum, c) => sum + (c.depositBalance > 0 ? c.depositBalance : 0), 0);
+
+  const handleExportExcel = () => {
+    if (!selectedCustomer || customerTransactions.length === 0) return;
+    
+    const dateRangeText = dateFilter
+      ? `${format(dateFilter.start, "yyyy-MM-dd")} to ${format(dateFilter.end, "yyyy-MM-dd")}`
+      : "All Time";
+    
+    const headers = ["Date", "Description", "Type", "Amount", "Balance After"];
+    const rows = customerTransactions.map(tx => [
+      format(new Date(tx.createdAt), "yyyy-MM-dd HH:mm"),
+      tx.description,
+      tx.type === "credit" ? "Deposit Added" : "Deposit Used",
+      tx.type === "credit" ? tx.amount : -tx.amount,
+      tx.balanceAfter
+    ]);
+    
+    const csvContent = [
+      [`Customer: ${selectedCustomer.name}`],
+      [`Phone: ${selectedCustomer.phone || "N/A"}`],
+      [`Date Range: ${dateRangeText}`],
+      [],
+      headers,
+      ...rows
+    ].map(row => row.join(",")).join("\n");
+    
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `customer_${selectedCustomer.name.replace(/\s+/g, "_")}_deposits_${format(new Date(), "yyyyMMdd")}.csv`;
+    link.click();
+    
+    toast({ title: "Export successful", description: "Deposit history downloaded as Excel CSV" });
+  };
+
+  const handlePrintPdf = () => {
+    if (!selectedCustomer) return;
+    
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    
+    const dateRangeText = dateFilter
+      ? `${format(dateFilter.start, "MMM d, yyyy")} - ${format(dateFilter.end, "MMM d, yyyy")}`
+      : "All Time";
+    
+    const rows = customerTransactions.map(tx => `
+      <tr>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${format(new Date(tx.createdAt), "MMM d, yyyy HH:mm")}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${tx.description}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${tx.type === "credit" ? "Deposit Added" : "Deposit Used"}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right; font-family: monospace; color: ${tx.type === "credit" ? "green" : "red"};">
+          ${tx.type === "credit" ? "+" : "-"}${formatCurrency(tx.amount)}
+        </td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right; font-family: monospace;">${formatCurrency(tx.balanceAfter)}</td>
+      </tr>
+    `).join("");
+    
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Customer Deposit History - ${selectedCustomer.name}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; max-width: 900px; margin: 0 auto; }
+            h1 { text-align: center; margin-bottom: 5px; }
+            h2 { margin-top: 20px; }
+            .date-range { text-align: center; color: #666; margin-bottom: 20px; }
+            .summary { display: flex; gap: 20px; margin-bottom: 20px; }
+            .summary-card { flex: 1; padding: 15px; border: 1px solid #e5e7eb; border-radius: 8px; }
+            .summary-label { font-size: 12px; color: #666; }
+            .summary-value { font-size: 20px; font-weight: bold; font-family: monospace; }
+            table { width: 100%; border-collapse: collapse; }
+            th { background: #f3f4f6; padding: 10px 8px; text-align: left; border-bottom: 2px solid #d1d5db; }
+            th.right { text-align: right; }
+            .no-data { text-align: center; padding: 40px; color: #666; }
+            @media print { body { padding: 0; } }
+          </style>
+        </head>
+        <body>
+          <h1>Middle Class Tourism</h1>
+          <p style="text-align: center; color: #666; font-style: italic; margin-top: 0;">become your trusted travel partner</p>
+          <h2 style="text-align: center;">Customer Deposit History</h2>
+          <h3 style="text-align: center; margin-top: 5px;">${selectedCustomer.name}</h3>
+          <p style="text-align: center; color: #666;">Phone: ${selectedCustomer.phone || "N/A"}</p>
+          <p class="date-range">${dateRangeText}</p>
+          
+          <div class="summary">
+            <div class="summary-card">
+              <div class="summary-label">Current Balance</div>
+              <div class="summary-value" style="color: ${selectedCustomer.depositBalance >= 0 ? '#16a34a' : '#dc2626'};">${formatCurrency(selectedCustomer.depositBalance)}</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-label">Transactions in Range</div>
+              <div class="summary-value">${customerTransactions.length}</div>
+            </div>
+          </div>
+          
+          ${customerTransactions.length > 0 ? `
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Description</th>
+                  <th>Type</th>
+                  <th class="right">Amount</th>
+                  <th class="right">Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows}
+              </tbody>
+            </table>
+          ` : '<p class="no-data">No transactions in this date range</p>'}
+          
+          <p style="text-align: center; margin-top: 30px; color: #666; font-size: 12px;">
+            Generated on ${format(new Date(), "MMMM d, yyyy 'at' h:mm a")}
+          </p>
+        </body>
+      </html>
+    `;
+    
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.onload = () => {
+      printWindow.print();
+    };
+  };
 
   const onSubmit = (data: AddDepositForm) => {
     addDepositMutation.mutate(data);
@@ -136,23 +299,92 @@ export default function DepositsPage() {
   if (selectedCustomer) {
     return (
       <div className="p-6 space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => setSelectedCustomer(null)} data-testid="button-back">
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-semibold" data-testid="text-customer-history-title">
-              {selectedCustomer.name} - Transaction History
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Phone: {selectedCustomer.phone} | Current Balance: {formatCurrency(selectedCustomer.depositBalance)}
-            </p>
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => setSelectedCustomer(null)} data-testid="button-back">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-semibold" data-testid="text-customer-history-title">
+                {selectedCustomer.name} - Deposit History
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Phone: {selectedCustomer.phone} | Current Balance: {formatCurrency(selectedCustomer.depositBalance)}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={handleExportExcel} disabled={customerTransactions.length === 0} data-testid="button-export-excel">
+              <Download className="w-4 h-4 mr-2" />
+              Excel
+            </Button>
+            <Button variant="outline" onClick={handlePrintPdf} data-testid="button-print-pdf">
+              <Printer className="w-4 h-4 mr-2" />
+              Print PDF
+            </Button>
           </div>
         </div>
 
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Calendar className="w-5 h-5" />
+              Date Filter
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap items-end gap-4">
+              <div className="space-y-2">
+                <Label>Date Range</Label>
+                <Select value={dateRange} onValueChange={(v: DateRange) => setDateRange(v)}>
+                  <SelectTrigger className="w-40" data-testid="select-date-range">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Time</SelectItem>
+                    <SelectItem value="today">Today</SelectItem>
+                    <SelectItem value="this_month">This Month</SelectItem>
+                    <SelectItem value="this_year">This Year</SelectItem>
+                    <SelectItem value="custom">Custom Range</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {dateRange === "custom" && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Start Date</Label>
+                    <Input
+                      type="date"
+                      value={customStartDate}
+                      onChange={(e) => setCustomStartDate(e.target.value)}
+                      data-testid="input-start-date"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>End Date</Label>
+                    <Input
+                      type="date"
+                      value={customEndDate}
+                      onChange={(e) => setCustomEndDate(e.target.value)}
+                      data-testid="input-end-date"
+                    />
+                  </div>
+                </>
+              )}
+
+              {dateFilter && (
+                <div className="text-sm text-muted-foreground">
+                  Showing: {format(dateFilter.start, "MMM d, yyyy")} - {format(dateFilter.end, "MMM d, yyyy")}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 gap-2">
               <CardTitle className="text-sm font-medium">Current Balance</CardTitle>
               <Wallet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -163,8 +395,8 @@ export default function DepositsPage() {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 gap-2">
+              <CardTitle className="text-sm font-medium">Transactions in Range</CardTitle>
               <ArrowUpCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
