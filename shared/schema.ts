@@ -88,6 +88,7 @@ export const invoicesTable = pgTable("invoices", {
 export const ticketsTable = pgTable("tickets", {
   id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
   ticketNumber: varchar("ticket_number", { length: 50 }).notNull().unique(),
+  customerType: varchar("customer_type", { length: 20 }).default("customer"),
   customerId: varchar("customer_id", { length: 36 }).notNull(),
   vendorId: varchar("vendor_id", { length: 36 }).notNull(),
   invoiceId: varchar("invoice_id", { length: 36 }),
@@ -105,6 +106,8 @@ export const ticketsTable = pgTable("tickets", {
   additionalCost: real("additional_cost").default(0),
   deductFromDeposit: boolean("deduct_from_deposit").default(false),
   depositDeducted: real("deposit_deducted").default(0),
+  useAgentBalance: varchar("use_agent_balance", { length: 20 }).default("none"),
+  agentBalanceDeducted: real("agent_balance_deducted").default(0),
   useVendorBalance: varchar("use_vendor_balance", { length: 20 }).default("none"),
   vendorBalanceDeducted: real("vendor_balance_deducted").default(0),
   issuedBy: varchar("issued_by", { length: 36 }).notNull(),
@@ -314,6 +317,7 @@ export const tripTypes = ["one_way", "round_trip"] as const;
 export type TripType = typeof tripTypes[number];
 
 export const insertTicketSchema = z.object({
+  customerType: z.enum(["customer", "agent"]).default("customer"),
   customerId: z.string().min(1, "Customer is required"),
   vendorId: z.string().min(1, "Vendor is required"),
   invoiceId: z.string().optional(),
@@ -331,6 +335,8 @@ export const insertTicketSchema = z.object({
   additionalCost: z.number().min(0, "Additional cost must be positive").default(0),
   deductFromDeposit: z.boolean().default(false),
   depositDeducted: z.number().min(0).default(0),
+  useAgentBalance: z.enum(vendorBalanceSources).default("none"),
+  agentBalanceDeducted: z.number().min(0).default(0),
   useVendorBalance: z.enum(vendorBalanceSources).default("none"),
   vendorBalanceDeducted: z.number().min(0).default(0),
   issuedBy: z.string().min(1, "Bill creator is required"),

@@ -578,6 +578,7 @@ export class PgStorage implements IStorage {
     return {
       id: row.id,
       ticketNumber: row.ticketNumber,
+      customerType: (row.customerType as any) || "customer",
       customerId: row.customerId,
       vendorId: row.vendorId,
       invoiceId: row.invoiceId || undefined,
@@ -595,6 +596,8 @@ export class PgStorage implements IStorage {
       additionalCost: row.additionalCost || 0,
       deductFromDeposit: row.deductFromDeposit || false,
       depositDeducted: row.depositDeducted || 0,
+      useAgentBalance: (row.useAgentBalance as any) || "none",
+      agentBalanceDeducted: row.agentBalanceDeducted || 0,
       useVendorBalance: (row.useVendorBalance as any) || "none",
       vendorBalanceDeducted: row.vendorBalanceDeducted || 0,
       issuedBy: row.issuedBy,
@@ -608,6 +611,7 @@ export class PgStorage implements IStorage {
     const ticketNumber = `TKT-${this.ticketCounter}`;
     const result = await db.insert(schema.ticketsTable).values({
       ticketNumber,
+      customerType: ticket.customerType || "customer",
       customerId: ticket.customerId,
       vendorId: ticket.vendorId,
       invoiceId: ticket.invoiceId,
@@ -625,6 +629,8 @@ export class PgStorage implements IStorage {
       additionalCost: ticket.additionalCost || 0,
       deductFromDeposit: ticket.deductFromDeposit || false,
       depositDeducted: ticket.depositDeducted || 0,
+      useAgentBalance: ticket.useAgentBalance || "none",
+      agentBalanceDeducted: ticket.agentBalanceDeducted || 0,
       useVendorBalance: ticket.useVendorBalance || "none",
       vendorBalanceDeducted: ticket.vendorBalanceDeducted || 0,
       issuedBy: ticket.issuedBy,
@@ -658,8 +664,8 @@ export class PgStorage implements IStorage {
       }
     }
     
-    // Record deposit deduction transaction for customer
-    if (ticket.deductFromDeposit && ticket.depositDeducted && ticket.depositDeducted > 0) {
+    // Record deposit deduction transaction for customer (only for individual customers)
+    if (ticket.customerType === "customer" && ticket.deductFromDeposit && ticket.depositDeducted && ticket.depositDeducted > 0) {
       const customer = await this.getCustomer(ticket.customerId);
       if (customer) {
         const newBalance = customer.depositBalance - ticket.depositDeducted;
@@ -674,6 +680,40 @@ export class PgStorage implements IStorage {
           type: "debit",
           amount: ticket.depositDeducted,
           description: `Ticket ${ticketNumber} - ${ticket.passengerName} - Deposit used for ticket`,
+          referenceId: createdTicket.id,
+          referenceType: "ticket",
+          balanceAfter: newBalance,
+        });
+      }
+    }
+    
+    // Record agent balance deduction transaction (for agent customers)
+    if (ticket.customerType === "agent" && ticket.useAgentBalance && ticket.useAgentBalance !== "none" && ticket.agentBalanceDeducted && ticket.agentBalanceDeducted > 0) {
+      const agent = await this.getAgent(ticket.customerId);
+      if (agent) {
+        let newBalance: number;
+        const transactionType = ticket.useAgentBalance as "credit" | "deposit";
+        
+        if (transactionType === "credit") {
+          newBalance = agent.creditBalance - ticket.agentBalanceDeducted;
+          await db.update(schema.agentsTable)
+            .set({ creditBalance: newBalance })
+            .where(eq(schema.agentsTable.id, ticket.customerId));
+        } else {
+          newBalance = agent.depositBalance - ticket.agentBalanceDeducted;
+          await db.update(schema.agentsTable)
+            .set({ depositBalance: newBalance })
+            .where(eq(schema.agentsTable.id, ticket.customerId));
+        }
+        
+        // Create agent transaction record
+        await db.insert(schema.agentTransactionsTable).values({
+          agentId: ticket.customerId,
+          type: "debit",
+          transactionType: transactionType,
+          amount: ticket.agentBalanceDeducted,
+          description: `Ticket ${ticketNumber} - ${ticket.passengerName} - ${transactionType === "credit" ? "Credit" : "Deposit"} used for ticket`,
+          paymentMethod: "cash",
           referenceId: createdTicket.id,
           referenceType: "ticket",
           balanceAfter: newBalance,

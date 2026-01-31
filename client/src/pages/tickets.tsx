@@ -46,7 +46,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { z } from "zod";
-import type { Ticket, Customer, Vendor } from "@shared/schema";
+import type { Ticket, Customer, Vendor, Agent } from "@shared/schema";
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("en-AE", {
@@ -70,8 +70,6 @@ function getStatusBadgeVariant(status: string): "default" | "secondary" | "destr
   }
 }
 
-const vendorBalanceSources = ["none", "credit", "deposit"] as const;
-
 const createTicketFormSchema = z.object({
   customerId: z.string().min(1, "Customer is required"),
   vendorId: z.string().min(1, "Vendor is required"),
@@ -85,9 +83,8 @@ const createTicketFormSchema = z.object({
   returnDate: z.string().optional(),
   passengerName: z.string().min(1, "Passenger name is required"),
   vendorCost: z.coerce.number().min(1, "Vendor cost is required"),
-  additionalCost: z.coerce.number().min(0, "Additional cost must be positive").default(0),
+  faceValue: z.coerce.number().min(1, "Customer price is required"),
   deductFromDeposit: z.boolean().default(false),
-  useVendorBalance: z.enum(vendorBalanceSources).default("none"),
 });
 
 type CreateTicketForm = z.infer<typeof createTicketFormSchema>;
@@ -127,20 +124,17 @@ export default function TicketsPage() {
       returnDate: "",
       passengerName: "",
       vendorCost: 0,
-      additionalCost: 0,
+      faceValue: 0,
       deductFromDeposit: false,
-      useVendorBalance: "none",
     },
   });
 
   const watchTripType = form.watch("tripType");
   const watchVendorId = form.watch("vendorId");
-
   const watchCustomerId = form.watch("customerId");
   const watchDeductFromDeposit = form.watch("deductFromDeposit");
   const watchVendorCost = form.watch("vendorCost");
-  const watchAdditionalCost = form.watch("additionalCost");
-  const watchUseVendorBalance = form.watch("useVendorBalance");
+  const watchFaceValue = form.watch("faceValue");
 
   const selectedCustomer = customers.find((c) => c.id === watchCustomerId);
   const selectedVendor = vendors.find((v) => v.id === watchVendorId);
@@ -148,28 +142,17 @@ export default function TicketsPage() {
 
   const calculations = useMemo(() => {
     const vendorCost = Number(watchVendorCost) || 0;
-    const additionalCost = Number(watchAdditionalCost) || 0;
-    // Face value = Vendor Cost + Middle Class Additional Cost
-    const faceValue = vendorCost + additionalCost;
+    const faceValue = Number(watchFaceValue) || 0;
+    const profit = faceValue - vendorCost;
     
     let depositDeducted = 0;
     if (watchDeductFromDeposit && selectedCustomer) {
       depositDeducted = Math.min(selectedCustomer.depositBalance, faceValue);
     }
     
-    // Calculate vendor balance deduction - applies to vendor cost, not face value
-    let vendorBalanceDeducted = 0;
-    if (watchUseVendorBalance && watchUseVendorBalance !== "none" && selectedVendor && vendorCost > 0) {
-      const vendorBalance = watchUseVendorBalance === "credit" 
-        ? selectedVendor.creditBalance 
-        : selectedVendor.depositBalance;
-      vendorBalanceDeducted = Math.min(vendorBalance, vendorCost);
-    }
-    
     const amountDue = faceValue - depositDeducted;
-    const netVendorCost = vendorCost - vendorBalanceDeducted;
-    return { faceValue, vendorCost, additionalCost, depositDeducted, amountDue, vendorBalanceDeducted, netVendorCost };
-  }, [watchVendorCost, watchAdditionalCost, watchDeductFromDeposit, selectedCustomer, watchUseVendorBalance, selectedVendor]);
+    return { faceValue, vendorCost, profit, depositDeducted, amountDue };
+  }, [watchVendorCost, watchFaceValue, watchDeductFromDeposit, selectedCustomer]);
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -223,32 +206,19 @@ export default function TicketsPage() {
       return;
     }
 
-    // Face Value = Vendor Cost + Middle Class Additional Cost
     const vendorCost = Number(data.vendorCost) || 0;
-    const additionalCost = Number(data.additionalCost) || 0;
-    const faceValue = vendorCost + additionalCost;
+    const faceValue = Number(data.faceValue) || 0;
     
     let depositDeducted = 0;
     if (data.deductFromDeposit && selectedCustomer) {
       depositDeducted = Math.min(selectedCustomer.depositBalance, faceValue);
     }
 
-    // Calculate vendor balance deduction - applies to vendor cost
-    let vendorBalanceDeducted = 0;
-    if (data.useVendorBalance && data.useVendorBalance !== "none" && selectedVendor && vendorCost > 0) {
-      const vendorBalance = data.useVendorBalance === "credit" 
-        ? selectedVendor.creditBalance 
-        : selectedVendor.depositBalance;
-      vendorBalanceDeducted = Math.min(vendorBalance, vendorCost);
-    }
-
     const ticketData = {
       ...data,
       faceValue,
       vendorCost,
-      additionalCost,
       depositDeducted,
-      vendorBalanceDeducted,
       issuedBy: session.billCreatorId,
     };
 
@@ -640,7 +610,7 @@ export default function TicketsPage() {
                   name="vendorCost"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Vendor Cost *</FormLabel>
+                      <FormLabel>Vendor Cost (AED) *</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -651,6 +621,7 @@ export default function TicketsPage() {
                           data-testid="input-vendor-cost"
                         />
                       </FormControl>
+                      <p className="text-xs text-muted-foreground">What we pay to vendor</p>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -658,10 +629,10 @@ export default function TicketsPage() {
 
                 <FormField
                   control={form.control}
-                  name="additionalCost"
+                  name="faceValue"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Middle Class Additional Cost *</FormLabel>
+                      <FormLabel>Customer Price (AED) *</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -669,30 +640,34 @@ export default function TicketsPage() {
                           step="0.01"
                           placeholder="0.00"
                           {...field}
-                          data-testid="input-additional-cost"
+                          data-testid="input-face-value"
                         />
                       </FormControl>
+                      <p className="text-xs text-muted-foreground">What customer pays</p>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
 
-              {/* Face Value = Vendor Cost + Additional Cost (auto-calculated) */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                    Face Value (Customer Price)
-                  </span>
-                  <span className="text-xl font-bold font-mono text-blue-600 dark:text-blue-300">
-                    {formatCurrency(calculations.faceValue)}
-                  </span>
+              {/* Profit calculation */}
+              {calculations.profit !== 0 && (
+                <div className={`p-4 rounded-lg border ${calculations.profit >= 0 ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'}`}>
+                  <div className="flex justify-between items-center">
+                    <span className={`text-sm font-medium ${calculations.profit >= 0 ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200'}`}>
+                      Profit Margin
+                    </span>
+                    <span className={`text-xl font-bold font-mono ${calculations.profit >= 0 ? 'text-green-600 dark:text-green-300' : 'text-red-600 dark:text-red-300'}`}>
+                      {formatCurrency(calculations.profit)}
+                    </span>
+                  </div>
+                  <p className={`text-xs mt-1 ${calculations.profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    = Customer Price - Vendor Cost
+                  </p>
                 </div>
-                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                  = Vendor Cost + Middle Class Additional Cost
-                </p>
-              </div>
+              )}
 
+              {/* Customer deposit deduction */}
               {selectedCustomer && selectedCustomer.depositBalance > 0 && (
                 <FormField
                   control={form.control}
@@ -700,7 +675,7 @@ export default function TicketsPage() {
                   render={({ field }) => (
                     <FormItem className="flex items-center justify-between rounded-md border p-4">
                       <div className="space-y-0.5">
-                        <FormLabel className="text-base">Deduct from Deposit</FormLabel>
+                        <FormLabel className="text-base">Deduct from Customer Deposit</FormLabel>
                         <p className="text-sm text-muted-foreground">
                           Available: {formatCurrency(selectedCustomer.depositBalance)}
                         </p>
@@ -722,11 +697,11 @@ export default function TicketsPage() {
                   <CardContent className="pt-4">
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span>Ticket Value</span>
+                        <span>Customer Price</span>
                         <span className="font-mono">{formatCurrency(calculations.faceValue)}</span>
                       </div>
                       <div className="flex justify-between text-sm text-blue-600 dark:text-blue-400">
-                        <span>Deposit Deducted</span>
+                        <span>Customer Deposit Deducted</span>
                         <span className="font-mono">-{formatCurrency(calculations.depositDeducted)}</span>
                       </div>
                       <div className="flex justify-between text-lg font-semibold border-t pt-2">
@@ -738,39 +713,7 @@ export default function TicketsPage() {
                 </Card>
               )}
 
-              {selectedVendor && calculations.vendorCost > 0 && (selectedVendor.creditBalance > 0 || selectedVendor.depositBalance > 0) && (
-                <FormField
-                  control={form.control}
-                  name="useVendorBalance"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Offset Vendor Cost Using</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-vendor-balance">
-                            <SelectValue placeholder="Select vendor balance source" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="none">Pay Full Vendor Cost</SelectItem>
-                          {selectedVendor.creditBalance > 0 && (
-                            <SelectItem value="credit">
-                              Use Vendor Credit (Available: {formatCurrency(selectedVendor.creditBalance)})
-                            </SelectItem>
-                          )}
-                          {selectedVendor.depositBalance > 0 && (
-                            <SelectItem value="deposit">
-                              Use Advance Deposit (Available: {formatCurrency(selectedVendor.depositBalance)})
-                            </SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
+              {/* Vendor cost info - auto-deducted from vendor credit */}
               {calculations.vendorCost > 0 && (
                 <Card className="bg-orange-50 dark:bg-orange-900/20">
                   <CardContent className="pt-4 space-y-2">
@@ -778,16 +721,9 @@ export default function TicketsPage() {
                       <span>Vendor Cost</span>
                       <span className="font-mono">{formatCurrency(calculations.vendorCost)}</span>
                     </div>
-                    {calculations.vendorBalanceDeducted > 0 && (
-                      <div className="flex justify-between text-sm text-green-700 dark:text-green-400">
-                        <span>Using {watchUseVendorBalance === "credit" ? "Vendor Credit" : "Advance Deposit"}</span>
-                        <span className="font-mono">-{formatCurrency(calculations.vendorBalanceDeducted)}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between text-sm font-semibold text-orange-800 dark:text-orange-300 border-t pt-2">
-                      <span>Net Vendor Cost (Owed)</span>
-                      <span className="font-mono">{formatCurrency(calculations.netVendorCost)}</span>
-                    </div>
+                    <p className="text-xs text-orange-600 dark:text-orange-400">
+                      This amount will be automatically added to vendor credit when ticket is issued.
+                    </p>
                   </CardContent>
                 </Card>
               )}
@@ -877,11 +813,16 @@ export default function TicketsPage() {
                   </div>
                 </div>
 
-                {/* Customer & Vendor */}
+                {/* Customer/Agent & Vendor */}
                 <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
                   <div>
-                    <span className="text-xs text-gray-500">CUSTOMER</span>
-                    <p>{customers.find(c => c.id === viewTicket.customerId)?.name || "N/A"}</p>
+                    <span className="text-xs text-gray-500">{viewTicket.customerType === "agent" ? "AGENT" : "CUSTOMER"}</span>
+                    <p>
+                      {viewTicket.customerType === "agent" 
+                        ? agents.find(a => a.id === viewTicket.customerId)?.name || "N/A"
+                        : customers.find(c => c.id === viewTicket.customerId)?.name || "N/A"
+                      }
+                    </p>
                   </div>
                   <div>
                     <span className="text-xs text-gray-500">VENDOR</span>
@@ -892,14 +833,14 @@ export default function TicketsPage() {
                 {/* Value - Customer sees face value */}
                 <div className="border-t pt-4">
                   <div className="flex justify-between items-center">
-                    <span className="font-semibold">Ticket Value (Customer Price)</span>
+                    <span className="font-semibold">Ticket Value ({viewTicket.customerType === "agent" ? "Agent" : "Customer"} Price)</span>
                     <span className="text-2xl font-bold text-blue-600 font-mono">
                       AED {viewTicket.faceValue.toLocaleString("en-AE", { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   {viewTicket.depositDeducted > 0 && (
                     <div className="flex justify-between items-center text-sm text-gray-600 mt-2">
-                      <span>Deposit Deducted</span>
+                      <span>Customer Deposit Deducted</span>
                       <span className="font-mono">
                         AED {viewTicket.depositDeducted.toLocaleString("en-AE", { minimumFractionDigits: 2 })}
                       </span>
@@ -917,32 +858,16 @@ export default function TicketsPage() {
                         AED {(viewTicket.vendorCost || 0).toLocaleString("en-AE", { minimumFractionDigits: 2 })}
                       </span>
                     </div>
-                    {viewTicket.vendorBalanceDeducted > 0 && (
-                      <div className="flex justify-between items-center text-green-700 dark:text-green-400">
-                        <span>
-                          {viewTicket.useVendorBalance === "credit" ? "Vendor Credit Used" : "Advance Deposit Used"}
-                        </span>
-                        <span className="font-mono font-semibold">
-                          -AED {viewTicket.vendorBalanceDeducted.toLocaleString("en-AE", { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                    )}
                     <div className="flex justify-between items-center">
-                      <span className="text-amber-700 dark:text-amber-300">Middle Class Additional Cost</span>
+                      <span className="text-amber-700 dark:text-amber-300">Customer Price (Face Value)</span>
                       <span className="font-mono font-semibold text-amber-800 dark:text-amber-200">
-                        AED {(viewTicket.additionalCost || 0).toLocaleString("en-AE", { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center border-t border-amber-300 dark:border-amber-600 pt-2">
-                      <span className="text-amber-700 dark:text-amber-300 font-semibold">Net Vendor Cost (Owed)</span>
-                      <span className="font-mono font-bold text-amber-800 dark:text-amber-200">
-                        AED {((viewTicket.vendorCost || 0) - (viewTicket.vendorBalanceDeducted || 0)).toLocaleString("en-AE", { minimumFractionDigits: 2 })}
+                        AED {viewTicket.faceValue.toLocaleString("en-AE", { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                     <div className="flex justify-between items-center border-t border-amber-300 dark:border-amber-600 pt-2">
                       <span className="text-amber-700 dark:text-amber-300 font-semibold">Profit Margin</span>
-                      <span className="font-mono font-bold text-green-600 dark:text-green-400">
-                        AED {(viewTicket.faceValue - (viewTicket.vendorCost || 0) - (viewTicket.additionalCost || 0)).toLocaleString("en-AE", { minimumFractionDigits: 2 })}
+                      <span className={`font-mono font-bold ${(viewTicket.faceValue - (viewTicket.vendorCost || 0)) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                        AED {(viewTicket.faceValue - (viewTicket.vendorCost || 0)).toLocaleString("en-AE", { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                   </div>
@@ -1047,8 +972,11 @@ export default function TicketsPage() {
                               </div>
                               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; font-size: 0.875rem;">
                                 <div>
-                                  <span style="font-size: 0.75rem; color: #6b7280;">CUSTOMER</span>
-                                  <p style="margin: 4px 0 0 0;">${customers.find(c => c.id === viewTicket.customerId)?.name || "N/A"}</p>
+                                  <span style="font-size: 0.75rem; color: #6b7280;">${viewTicket.customerType === "agent" ? "AGENT" : "CUSTOMER"}</span>
+                                  <p style="margin: 4px 0 0 0;">${viewTicket.customerType === "agent" 
+                                    ? agents.find(a => a.id === viewTicket.customerId)?.name || "N/A"
+                                    : customers.find(c => c.id === viewTicket.customerId)?.name || "N/A"
+                                  }</p>
                                 </div>
                                 <div>
                                   <span style="font-size: 0.75rem; color: #6b7280;">VENDOR</span>
@@ -1062,8 +990,14 @@ export default function TicketsPage() {
                                 </div>
                                 ${viewTicket.depositDeducted > 0 ? `
                                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem; color: #4b5563; margin-top: 8px;">
-                                  <span>Deposit Deducted</span>
+                                  <span>Customer Deposit Deducted</span>
                                   <span style="font-family: monospace;">AED ${viewTicket.depositDeducted.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
+                                </div>
+                                ` : ''}
+                                ${viewTicket.agentBalanceDeducted > 0 ? `
+                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem; color: #7c3aed; margin-top: 8px;">
+                                  <span>Agent ${viewTicket.useAgentBalance === "credit" ? "Credit" : "Deposit"} Deducted</span>
+                                  <span style="font-family: monospace;">AED ${viewTicket.agentBalanceDeducted.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
                                 </div>
                                 ` : ''}
                               </div>
