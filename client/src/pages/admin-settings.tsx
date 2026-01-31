@@ -46,6 +46,8 @@ import {
   Pencil,
   Check,
   X,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import type { User } from "@shared/schema";
 
@@ -75,6 +77,9 @@ export default function AdminSettingsPage() {
   const [editUsername, setEditUsername] = useState("");
   const [editPassword, setEditPassword] = useState("");
   const [editPin, setEditPin] = useState("");
+  
+  const [showNewUserPin, setShowNewUserPin] = useState(false);
+  const [showEditPin, setShowEditPin] = useState(false);
   
   const { toast } = useToast();
 
@@ -198,6 +203,7 @@ export default function AdminSettingsPage() {
       setNewUserEmail("");
       setNewUserPin("");
       setNewUserRole("staff");
+      setShowNewUserPin(false);
       toast({
         title: "User Created",
         description: "The new staff account has been created successfully.",
@@ -228,6 +234,7 @@ export default function AdminSettingsPage() {
       setEditUsername("");
       setEditPassword("");
       setEditPin("");
+      setShowEditPin(false);
       toast({
         title: "User Updated",
         description: "The staff account has been updated successfully.",
@@ -504,15 +511,28 @@ export default function AdminSettingsPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="new-user-pin">Bill Creator PIN (8 digits)</Label>
-              <Input
-                id="new-user-pin"
-                type="password"
-                placeholder="Enter 8-digit PIN for creating bills"
-                value={newUserPin}
-                onChange={(e) => setNewUserPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
-                maxLength={8}
-                data-testid="input-new-user-pin"
-              />
+              <div className="relative">
+                <Input
+                  id="new-user-pin"
+                  type={showNewUserPin ? "text" : "password"}
+                  placeholder="Enter 8-digit PIN for creating bills"
+                  value={newUserPin}
+                  onChange={(e) => setNewUserPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                  maxLength={8}
+                  className="pr-10"
+                  data-testid="input-new-user-pin"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  onClick={() => setShowNewUserPin(!showNewUserPin)}
+                  data-testid="button-toggle-new-pin-visibility"
+                >
+                  {showNewUserPin ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                </Button>
+              </div>
               <p className="text-xs text-muted-foreground">Required to create invoices and tickets</p>
             </div>
             <div className="space-y-2">
@@ -587,15 +607,28 @@ export default function AdminSettingsPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-pin">Bill Creator PIN (8 digits)</Label>
-              <Input
-                id="edit-pin"
-                type="password"
-                placeholder="Enter 8-digit PIN"
-                value={editPin}
-                onChange={(e) => setEditPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
-                maxLength={8}
-                data-testid="input-edit-pin"
-              />
+              <div className="relative">
+                <Input
+                  id="edit-pin"
+                  type={showEditPin ? "text" : "password"}
+                  placeholder="Enter 8-digit PIN"
+                  value={editPin}
+                  onChange={(e) => setEditPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                  maxLength={8}
+                  className="pr-10"
+                  data-testid="input-edit-pin"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  onClick={() => setShowEditPin(!showEditPin)}
+                  data-testid="button-toggle-edit-pin-visibility"
+                >
+                  {showEditPin ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                </Button>
+              </div>
               <p className="text-xs text-muted-foreground">Required to create invoices and tickets</p>
             </div>
           </div>
