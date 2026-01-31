@@ -125,7 +125,7 @@ export default function AgentCreditsPage() {
   const agentTransactions = selectedAgent 
     ? transactions
         .filter(tx => tx.agentId === selectedAgent.id)
-        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     : [];
 
   const totalCredits = agents.reduce((sum, a) => sum + a.creditBalance, 0);
