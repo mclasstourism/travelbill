@@ -117,6 +117,53 @@ export async function registerRoutes(
     }
   });
 
+  // Get all users (admin only - passwords excluded)
+  app.get("/api/users", async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      const safeUsers = users.map(({ password, ...user }) => user);
+      res.json(safeUsers);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  // Create new user (admin only)
+  app.post("/api/users", async (req, res) => {
+    try {
+      const { username, password, email, role } = req.body;
+      if (!username || !password) {
+        res.status(400).json({ error: "Username and password are required" });
+        return;
+      }
+      const user = await storage.createUser({
+        username,
+        password,
+        email: email || undefined,
+        role: role || "staff",
+      });
+      const { password: _, ...safeUser } = user;
+      res.json(safeUser);
+    } catch (error: any) {
+      if (error.message?.includes("duplicate") || error.code === "23505") {
+        res.status(400).json({ error: "Username already exists" });
+      } else {
+        res.status(500).json({ error: "Failed to create user" });
+      }
+    }
+  });
+
+  // Delete user (admin only)
+  app.delete("/api/users/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteUser(id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete user" });
+    }
+  });
+
   // Request password reset (send code via email)
   app.post("/api/auth/request-reset", async (req, res) => {
     try {

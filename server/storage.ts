@@ -31,7 +31,9 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByPhone(phone: string): Promise<User | undefined>;
+  getAllUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
+  deleteUser(id: string): Promise<void>;
   updateUserPassword(userId: string, newPassword: string): Promise<boolean>;
   verifyUserPassword(username: string, password: string): Promise<User | null>;
   getPasswordHint(username: string): Promise<string | null>;
@@ -156,6 +158,7 @@ export class MemStorage implements IStorage {
       password: hashedPassword,
       email: "admin@example.com",
       passwordHint: "Default password is admin followed by 123",
+      role: "admin",
     });
   }
 
@@ -182,12 +185,25 @@ export class MemStorage implements IStorage {
     );
   }
 
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
     const hashedPassword = bcrypt.hashSync(insertUser.password, 10);
-    const user: User = { ...insertUser, password: hashedPassword, id };
+    const user: User = { 
+      ...insertUser, 
+      password: hashedPassword, 
+      id,
+      role: insertUser.role || "staff",
+    };
     this.users.set(id, user);
     return user;
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    this.users.delete(id);
   }
 
   async updateUserPassword(userId: string, newPassword: string): Promise<boolean> {

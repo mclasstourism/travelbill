@@ -117,7 +117,13 @@ export class PgStorage implements IStorage {
       email: row.email || undefined,
       phone: row.phone || undefined,
       passwordHint: row.passwordHint || undefined,
+      role: (row.role as "admin" | "staff") || "staff",
     };
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    const result = await db.select().from(schema.usersTable);
+    return result.map(row => this.mapUser(row));
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -128,8 +134,13 @@ export class PgStorage implements IStorage {
       email: insertUser.email,
       phone: insertUser.phone,
       passwordHint: insertUser.passwordHint,
+      role: insertUser.role || "staff",
     }).returning();
     return this.mapUser(result[0]);
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    await db.delete(schema.usersTable).where(eq(schema.usersTable.id, id));
   }
 
   async updateUserPassword(userId: string, newPassword: string): Promise<boolean> {

@@ -4,6 +4,7 @@ import { apiRequest } from "./queryClient";
 type AuthUser = {
   id: string;
   username: string;
+  role: "admin" | "staff";
 };
 
 type AuthContextType = {
@@ -41,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (res.ok) {
           const data = await res.json();
           if (data.valid && data.user) {
-            setUser({ id: data.user.id, username: data.user.username });
+            setUser({ id: data.user.id, username: data.user.username, role: data.user.role || "staff" });
           } else {
             localStorage.removeItem(AUTH_STORAGE_KEY);
           }
@@ -68,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const authUser: AuthUser = {
           id: data.user.id,
           username: data.user.username,
+          role: data.user.role || "staff",
         };
         setUser(authUser);
         localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authUser));

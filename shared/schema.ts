@@ -10,6 +10,7 @@ export const usersTable = pgTable("users", {
   email: varchar("email", { length: 255 }),
   phone: varchar("phone", { length: 50 }),
   passwordHint: text("password_hint"),
+  role: varchar("role", { length: 20 }).default("staff"),
 });
 
 export const passwordResetTokensTable = pgTable("password_reset_tokens", {
@@ -449,6 +450,7 @@ export const insertUserSchema = z.object({
   email: z.string().email().optional(),
   phone: z.string().optional(),
   passwordHint: z.string().optional(),
+  role: z.enum(["admin", "staff"]).default("staff"),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -459,6 +461,7 @@ export type User = {
   email?: string;
   phone?: string;
   passwordHint?: string;
+  role: "admin" | "staff";
 };
 
 // Password reset token

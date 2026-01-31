@@ -7,6 +7,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +24,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   AlertTriangle,
   Trash2,
   RefreshCw,
@@ -33,10 +42,14 @@ import {
   Ticket,
   Key,
   Lock,
+  UserPlus,
+  Users,
 } from "lucide-react";
-import type { BillCreator } from "@shared/schema";
+import type { BillCreator, User } from "@shared/schema";
 
 type ResetType = "finance" | "invoices" | "tickets" | null;
+
+type SafeUser = Omit<User, "password">;
 
 export default function AdminSettingsPage() {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
@@ -52,11 +65,21 @@ export default function AdminSettingsPage() {
   const [currentPin, setCurrentPin] = useState("");
   const [newPin, setNewPin] = useState("");
   const [confirmNewPin, setConfirmNewPin] = useState("");
+
+  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+  const [newUsername, setNewUsername] = useState("");
+  const [newUserPassword, setNewUserPassword] = useState("");
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserRole, setNewUserRole] = useState<"admin" | "staff">("staff");
   
   const { toast } = useToast();
 
   const { data: billCreators = [] } = useQuery<BillCreator[]>({
     queryKey: ["/api/bill-creators"],
+  });
+
+  const { data: users = [] } = useQuery<SafeUser[]>({
+    queryKey: ["/api/users"],
   });
 
   const resetMutation = useMutation({
@@ -208,6 +231,82 @@ export default function AdminSettingsPage() {
       return;
     }
     changePinMutation.mutate({ billCreatorId: selectedBillCreator, currentPin, newPin });
+  };
+
+  const createUserMutation = useMutation({
+    mutationFn: async (data: { username: string; password: string; email?: string; role: "admin" | "staff" }) => {
+      const res = await apiRequest("POST", "/api/users", data);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to create user");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      setIsAddUserOpen(false);
+      setNewUsername("");
+      setNewUserPassword("");
+      setNewUserEmail("");
+      setNewUserRole("staff");
+      toast({
+        title: "User Created",
+        description: "The new user account has been created successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create user",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("DELETE", `/api/users/${id}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({
+        title: "User Deleted",
+        description: "The user account has been deleted.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete user",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCreateUser = () => {
+    if (!newUsername || !newUserPassword) {
+      toast({
+        title: "Missing Fields",
+        description: "Username and password are required.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (newUserPassword.length < 6) {
+      toast({
+        title: "Password Too Short",
+        description: "Password must be at least 6 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
+    createUserMutation.mutate({
+      username: newUsername,
+      password: newUserPassword,
+      email: newUserEmail || undefined,
+      role: newUserRole,
+    });
   };
 
   const getResetInfo = (type: ResetType) => {
@@ -382,6 +481,135 @@ export default function AdminSettingsPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary" />
+              <div>
+                <CardTitle className="text-lg">User Management</CardTitle>
+                <CardDescription>Manage staff login accounts. Non-admin users cannot access Settings.</CardDescription>
+              </div>
+            </div>
+            <Button onClick={() => setIsAddUserOpen(true)} data-testid="button-add-user">
+              <UserPlus className="w-4 h-4 mr-2" />
+              Add User
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Username</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead className="w-20">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell className="font-medium">{user.username}</TableCell>
+                  <TableCell>{user.email || "-"}</TableCell>
+                  <TableCell>
+                    <Badge variant={user.role === "admin" ? "default" : "secondary"}>
+                      {user.role === "admin" ? "Admin" : "Staff"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => deleteUserMutation.mutate(user.id)}
+                      disabled={user.username === "admin" || deleteUserMutation.isPending}
+                      data-testid={`button-delete-user-${user.username}`}
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {users.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                    No users found
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New User</DialogTitle>
+            <DialogDescription>
+              Create a new staff login account. Staff users cannot access Settings.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-username">Username</Label>
+              <Input
+                id="new-username"
+                placeholder="Enter username"
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                data-testid="input-new-username"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-user-password">Password</Label>
+              <Input
+                id="new-user-password"
+                type="password"
+                placeholder="Enter password (min 6 characters)"
+                value={newUserPassword}
+                onChange={(e) => setNewUserPassword(e.target.value)}
+                data-testid="input-new-user-password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-user-email">Email (optional)</Label>
+              <Input
+                id="new-user-email"
+                type="email"
+                placeholder="Enter email"
+                value={newUserEmail}
+                onChange={(e) => setNewUserEmail(e.target.value)}
+                data-testid="input-new-user-email"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-user-role">Role</Label>
+              <Select value={newUserRole} onValueChange={(v: "admin" | "staff") => setNewUserRole(v)}>
+                <SelectTrigger data-testid="select-new-user-role">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="staff">Staff (Limited Access)</SelectItem>
+                  <SelectItem value="admin">Admin (Full Access)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsAddUserOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleCreateUser}
+              disabled={createUserMutation.isPending || !newUsername || !newUserPassword}
+              data-testid="button-create-user"
+            >
+              {createUserMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Create User
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <h2 className="text-xl font-semibold pt-4">Data Reset Operations</h2>
       <p className="text-sm text-muted-foreground -mt-4">These operations are destructive and cannot be undone.</p>
