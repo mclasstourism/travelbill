@@ -139,11 +139,13 @@ export default function ReportsPage() {
   }, [tickets, dateFilter]);
 
   const invoiceTotals = useMemo(() => {
+    // Use subtotal - discountAmount to match displayed amount in the table
+    const getInvoiceAmount = (inv: Invoice) => inv.subtotal - inv.discountAmount;
     return {
       count: filteredInvoices.length,
-      total: filteredInvoices.reduce((sum, inv) => sum + inv.total, 0),
-      paid: filteredInvoices.filter(inv => inv.status === "paid").reduce((sum, inv) => sum + inv.total, 0),
-      pending: filteredInvoices.filter(inv => inv.status !== "paid" && inv.status !== "cancelled").reduce((sum, inv) => sum + inv.total, 0),
+      total: filteredInvoices.reduce((sum, inv) => sum + getInvoiceAmount(inv), 0),
+      paid: filteredInvoices.filter(inv => inv.status === "paid").reduce((sum, inv) => sum + getInvoiceAmount(inv), 0),
+      pending: filteredInvoices.filter(inv => inv.status !== "paid" && inv.status !== "cancelled").reduce((sum, inv) => sum + getInvoiceAmount(inv), 0),
     };
   }, [filteredInvoices]);
 
