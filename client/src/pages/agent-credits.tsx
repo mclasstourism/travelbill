@@ -213,8 +213,8 @@ export default function AgentCreditsPage() {
                       <TableHead>Account Type</TableHead>
                       <TableHead>Transaction</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
-                      <TableHead className="text-right text-blue-600 dark:text-blue-400">Credit Balance</TableHead>
-                      <TableHead className="text-right text-green-600 dark:text-green-400">Deposit Balance</TableHead>
+                      <TableHead className="text-right text-blue-600 dark:text-blue-400">Credit Given</TableHead>
+                      <TableHead className="text-right text-green-600 dark:text-green-400">Deposit Received</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -229,7 +229,7 @@ export default function AgentCreditsPage() {
                           <TableCell>{tx.description}</TableCell>
                           <TableCell>
                             <Badge variant={isCreditType ? "default" : "secondary"}>
-                              {isCreditType ? "Credit Line" : "Deposit"}
+                              {isCreditType ? "Credit Given" : "Deposit"}
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -274,7 +274,7 @@ export default function AgentCreditsPage() {
           <SidebarTrigger data-testid="button-sidebar-toggle" />
           <div>
             <h1 className="text-2xl font-semibold" data-testid="text-agent-credits-title">Agent Credits & Deposits</h1>
-            <p className="text-sm text-muted-foreground">Track agent credit lines and advance payments</p>
+            <p className="text-sm text-muted-foreground">Track credit given to agents and their deposits</p>
           </div>
         </div>
         <Button onClick={() => setIsAddOpen(true)} data-testid="button-add-transaction">
@@ -286,7 +286,7 @@ export default function AgentCreditsPage() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Agent Credits</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Credit Given</CardTitle>
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>

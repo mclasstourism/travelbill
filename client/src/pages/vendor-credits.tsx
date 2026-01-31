@@ -212,8 +212,8 @@ export default function VendorCreditsPage() {
                       <TableHead>Account Type</TableHead>
                       <TableHead>Transaction</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
-                      <TableHead className="text-right text-blue-600 dark:text-blue-400">Credit Balance</TableHead>
-                      <TableHead className="text-right text-green-600 dark:text-green-400">Deposit Balance</TableHead>
+                      <TableHead className="text-right text-blue-600 dark:text-blue-400">Credit Owed</TableHead>
+                      <TableHead className="text-right text-green-600 dark:text-green-400">Deposit Available</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -228,7 +228,7 @@ export default function VendorCreditsPage() {
                           <TableCell>{tx.description}</TableCell>
                           <TableCell>
                             <Badge variant={isCreditType ? "default" : "secondary"}>
-                              {isCreditType ? "Credit Line" : "Deposit"}
+                              {isCreditType ? "Credit Owed" : "Deposit"}
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -285,14 +285,14 @@ export default function VendorCreditsPage() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Vendor Credits</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Credit Owed</CardTitle>
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 font-mono">
               {formatCurrency(totalCredits)}
             </div>
-            <p className="text-xs text-muted-foreground">Credit lines available</p>
+            <p className="text-xs text-muted-foreground">Amount owed to vendors</p>
           </CardContent>
         </Card>
         <Card>
@@ -438,8 +438,8 @@ export default function VendorCreditsPage() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="credit">Credit Line (vendor gives us credit)</SelectItem>
-                        <SelectItem value="deposit">Deposit (we pay advance to vendor)</SelectItem>
+                        <SelectItem value="credit">Credit Owed (we owe vendor for tickets)</SelectItem>
+                        <SelectItem value="deposit">Deposit (advance payment to vendor)</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
