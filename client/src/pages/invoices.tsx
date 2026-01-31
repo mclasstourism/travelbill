@@ -248,17 +248,18 @@ export default function InvoicesPage() {
     }
     let afterAgentCredit = afterCustomerDeposit - agentCreditUsed;
     
-    // Vendor balance deduction reduces the invoice total (like customer deposit)
+    // Vendor balance deduction is based on Vendor Cost (what you pay the vendor)
     const vendorCostAmount = Number(watchVendorCost) || 0;
     let vendorBalanceDeducted = 0;
-    if (watchUseVendorBalance && watchUseVendorBalance !== "none" && selectedVendor) {
+    if (watchUseVendorBalance && watchUseVendorBalance !== "none" && selectedVendor && vendorCostAmount > 0) {
       const vendorBalance = watchUseVendorBalance === "credit" 
         ? selectedVendor.creditBalance 
         : selectedVendor.depositBalance;
-      vendorBalanceDeducted = Math.min(vendorBalance, afterAgentCredit);
+      vendorBalanceDeducted = Math.min(vendorBalance, vendorCostAmount);
     }
     
-    const total = afterAgentCredit - vendorBalanceDeducted;
+    // Vendor balance deduction doesn't reduce customer invoice - it reduces what you owe vendor
+    const total = afterAgentCredit;
     return { subtotal, discountAmount, afterDiscount, depositUsed, agentCreditUsed, vendorBalanceDeducted, vendorCost: vendorCostAmount, total };
   }, [watchItems, watchDiscountPercent, watchUseDeposit, watchUseAgentCredit, selectedParty, selectedAgent, watchUseVendorBalance, selectedVendor, watchVendorCost]);
 
@@ -335,16 +336,17 @@ export default function InvoicesPage() {
     }
     const afterAgentCredit = afterDeposit - agentCreditUsed;
 
-    // Calculate vendor balance deduction (reduces invoice total like customer deposit)
+    // Calculate vendor balance deduction (based on vendor cost, reduces what you owe vendor)
     const vendorCostAmount = Number(data.vendorCost) || 0;
     let vendorBalanceDeducted = 0;
-    if (data.useVendorBalance && data.useVendorBalance !== "none" && selectedVendor) {
+    if (data.useVendorBalance && data.useVendorBalance !== "none" && selectedVendor && vendorCostAmount > 0) {
       const vendorBalance = data.useVendorBalance === "credit" 
         ? selectedVendor.creditBalance 
         : selectedVendor.depositBalance;
-      vendorBalanceDeducted = Math.min(vendorBalance, afterAgentCredit);
+      vendorBalanceDeducted = Math.min(vendorBalance, vendorCostAmount);
     }
-    const total = afterAgentCredit - vendorBalanceDeducted;
+    // Vendor balance deduction doesn't reduce customer invoice - it reduces what you owe vendor
+    const total = afterAgentCredit;
 
     const invoiceData: InsertInvoice = {
       customerType: data.customerType,
