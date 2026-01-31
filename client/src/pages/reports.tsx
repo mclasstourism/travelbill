@@ -36,7 +36,7 @@ import {
   Printer,
 } from "lucide-react";
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from "date-fns";
-import type { Invoice, Ticket, Customer, Vendor } from "@shared/schema";
+import type { Invoice, Ticket, Customer, Vendor, Agent } from "@shared/schema";
 import { numberToWords } from "@/lib/number-to-words";
 
 function formatCurrency(amount: number): string {
@@ -86,6 +86,16 @@ export default function ReportsPage() {
     queryKey: ["/api/vendors"],
   });
 
+  const { data: agents = [] } = useQuery<Agent[]>({
+    queryKey: ["/api/agents"],
+  });
+
+  const getPartyName = (invoice: Invoice) => {
+    if (invoice.customerType === "agent") {
+      return agents.find(a => a.id === invoice.customerId)?.name || "Unknown";
+    }
+    return customers.find(c => c.id === invoice.customerId)?.name || "Unknown";
+  };
   const getCustomerName = (id: string) => customers.find(c => c.id === id)?.name || "Unknown";
   const getVendorName = (id: string) => vendors.find(v => v.id === id)?.name || "Unknown";
 
@@ -313,13 +323,13 @@ export default function ReportsPage() {
                           <TableCell className="text-muted-foreground">
                             {format(new Date(invoice.createdAt), "MMM d, yyyy")}
                           </TableCell>
-                          <TableCell>{getCustomerName(invoice.customerId)}</TableCell>
+                          <TableCell>{getPartyName(invoice)}</TableCell>
                           <TableCell>{getVendorName(invoice.vendorId)}</TableCell>
                           <TableCell className="text-right font-mono font-semibold">
-                            {formatCurrency(invoice.total)}
+                            {formatCurrency(invoice.subtotal - invoice.discountAmount)}
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground max-w-xs">
-                            {numberToWords(invoice.total)}
+                            {numberToWords(invoice.subtotal - invoice.discountAmount)}
                           </TableCell>
                           <TableCell>
                             <Badge variant={getStatusBadgeVariant(invoice.status)}>
