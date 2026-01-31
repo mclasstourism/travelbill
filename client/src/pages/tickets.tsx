@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { usePin } from "@/lib/pin-context";
+import mcLogo from "@assets/image_1769840649122.png";
 import { PinModal } from "@/components/pin-modal";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -773,8 +774,7 @@ export default function TicketsPage() {
               <div id="printable-ticket" className="bg-white text-black p-6 rounded-lg border">
                 {/* Header with Logo */}
                 <div className="text-center border-b pb-4 mb-4">
-                  <h1 className="text-2xl font-bold text-blue-600">Middle Class Tourism</h1>
-                  <p className="text-sm text-gray-600">Your Trusted Travel Partner</p>
+                  <img src={mcLogo} alt="Middle Class Tourism" className="h-16 mx-auto" />
                 </div>
 
                 {/* Ticket Number */}
@@ -942,8 +942,7 @@ export default function TicketsPage() {
                           <body>
                             <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
                               <div style="text-align: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 16px; margin-bottom: 16px;">
-                                <h1 style="font-size: 1.5rem; font-weight: bold; color: #2563eb; margin: 0;">Middle Class Tourism</h1>
-                                <p style="font-size: 0.875rem; color: #6b7280; margin: 4px 0 0 0;">Your Trusted Travel Partner</p>
+                                <img src="${mcLogo}" alt="Middle Class Tourism" style="height: 64px; margin: 0 auto;" />
                               </div>
                               <div style="text-align: center; margin-bottom: 16px;">
                                 <span style="font-size: 0.75rem; color: #6b7280;">TICKET NUMBER</span>
