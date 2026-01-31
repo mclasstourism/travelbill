@@ -53,7 +53,6 @@ const financeItems = [
 
 const settingsItems = [
   { title: "Reports", url: "/reports", icon: BarChart3 },
-  { title: "Bill Creators", url: "/settings/bill-creators", icon: Lock },
   { title: "Admin Settings", url: "/settings/admin", icon: Shield },
 ];
 

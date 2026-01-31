@@ -1,10 +1,12 @@
 import { createContext, useContext, useState, useCallback } from "react";
-import type { PinSession, BillCreator } from "@shared/schema";
+import type { PinSession } from "@shared/schema";
+
+type SimpleBillCreator = { id: string; name: string; active?: boolean };
 
 type PinContextType = {
   session: PinSession | null;
   isAuthenticated: boolean;
-  authenticate: (billCreator: BillCreator) => void;
+  authenticate: (billCreator: SimpleBillCreator) => void;
   logout: () => void;
   billCreatorName: string | null;
 };
@@ -28,7 +30,7 @@ export function PinProvider({ children }: { children: React.ReactNode }) {
     return null;
   });
 
-  const authenticate = useCallback((billCreator: BillCreator) => {
+  const authenticate = useCallback((billCreator: SimpleBillCreator) => {
     const newSession: PinSession = {
       billCreatorId: billCreator.id,
       billCreatorName: billCreator.name,

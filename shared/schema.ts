@@ -11,6 +11,8 @@ export const usersTable = pgTable("users", {
   phone: varchar("phone", { length: 50 }),
   passwordHint: text("password_hint"),
   role: varchar("role", { length: 20 }).default("staff"),
+  pin: varchar("pin", { length: 8 }),
+  active: boolean("active").default(true),
 });
 
 export const passwordResetTokensTable = pgTable("password_reset_tokens", {
@@ -451,6 +453,8 @@ export const insertUserSchema = z.object({
   phone: z.string().optional(),
   passwordHint: z.string().optional(),
   role: z.enum(["admin", "staff"]).default("staff"),
+  pin: z.string().length(8, "PIN must be 8 digits").regex(/^\d{8}$/, "PIN must be 8 numeric digits").optional(),
+  active: z.boolean().default(true),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -462,6 +466,8 @@ export type User = {
   phone?: string;
   passwordHint?: string;
   role: "admin" | "staff";
+  pin?: string;
+  active: boolean;
 };
 
 // Password reset token

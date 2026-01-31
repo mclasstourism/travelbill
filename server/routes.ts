@@ -5,7 +5,6 @@ import {
   insertCustomerSchema,
   insertAgentSchema,
   insertVendorSchema,
-  insertBillCreatorSchema,
   insertInvoiceSchema,
   insertTicketSchema,
   insertDepositTransactionSchema,
@@ -18,49 +17,6 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-
-  // Bill Creators
-  app.get("/api/bill-creators", async (req, res) => {
-    try {
-      const creators = await storage.getBillCreators();
-      // Don't expose PIN in response
-      const sanitized = creators.map(({ pin, ...rest }) => rest);
-      res.json(sanitized);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch bill creators" });
-    }
-  });
-
-  app.post("/api/bill-creators", async (req, res) => {
-    try {
-      const data = insertBillCreatorSchema.parse(req.body);
-      const creator = await storage.createBillCreator(data);
-      const { pin, ...sanitized } = creator;
-      res.status(201).json(sanitized);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ error: error.errors });
-      } else {
-        res.status(500).json({ error: "Failed to create bill creator" });
-      }
-    }
-  });
-
-  app.patch("/api/bill-creators/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { active } = req.body;
-      const updated = await storage.updateBillCreator(id, { active });
-      if (!updated) {
-        res.status(404).json({ error: "Bill creator not found" });
-        return;
-      }
-      const { pin, ...sanitized } = updated;
-      res.json(sanitized);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to update bill creator" });
-    }
-  });
 
   // Staff Login Authentication
   app.post("/api/auth/login", async (req, res) => {
@@ -131,9 +87,13 @@ export async function registerRoutes(
   // Create new user (admin only)
   app.post("/api/users", async (req, res) => {
     try {
-      const { username, password, email, role } = req.body;
+      const { username, password, email, role, pin } = req.body;
       if (!username || !password) {
         res.status(400).json({ error: "Username and password are required" });
+        return;
+      }
+      if (pin && (pin.length !== 8 || !/^\d{8}$/.test(pin))) {
+        res.status(400).json({ error: "PIN must be 8 numeric digits" });
         return;
       }
       const user = await storage.createUser({
@@ -141,6 +101,8 @@ export async function registerRoutes(
         password,
         email: email || undefined,
         role: role || "staff",
+        pin: pin || undefined,
+        active: true,
       });
       const { password: _, ...safeUser } = user;
       res.json(safeUser);
@@ -149,6 +111,39 @@ export async function registerRoutes(
         res.status(400).json({ error: "Username already exists" });
       } else {
         res.status(500).json({ error: "Failed to create user" });
+      }
+    }
+  });
+
+  // Update user (admin only)
+  app.patch("/api/users/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { username, password, pin, active } = req.body;
+      
+      if (pin !== undefined && pin !== "" && (pin.length !== 8 || !/^\d{8}$/.test(pin))) {
+        res.status(400).json({ error: "PIN must be 8 numeric digits" });
+        return;
+      }
+      
+      const updates: any = {};
+      if (username !== undefined) updates.username = username;
+      if (password !== undefined && password !== "") updates.password = password;
+      if (pin !== undefined) updates.pin = pin === "" ? null : pin;
+      if (active !== undefined) updates.active = active;
+      
+      const user = await storage.updateUser(id, updates);
+      if (!user) {
+        res.status(404).json({ error: "User not found" });
+        return;
+      }
+      const { password: _, ...safeUser } = user;
+      res.json(safeUser);
+    } catch (error: any) {
+      if (error.message?.includes("duplicate") || error.code === "23505") {
+        res.status(400).json({ error: "Username already exists" });
+      } else {
+        res.status(500).json({ error: "Failed to update user" });
       }
     }
   });
@@ -230,23 +225,36 @@ export async function registerRoutes(
     }
   });
 
-  // PIN Authentication
+  // PIN Authentication (now uses user's PIN instead of separate bill creator)
   app.post("/api/auth/verify-pin", async (req, res) => {
     try {
       const { creatorId, pin } = req.body;
       if (!creatorId || !pin) {
-        res.status(400).json({ error: "Creator ID and PIN are required" });
+        res.status(400).json({ error: "User ID and PIN are required" });
         return;
       }
-      const verified = await storage.verifyPin(creatorId, pin);
+      const verified = await storage.verifyUserPin(creatorId, pin);
       if (verified) {
-        const { pin: _, ...sanitized } = verified;
-        res.json({ success: true, billCreator: sanitized });
+        const { password: _, pin: __, ...sanitized } = verified;
+        res.json({ success: true, billCreator: { id: sanitized.id, name: sanitized.username, active: sanitized.active } });
       } else {
         res.status(401).json({ success: false, error: "Invalid PIN" });
       }
     } catch (error) {
       res.status(500).json({ error: "Authentication failed" });
+    }
+  });
+
+  // Get users with PINs (for bill creator selection)
+  app.get("/api/bill-creators-from-users", async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      const billCreators = users
+        .filter(u => u.pin && u.active)
+        .map(u => ({ id: u.id, name: u.username, active: u.active }));
+      res.json(billCreators);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch bill creators" });
     }
   });
 

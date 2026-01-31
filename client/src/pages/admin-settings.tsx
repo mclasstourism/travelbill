@@ -41,15 +41,17 @@ import {
   FileText,
   Ticket,
   Key,
-  Lock,
   UserPlus,
   Users,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react";
-import type { BillCreator, User } from "@shared/schema";
+import type { User } from "@shared/schema";
 
 type ResetType = "finance" | "invoices" | "tickets" | null;
 
-type SafeUser = Omit<User, "password">;
+type SafeUser = Omit<User, "password"> & { pin?: string };
 
 export default function AdminSettingsPage() {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
@@ -60,23 +62,21 @@ export default function AdminSettingsPage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
-  
-  const [selectedBillCreator, setSelectedBillCreator] = useState("");
-  const [currentPin, setCurrentPin] = useState("");
-  const [newPin, setNewPin] = useState("");
-  const [confirmNewPin, setConfirmNewPin] = useState("");
 
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
   const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserPin, setNewUserPin] = useState("");
   const [newUserRole, setNewUserRole] = useState<"admin" | "staff">("staff");
   
+  const [isEditUserOpen, setIsEditUserOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<SafeUser | null>(null);
+  const [editUsername, setEditUsername] = useState("");
+  const [editPassword, setEditPassword] = useState("");
+  const [editPin, setEditPin] = useState("");
+  
   const { toast } = useToast();
-
-  const { data: billCreators = [] } = useQuery<BillCreator[]>({
-    queryKey: ["/api/bill-creators"],
-  });
 
   const { data: users = [] } = useQuery<SafeUser[]>({
     queryKey: ["/api/users"],
@@ -125,30 +125,6 @@ export default function AdminSettingsPage() {
       toast({
         title: "Password Change Failed",
         description: error.message || "Failed to change password. Check your current password.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const changePinMutation = useMutation({
-    mutationFn: async ({ billCreatorId, currentPin, newPin }: { billCreatorId: string; currentPin: string; newPin: string }) => {
-      const res = await apiRequest("POST", "/api/admin/change-pin", { billCreatorId, currentPin, newPin });
-      return res.json();
-    },
-    onSuccess: () => {
-      setSelectedBillCreator("");
-      setCurrentPin("");
-      setNewPin("");
-      setConfirmNewPin("");
-      toast({
-        title: "PIN Changed",
-        description: "The bill creator PIN has been updated successfully.",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "PIN Change Failed",
-        description: error.message || "Failed to change PIN. Check the current PIN.",
         variant: "destructive",
       });
     },
@@ -205,36 +181,8 @@ export default function AdminSettingsPage() {
     changePasswordMutation.mutate({ currentPassword, newPassword });
   };
 
-  const handleChangePin = () => {
-    if (!selectedBillCreator || !currentPin || !newPin) {
-      toast({
-        title: "Missing Fields",
-        description: "Please fill in all PIN fields.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (newPin !== confirmNewPin) {
-      toast({
-        title: "PINs Don't Match",
-        description: "New PIN and confirmation don't match.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (newPin.length !== 8 || !/^\d{8}$/.test(newPin)) {
-      toast({
-        title: "Invalid PIN",
-        description: "PIN must be exactly 8 digits.",
-        variant: "destructive",
-      });
-      return;
-    }
-    changePinMutation.mutate({ billCreatorId: selectedBillCreator, currentPin, newPin });
-  };
-
   const createUserMutation = useMutation({
-    mutationFn: async (data: { username: string; password: string; email?: string; role: "admin" | "staff" }) => {
+    mutationFn: async (data: { username: string; password: string; email?: string; role: "admin" | "staff"; pin?: string }) => {
       const res = await apiRequest("POST", "/api/users", data);
       if (!res.ok) {
         const err = await res.json();
@@ -248,16 +196,47 @@ export default function AdminSettingsPage() {
       setNewUsername("");
       setNewUserPassword("");
       setNewUserEmail("");
+      setNewUserPin("");
       setNewUserRole("staff");
       toast({
         title: "User Created",
-        description: "The new user account has been created successfully.",
+        description: "The new staff account has been created successfully.",
       });
     },
     onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to create user",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateUserMutation = useMutation({
+    mutationFn: async ({ id, ...data }: { id: string; username?: string; password?: string; pin?: string }) => {
+      const res = await apiRequest("PATCH", `/api/users/${id}`, data);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to update user");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      setIsEditUserOpen(false);
+      setEditingUser(null);
+      setEditUsername("");
+      setEditPassword("");
+      setEditPin("");
+      toast({
+        title: "User Updated",
+        description: "The staff account has been updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update user",
         variant: "destructive",
       });
     },
@@ -272,7 +251,7 @@ export default function AdminSettingsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       toast({
         title: "User Deleted",
-        description: "The user account has been deleted.",
+        description: "The staff account has been deleted.",
       });
     },
     onError: (error: Error) => {
@@ -301,12 +280,65 @@ export default function AdminSettingsPage() {
       });
       return;
     }
+    if (newUserPin && (newUserPin.length !== 8 || !/^\d{8}$/.test(newUserPin))) {
+      toast({
+        title: "Invalid PIN",
+        description: "PIN must be exactly 8 digits.",
+        variant: "destructive",
+      });
+      return;
+    }
     createUserMutation.mutate({
       username: newUsername,
       password: newUserPassword,
-      email: newUserEmail || undefined,
+      email: newUserRole === "admin" ? (newUserEmail || undefined) : undefined,
       role: newUserRole,
+      pin: newUserPin || undefined,
     });
+  };
+
+  const handleEditUser = (user: SafeUser) => {
+    setEditingUser(user);
+    setEditUsername(user.username);
+    setEditPassword("");
+    setEditPin(user.pin || "");
+    setIsEditUserOpen(true);
+  };
+
+  const handleSaveUser = () => {
+    if (!editingUser) return;
+    
+    if (!editUsername) {
+      toast({
+        title: "Missing Username",
+        description: "Username is required.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (editPassword && editPassword.length < 6) {
+      toast({
+        title: "Password Too Short",
+        description: "Password must be at least 6 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (editPin && (editPin.length !== 8 || !/^\d{8}$/.test(editPin))) {
+      toast({
+        title: "Invalid PIN",
+        description: "PIN must be exactly 8 digits.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const updates: { id: string; username?: string; password?: string; pin?: string } = { id: editingUser.id };
+    if (editUsername !== editingUser.username) updates.username = editUsername;
+    if (editPassword) updates.password = editPassword;
+    if (editPin !== (editingUser.pin || "")) updates.pin = editPin;
+    
+    updateUserMutation.mutate(updates);
   };
 
   const getResetInfo = (type: ResetType) => {
@@ -346,22 +378,257 @@ export default function AdminSettingsPage() {
         <Shield className="w-8 h-8 text-primary" />
         <div>
           <h1 className="text-2xl font-semibold" data-testid="text-admin-settings-title">Admin Settings</h1>
-          <p className="text-sm text-muted-foreground">Manage credentials and system data</p>
+          <p className="text-sm text-muted-foreground">Manage staff accounts and system data</p>
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2">
-              <Key className="w-5 h-5 text-primary" />
-              <CardTitle className="text-lg">Change Admin Password</CardTitle>
+              <Users className="w-5 h-5 text-primary" />
+              <div>
+                <CardTitle className="text-lg">Staff Management</CardTitle>
+                <CardDescription>
+                  Manage staff login accounts and bill creator PINs. Staff users cannot access Settings. 
+                  Users with a PIN can create invoices and tickets.
+                </CardDescription>
+              </div>
             </div>
-            <CardDescription>
-              Update your admin login password. You'll need your current password to make changes.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            <Button onClick={() => setIsAddUserOpen(true)} data-testid="button-add-user">
+              <UserPlus className="w-4 h-4 mr-2" />
+              Add Staff
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Username</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>PIN Set</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-24">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell className="font-medium">{user.username}</TableCell>
+                  <TableCell>
+                    <Badge variant={user.role === "admin" ? "default" : "secondary"}>
+                      {user.role === "admin" ? "Admin" : "Staff"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{user.email || "-"}</TableCell>
+                  <TableCell>
+                    {user.pin ? (
+                      <Badge variant="outline" className="text-green-600 border-green-600">
+                        <Check className="w-3 h-3 mr-1" />
+                        Yes
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-muted-foreground">
+                        <X className="w-3 h-3 mr-1" />
+                        No
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={user.active ? "default" : "secondary"}>
+                      {user.active ? "Active" : "Inactive"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEditUser(user)}
+                        data-testid={`button-edit-user-${user.username}`}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => deleteUserMutation.mutate(user.id)}
+                        disabled={user.username === "admin" || deleteUserMutation.isPending}
+                        data-testid={`button-delete-user-${user.username}`}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {users.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    No staff accounts found
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Staff</DialogTitle>
+            <DialogDescription>
+              Create a new staff login account. Set a PIN to allow them to create invoices and tickets.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-username">Username *</Label>
+              <Input
+                id="new-username"
+                placeholder="Enter username"
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                data-testid="input-new-username"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-user-password">Password *</Label>
+              <Input
+                id="new-user-password"
+                type="password"
+                placeholder="Enter password (min 6 characters)"
+                value={newUserPassword}
+                onChange={(e) => setNewUserPassword(e.target.value)}
+                data-testid="input-new-user-password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-user-pin">Bill Creator PIN (8 digits)</Label>
+              <Input
+                id="new-user-pin"
+                type="password"
+                placeholder="Enter 8-digit PIN for creating bills"
+                value={newUserPin}
+                onChange={(e) => setNewUserPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                maxLength={8}
+                data-testid="input-new-user-pin"
+              />
+              <p className="text-xs text-muted-foreground">Required to create invoices and tickets</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-user-role">Role</Label>
+              <Select value={newUserRole} onValueChange={(v: "admin" | "staff") => setNewUserRole(v)}>
+                <SelectTrigger data-testid="select-new-user-role">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="staff">Staff (Limited Access)</SelectItem>
+                  <SelectItem value="admin">Admin (Full Access)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {newUserRole === "admin" && (
+              <div className="space-y-2">
+                <Label htmlFor="new-user-email">Email (for password reset)</Label>
+                <Input
+                  id="new-user-email"
+                  type="email"
+                  placeholder="Enter email"
+                  value={newUserEmail}
+                  onChange={(e) => setNewUserEmail(e.target.value)}
+                  data-testid="input-new-user-email"
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsAddUserOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleCreateUser}
+              disabled={createUserMutation.isPending || !newUsername || !newUserPassword}
+              data-testid="button-create-user"
+            >
+              {createUserMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Create Staff
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isEditUserOpen} onOpenChange={setIsEditUserOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Staff: {editingUser?.username}</DialogTitle>
+            <DialogDescription>
+              Update staff account details. Leave password blank to keep current password.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-username">Username</Label>
+              <Input
+                id="edit-username"
+                placeholder="Enter username"
+                value={editUsername}
+                onChange={(e) => setEditUsername(e.target.value)}
+                data-testid="input-edit-username"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-password">New Password (leave blank to keep current)</Label>
+              <Input
+                id="edit-password"
+                type="password"
+                placeholder="Enter new password"
+                value={editPassword}
+                onChange={(e) => setEditPassword(e.target.value)}
+                data-testid="input-edit-password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-pin">Bill Creator PIN (8 digits)</Label>
+              <Input
+                id="edit-pin"
+                type="password"
+                placeholder="Enter 8-digit PIN"
+                value={editPin}
+                onChange={(e) => setEditPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                maxLength={8}
+                data-testid="input-edit-pin"
+              />
+              <p className="text-xs text-muted-foreground">Required to create invoices and tickets</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsEditUserOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleSaveUser}
+              disabled={updateUserMutation.isPending || !editUsername}
+              data-testid="button-save-user"
+            >
+              {updateUserMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Key className="w-5 h-5 text-primary" />
+            <CardTitle className="text-lg">Change Your Password</CardTitle>
+          </div>
+          <CardDescription>
+            Update your admin login password. You'll need your current password to make changes.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="current-password">Current Password</Label>
               <Input
@@ -395,221 +662,17 @@ export default function AdminSettingsPage() {
                 data-testid="input-confirm-new-password"
               />
             </div>
-            <Button
-              onClick={handleChangePassword}
-              disabled={changePasswordMutation.isPending || !currentPassword || !newPassword || !confirmNewPassword}
-              className="w-full"
-              data-testid="button-change-password"
-            >
-              {changePasswordMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Change Password
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Lock className="w-5 h-5 text-primary" />
-              <CardTitle className="text-lg">Change Bill Creator PIN</CardTitle>
-            </div>
-            <CardDescription>
-              Update a bill creator's 8-digit PIN. You'll need the current PIN to make changes.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="bill-creator-select">Bill Creator</Label>
-              <Select value={selectedBillCreator} onValueChange={setSelectedBillCreator}>
-                <SelectTrigger data-testid="select-bill-creator">
-                  <SelectValue placeholder="Select a bill creator" />
-                </SelectTrigger>
-                <SelectContent>
-                  {billCreators.filter(bc => bc.active).map((bc) => (
-                    <SelectItem key={bc.id} value={bc.id}>
-                      {bc.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="current-pin">Current PIN</Label>
-              <Input
-                id="current-pin"
-                type="password"
-                placeholder="Enter current 8-digit PIN"
-                value={currentPin}
-                onChange={(e) => setCurrentPin(e.target.value)}
-                maxLength={8}
-                data-testid="input-current-pin"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="new-pin">New PIN</Label>
-              <Input
-                id="new-pin"
-                type="password"
-                placeholder="Enter new 8-digit PIN"
-                value={newPin}
-                onChange={(e) => setNewPin(e.target.value)}
-                maxLength={8}
-                data-testid="input-new-pin"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirm-new-pin">Confirm New PIN</Label>
-              <Input
-                id="confirm-new-pin"
-                type="password"
-                placeholder="Confirm new 8-digit PIN"
-                value={confirmNewPin}
-                onChange={(e) => setConfirmNewPin(e.target.value)}
-                maxLength={8}
-                data-testid="input-confirm-new-pin"
-              />
-            </div>
-            <Button
-              onClick={handleChangePin}
-              disabled={changePinMutation.isPending || !selectedBillCreator || !currentPin || !newPin || !confirmNewPin}
-              className="w-full"
-              data-testid="button-change-pin"
-            >
-              {changePinMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Change PIN
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-primary" />
-              <div>
-                <CardTitle className="text-lg">User Management</CardTitle>
-                <CardDescription>Manage staff login accounts. Non-admin users cannot access Settings.</CardDescription>
-              </div>
-            </div>
-            <Button onClick={() => setIsAddUserOpen(true)} data-testid="button-add-user">
-              <UserPlus className="w-4 h-4 mr-2" />
-              Add User
-            </Button>
           </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Username</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead className="w-20">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.username}</TableCell>
-                  <TableCell>{user.email || "-"}</TableCell>
-                  <TableCell>
-                    <Badge variant={user.role === "admin" ? "default" : "secondary"}>
-                      {user.role === "admin" ? "Admin" : "Staff"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => deleteUserMutation.mutate(user.id)}
-                      disabled={user.username === "admin" || deleteUserMutation.isPending}
-                      data-testid={`button-delete-user-${user.username}`}
-                    >
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {users.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                    No users found
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+          <Button
+            onClick={handleChangePassword}
+            disabled={changePasswordMutation.isPending || !currentPassword || !newPassword || !confirmNewPassword}
+            data-testid="button-change-password"
+          >
+            {changePasswordMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            Change Password
+          </Button>
         </CardContent>
       </Card>
-
-      <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add New User</DialogTitle>
-            <DialogDescription>
-              Create a new staff login account. Staff users cannot access Settings.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="new-username">Username</Label>
-              <Input
-                id="new-username"
-                placeholder="Enter username"
-                value={newUsername}
-                onChange={(e) => setNewUsername(e.target.value)}
-                data-testid="input-new-username"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="new-user-password">Password</Label>
-              <Input
-                id="new-user-password"
-                type="password"
-                placeholder="Enter password (min 6 characters)"
-                value={newUserPassword}
-                onChange={(e) => setNewUserPassword(e.target.value)}
-                data-testid="input-new-user-password"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="new-user-email">Email (optional)</Label>
-              <Input
-                id="new-user-email"
-                type="email"
-                placeholder="Enter email"
-                value={newUserEmail}
-                onChange={(e) => setNewUserEmail(e.target.value)}
-                data-testid="input-new-user-email"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="new-user-role">Role</Label>
-              <Select value={newUserRole} onValueChange={(v: "admin" | "staff") => setNewUserRole(v)}>
-                <SelectTrigger data-testid="select-new-user-role">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="staff">Staff (Limited Access)</SelectItem>
-                  <SelectItem value="admin">Admin (Full Access)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsAddUserOpen(false)}>Cancel</Button>
-            <Button
-              onClick={handleCreateUser}
-              disabled={createUserMutation.isPending || !newUsername || !newUserPassword}
-              data-testid="button-create-user"
-            >
-              {createUserMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Create User
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <h2 className="text-xl font-semibold pt-4">Data Reset Operations</h2>
       <p className="text-sm text-muted-foreground -mt-4">These operations are destructive and cannot be undone.</p>
@@ -645,7 +708,7 @@ export default function AdminSettingsPage() {
               <CardTitle className="text-lg">Invoices</CardTitle>
             </div>
             <CardDescription>
-              Delete all invoice records from the system permanently.
+              Delete all invoices permanently. Customer balances will not be restored.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -655,8 +718,8 @@ export default function AdminSettingsPage() {
               className="w-full"
               data-testid="button-reset-invoices"
             >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Reset All Invoices
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Reset Invoices
             </Button>
           </CardContent>
         </Card>
@@ -668,7 +731,7 @@ export default function AdminSettingsPage() {
               <CardTitle className="text-lg">Tickets</CardTitle>
             </div>
             <CardDescription>
-              Delete all ticket records from the system permanently.
+              Delete all tickets permanently. Customer balances will not be restored.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -678,71 +741,56 @@ export default function AdminSettingsPage() {
               className="w-full"
               data-testid="button-reset-tickets"
             >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Reset All Tickets
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Reset Tickets
             </Button>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Parties (Customers, Agents, Vendors)</CardTitle>
-          <CardDescription>
-            Party records cannot be reset in bulk. To delete a customer, agent, or vendor, 
-            go to their respective pages and delete them individually. Each deletion requires 
-            admin password confirmation.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-
       <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="w-5 h-5" />
-              Confirm {resetInfo?.title}
+              {resetInfo?.title}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-base">
               {resetInfo?.description}
-              <br /><br />
-              <strong className="text-destructive">This action cannot be undone!</strong>
             </DialogDescription>
           </DialogHeader>
-
           <div className="space-y-4 py-4">
+            <div className="bg-destructive/10 p-4 rounded-lg border border-destructive/20">
+              <p className="text-sm text-destructive font-medium">
+                This action cannot be undone. All related data will be permanently deleted.
+              </p>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="admin-password">Admin Password</Label>
               <Input
                 id="admin-password"
                 type="password"
-                placeholder="Enter admin password"
+                placeholder="Enter your admin password"
                 value={adminPassword}
                 onChange={(e) => setAdminPassword(e.target.value)}
-                data-testid="input-admin-password"
+                data-testid="input-admin-password-reset"
               />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="confirm-text">
-                Type <span className="font-mono font-bold text-destructive">{resetInfo?.confirmText}</span> to confirm
+                Type "{resetInfo?.confirmText}" to confirm
               </Label>
               <Input
                 id="confirm-text"
                 placeholder={resetInfo?.confirmText}
                 value={confirmText}
                 onChange={(e) => setConfirmText(e.target.value)}
-                data-testid="input-confirm-text"
+                data-testid="input-confirm-reset-text"
               />
             </div>
           </div>
-
-          <DialogFooter className="gap-2">
-            <Button 
-              variant="ghost" 
-              onClick={() => setConfirmDialogOpen(false)}
-              data-testid="button-cancel-reset"
-            >
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setConfirmDialogOpen(false)}>
               Cancel
             </Button>
             <Button

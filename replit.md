@@ -45,7 +45,7 @@ MVP fully implemented with:
 - `client/src/lib/theme-provider.tsx` - Theme context
 
 ## Data Models
-- **BillCreator**: Staff members with 8-digit PIN for authentication
+- **User**: Staff members with username, password, role (admin/staff), and optional 8-digit PIN for bill creation
 - **Customer**: Individual clients with deposit balance tracking
 - **Agent**: Bulk ticket buyers with credit and deposit balances
 - **Vendor**: Suppliers with credit and deposit balances, registered airlines
@@ -56,15 +56,19 @@ MVP fully implemented with:
 
 ## Features
 
-### Staff Login
+### Staff Login & Role-Based Access
 - Username/password authentication for staff members
 - Default staff login: username "admin", password "admin123"
-- Email-based password reset using Resend
+- Email-based password reset using Resend (for admin accounts)
+- Role-based access control:
+  - **Admin role**: Full access including Settings
+  - **Staff role**: Cannot access Settings section
 
-### PIN Authentication
-- Bill creators must authenticate with 8-digit PIN before creating invoices or issuing tickets
+### PIN Authentication (Unified with User Management)
+- Staff with PIN set can create invoices and tickets
+- PIN is configured per-user in Admin Settings (no separate Bill Creators)
 - Session persists for 30 minutes in localStorage
-- Default bill creator: "Admin" with PIN "12345678"
+- Default admin has PIN "12345678"
 
 ### Invoice Creation
 - Select party type: Individual Customer or Agent

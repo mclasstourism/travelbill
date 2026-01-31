@@ -33,9 +33,11 @@ export interface IStorage {
   getUserByPhone(phone: string): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: string, updates: Partial<{ username: string; password: string; pin: string | null; active: boolean }>): Promise<User | undefined>;
   deleteUser(id: string): Promise<void>;
   updateUserPassword(userId: string, newPassword: string): Promise<boolean>;
   verifyUserPassword(username: string, password: string): Promise<User | null>;
+  verifyUserPin(userId: string, pin: string): Promise<User | undefined>;
   getPasswordHint(username: string): Promise<string | null>;
   
   // Password Reset
@@ -197,7 +199,20 @@ export class MemStorage implements IStorage {
       password: hashedPassword, 
       id,
       role: insertUser.role || "staff",
+      pin: insertUser.pin,
+      active: insertUser.active ?? true,
     };
+    this.users.set(id, user);
+    return user;
+  }
+
+  async updateUser(id: string, updates: Partial<{ username: string; password: string; pin: string | null; active: boolean }>): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    if (updates.username !== undefined) user.username = updates.username;
+    if (updates.password !== undefined) user.password = bcrypt.hashSync(updates.password, 10);
+    if (updates.pin !== undefined) user.pin = updates.pin || undefined;
+    if (updates.active !== undefined) user.active = updates.active;
     this.users.set(id, user);
     return user;
   }
@@ -220,6 +235,13 @@ export class MemStorage implements IStorage {
     if (!user) return null;
     const isValid = bcrypt.compareSync(password, user.password);
     if (!isValid) return null;
+    return user;
+  }
+
+  async verifyUserPin(userId: string, pin: string): Promise<User | undefined> {
+    const user = this.users.get(userId);
+    if (!user || !user.pin || !user.active) return undefined;
+    if (user.pin !== pin) return undefined;
     return user;
   }
 

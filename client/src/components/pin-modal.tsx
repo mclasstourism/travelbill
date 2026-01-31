@@ -24,7 +24,8 @@ import { Lock, AlertCircle, Loader2 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { usePin } from "@/lib/pin-context";
-import type { BillCreator } from "@shared/schema";
+
+type SimpleBillCreator = { id: string; name: string; active?: boolean };
 
 interface PinModalProps {
   open: boolean;
@@ -38,8 +39,8 @@ export function PinModal({ open, onOpenChange, onSuccess }: PinModalProps) {
   const [error, setError] = useState("");
   const { authenticate } = usePin();
 
-  const { data: billCreators = [], isLoading: isLoadingCreators } = useQuery<BillCreator[]>({
-    queryKey: ["/api/bill-creators"],
+  const { data: billCreators = [], isLoading: isLoadingCreators } = useQuery<SimpleBillCreator[]>({
+    queryKey: ["/api/bill-creators-from-users"],
     enabled: open,
   });
 
@@ -91,13 +92,13 @@ export function PinModal({ open, onOpenChange, onSuccess }: PinModalProps) {
             PIN Authentication
           </DialogTitle>
           <DialogDescription>
-            Select your account and enter your 8-digit PIN to authenticate.
+            Select your staff account and enter your 8-digit PIN to create bills.
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-6 py-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="bill-creator">Bill Creator</Label>
+            <Label htmlFor="bill-creator">Staff Member</Label>
             {isLoadingCreators ? (
               <div className="flex items-center gap-2 h-10 text-muted-foreground">
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -105,7 +106,7 @@ export function PinModal({ open, onOpenChange, onSuccess }: PinModalProps) {
               </div>
             ) : activeCreators.length === 0 ? (
               <div className="text-sm text-muted-foreground">
-                No bill creators found. Please add one in Settings.
+                No staff with PIN found. Please set a PIN in Admin Settings.
               </div>
             ) : (
               <Select
