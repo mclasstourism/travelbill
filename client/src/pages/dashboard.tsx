@@ -221,9 +221,9 @@ export default function Dashboard() {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-mono font-semibold">
-                        {formatCurrency(invoice.total)}
+                        {formatCurrency(invoice.subtotal)}
                       </span>
-                      <Badge variant={getStatusBadgeVariant(invoice.status)} size="sm">
+                      <Badge variant={getStatusBadgeVariant(invoice.status)}>
                         {invoice.status}
                       </Badge>
                     </div>
@@ -274,7 +274,7 @@ export default function Dashboard() {
                       <span className="text-sm font-mono font-semibold">
                         {formatCurrency(ticket.faceValue)}
                       </span>
-                      <Badge variant={getStatusBadgeVariant(ticket.status)} size="sm">
+                      <Badge variant={getStatusBadgeVariant(ticket.status)}>
                         {ticket.status}
                       </Badge>
                     </div>
