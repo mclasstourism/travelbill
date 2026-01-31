@@ -155,7 +155,141 @@ export default function ReportsPage() {
   }, [filteredTickets]);
 
   const handlePrint = () => {
-    window.print();
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    const dateRangeText = dateFilter
+      ? `${format(dateFilter.start, "MMM d, yyyy")} - ${format(dateFilter.end, "MMM d, yyyy")}`
+      : "All Time";
+
+    const invoiceRows = filteredInvoices.map(invoice => `
+      <tr>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${invoice.invoiceNumber}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${format(new Date(invoice.createdAt), "MMM d, yyyy")}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${getPartyName(invoice)}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right; font-family: monospace;">${formatCurrency(invoice.subtotal - invoice.discountAmount)}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${invoice.status}</td>
+      </tr>
+    `).join("");
+
+    const ticketRows = filteredTickets.map(ticket => `
+      <tr>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${ticket.ticketNumber}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${format(new Date(ticket.createdAt), "MMM d, yyyy")}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${ticket.passengerName}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${ticket.route}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right; font-family: monospace;">${formatCurrency(ticket.faceValue)}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${ticket.status}</td>
+      </tr>
+    `).join("");
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Report - ${dateRangeText}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; max-width: 1000px; margin: 0 auto; }
+            h1 { text-align: center; margin-bottom: 5px; }
+            h2 { margin-top: 30px; border-bottom: 2px solid #333; padding-bottom: 8px; }
+            .date-range { text-align: center; color: #666; margin-bottom: 20px; }
+            .summary-box { background: #f9fafb; border: 1px solid #e5e7eb; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
+            .summary-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+            .summary-label { font-weight: 500; }
+            .summary-value { font-family: monospace; font-weight: bold; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th { background: #f3f4f6; padding: 10px 8px; text-align: left; border-bottom: 2px solid #d1d5db; font-weight: 600; }
+            th.right { text-align: right; }
+            .total-row { font-weight: bold; background: #f9fafb; }
+            .total-row td { padding: 12px 8px; border-top: 2px solid #333; }
+            .no-data { text-align: center; padding: 20px; color: #666; }
+            @media print { body { padding: 0; } }
+          </style>
+        </head>
+        <body>
+          <h1>Middle Class Tourism</h1>
+          <p style="text-align: center; color: #666; font-style: italic; margin-top: 0;">become your trusted travel partner</p>
+          <h2 style="text-align: center; border: none;">Transaction Report</h2>
+          <p class="date-range">${dateRangeText}</p>
+
+          <div class="summary-box">
+            <div class="summary-row">
+              <span class="summary-label">Total Invoices:</span>
+              <span class="summary-value">${invoiceTotals.count} (${formatCurrency(invoiceTotals.total)})</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Paid Amount:</span>
+              <span class="summary-value" style="color: green;">${formatCurrency(invoiceTotals.paid)}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Pending Amount:</span>
+              <span class="summary-value" style="color: #d97706;">${formatCurrency(invoiceTotals.pending)}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Total Tickets:</span>
+              <span class="summary-value">${ticketTotals.count} (${formatCurrency(ticketTotals.total)})</span>
+            </div>
+          </div>
+
+          <h2>Invoices (${filteredInvoices.length})</h2>
+          ${filteredInvoices.length > 0 ? `
+            <table>
+              <thead>
+                <tr>
+                  <th>Invoice #</th>
+                  <th>Date</th>
+                  <th>Customer</th>
+                  <th class="right">Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${invoiceRows}
+                <tr class="total-row">
+                  <td colspan="3">Total</td>
+                  <td style="text-align: right; font-family: monospace;">${formatCurrency(invoiceTotals.total)}</td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
+          ` : '<p class="no-data">No invoices in this date range</p>'}
+
+          <h2>Tickets (${filteredTickets.length})</h2>
+          ${filteredTickets.length > 0 ? `
+            <table>
+              <thead>
+                <tr>
+                  <th>Ticket #</th>
+                  <th>Date</th>
+                  <th>Passenger</th>
+                  <th>Route</th>
+                  <th class="right">Value</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${ticketRows}
+                <tr class="total-row">
+                  <td colspan="4">Total</td>
+                  <td style="text-align: right; font-family: monospace;">${formatCurrency(ticketTotals.total)}</td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
+          ` : '<p class="no-data">No tickets in this date range</p>'}
+
+          <p style="text-align: center; margin-top: 30px; color: #666; font-size: 12px;">
+            Generated on ${format(new Date(), "MMMM d, yyyy 'at' h:mm a")}
+          </p>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.onload = () => {
+      printWindow.print();
+    };
   };
 
   const isLoading = isLoadingInvoices || isLoadingTickets;
