@@ -448,7 +448,7 @@ export default function InvoicesPage() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right font-mono font-semibold">
-                          {formatCurrency(invoice.total)}
+                          {formatCurrency(invoice.subtotal - invoice.discountAmount)}
                         </TableCell>
                         <TableCell>
                           <Badge variant={getStatusBadgeVariant(invoice.status)}>
