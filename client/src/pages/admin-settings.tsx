@@ -48,7 +48,6 @@ import {
   X,
   Eye,
   EyeOff,
-  Shield,
 } from "lucide-react";
 import type { User } from "@shared/schema";
 
