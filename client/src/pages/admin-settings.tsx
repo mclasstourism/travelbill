@@ -431,13 +431,6 @@ export default function AdminSettingsPage() {
                 </div>
               </div>
               <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Email</p>
-                <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-medium">{user.email || "-"}</span>
-                </div>
-              </div>
-              <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">Password</p>
                 <div className="flex items-center gap-2">
                   <Lock className="w-4 h-4 text-muted-foreground" />
