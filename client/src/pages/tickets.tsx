@@ -82,8 +82,8 @@ const createTicketFormSchema = z.object({
   travelDate: z.string().min(1, "Travel date is required"),
   returnDate: z.string().optional(),
   passengerName: z.string().min(1, "Passenger name is required"),
-  vendorCost: z.coerce.number().min(1, "Vendor cost is required"),
-  faceValue: z.coerce.number().min(1, "Customer price is required"),
+  vendorCost: z.coerce.number().min(0, "Vendor cost is required"),
+  mcAddition: z.coerce.number().min(0, "MC addition must be positive").default(0),
   deductFromDeposit: z.boolean().default(false),
 });
 
@@ -124,7 +124,7 @@ export default function TicketsPage() {
       returnDate: "",
       passengerName: "",
       vendorCost: 0,
-      faceValue: 0,
+      mcAddition: 0,
       deductFromDeposit: false,
     },
   });
@@ -134,7 +134,7 @@ export default function TicketsPage() {
   const watchCustomerId = form.watch("customerId");
   const watchDeductFromDeposit = form.watch("deductFromDeposit");
   const watchVendorCost = form.watch("vendorCost");
-  const watchFaceValue = form.watch("faceValue");
+  const watchMcAddition = form.watch("mcAddition");
 
   const selectedCustomer = customers.find((c) => c.id === watchCustomerId);
   const selectedVendor = vendors.find((v) => v.id === watchVendorId);
@@ -142,8 +142,8 @@ export default function TicketsPage() {
 
   const calculations = useMemo(() => {
     const vendorCost = Number(watchVendorCost) || 0;
-    const faceValue = Number(watchFaceValue) || 0;
-    const profit = faceValue - vendorCost;
+    const mcAddition = Number(watchMcAddition) || 0;
+    const faceValue = vendorCost + mcAddition; // Customer Price = Vendor Cost + MC Addition
     
     let depositDeducted = 0;
     if (watchDeductFromDeposit && selectedCustomer) {
@@ -151,8 +151,8 @@ export default function TicketsPage() {
     }
     
     const amountDue = faceValue - depositDeducted;
-    return { faceValue, vendorCost, profit, depositDeducted, amountDue };
-  }, [watchVendorCost, watchFaceValue, watchDeductFromDeposit, selectedCustomer]);
+    return { faceValue, vendorCost, mcAddition, depositDeducted, amountDue };
+  }, [watchVendorCost, watchMcAddition, watchDeductFromDeposit, selectedCustomer]);
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -207,7 +207,8 @@ export default function TicketsPage() {
     }
 
     const vendorCost = Number(data.vendorCost) || 0;
-    const faceValue = Number(data.faceValue) || 0;
+    const mcAddition = Number(data.mcAddition) || 0;
+    const faceValue = vendorCost + mcAddition; // Customer Price = Vendor Cost + MC Addition
     
     let depositDeducted = 0;
     if (data.deductFromDeposit && selectedCustomer) {
@@ -218,6 +219,7 @@ export default function TicketsPage() {
       ...data,
       faceValue,
       vendorCost,
+      additionalCost: mcAddition,
       depositDeducted,
       issuedBy: session.billCreatorId,
     };
@@ -629,10 +631,10 @@ export default function TicketsPage() {
 
                 <FormField
                   control={form.control}
-                  name="faceValue"
+                  name="mcAddition"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Customer Price (AED) *</FormLabel>
+                      <FormLabel>MC Addition (AED)</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -640,29 +642,29 @@ export default function TicketsPage() {
                           step="0.01"
                           placeholder="0.00"
                           {...field}
-                          data-testid="input-face-value"
+                          data-testid="input-mc-addition"
                         />
                       </FormControl>
-                      <p className="text-xs text-muted-foreground">What customer pays</p>
+                      <p className="text-xs text-muted-foreground">Middle Class markup</p>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
 
-              {/* Profit calculation */}
-              {calculations.profit !== 0 && (
-                <div className={`p-4 rounded-lg border ${calculations.profit >= 0 ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'}`}>
+              {/* Customer Price (auto-calculated) */}
+              {calculations.faceValue > 0 && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                   <div className="flex justify-between items-center">
-                    <span className={`text-sm font-medium ${calculations.profit >= 0 ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200'}`}>
-                      Profit Margin
+                    <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                      Customer Price (Face Value)
                     </span>
-                    <span className={`text-xl font-bold font-mono ${calculations.profit >= 0 ? 'text-green-600 dark:text-green-300' : 'text-red-600 dark:text-red-300'}`}>
-                      {formatCurrency(calculations.profit)}
+                    <span className="text-xl font-bold font-mono text-blue-600 dark:text-blue-300">
+                      {formatCurrency(calculations.faceValue)}
                     </span>
                   </div>
-                  <p className={`text-xs mt-1 ${calculations.profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                    = Customer Price - Vendor Cost
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                    = Vendor Cost ({formatCurrency(calculations.vendorCost)}) + MC Addition ({formatCurrency(calculations.mcAddition)})
                   </p>
                 </div>
               )}
@@ -813,21 +815,20 @@ export default function TicketsPage() {
                   </div>
                 </div>
 
-                {/* Customer/Agent & Vendor */}
-                <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+                {/* Customer info - visible on print */}
+                <div className="mb-4 text-sm">
                   <div>
-                    <span className="text-xs text-gray-500">{viewTicket.customerType === "agent" ? "AGENT" : "CUSTOMER"}</span>
+                    <span className="text-xs text-gray-500">CUSTOMER</span>
                     <p>
-                      {viewTicket.customerType === "agent" 
-                        ? agents.find(a => a.id === viewTicket.customerId)?.name || "N/A"
-                        : customers.find(c => c.id === viewTicket.customerId)?.name || "N/A"
-                      }
+                      {customers.find(c => c.id === viewTicket.customerId)?.name || "N/A"}
                     </p>
                   </div>
-                  <div>
-                    <span className="text-xs text-gray-500">VENDOR</span>
-                    <p>{vendors.find(v => v.id === viewTicket.vendorId)?.name || "N/A"}</p>
-                  </div>
+                </div>
+                
+                {/* Vendor info - internal only, NOT shown on print */}
+                <div className="mb-4 text-sm bg-gray-100 dark:bg-gray-800 p-2 rounded" data-no-print="true">
+                  <span className="text-xs text-gray-500">VENDOR (Internal Only)</span>
+                  <p>{vendors.find(v => v.id === viewTicket.vendorId)?.name || "N/A"}</p>
                 </div>
 
                 {/* Value - Customer sees face value */}
@@ -972,15 +973,8 @@ export default function TicketsPage() {
                               </div>
                               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; font-size: 0.875rem;">
                                 <div>
-                                  <span style="font-size: 0.75rem; color: #6b7280;">${viewTicket.customerType === "agent" ? "AGENT" : "CUSTOMER"}</span>
-                                  <p style="margin: 4px 0 0 0;">${viewTicket.customerType === "agent" 
-                                    ? agents.find(a => a.id === viewTicket.customerId)?.name || "N/A"
-                                    : customers.find(c => c.id === viewTicket.customerId)?.name || "N/A"
-                                  }</p>
-                                </div>
-                                <div>
-                                  <span style="font-size: 0.75rem; color: #6b7280;">VENDOR</span>
-                                  <p style="margin: 4px 0 0 0;">${vendors.find(v => v.id === viewTicket.vendorId)?.name || "N/A"}</p>
+                                  <span style="font-size: 0.75rem; color: #6b7280;">CUSTOMER</span>
+                                  <p style="margin: 4px 0 0 0;">${customers.find(c => c.id === viewTicket.customerId)?.name || "N/A"}</p>
                                 </div>
                               </div>
                               <div style="border-top: 1px solid #e5e7eb; padding-top: 16px;">
@@ -992,12 +986,6 @@ export default function TicketsPage() {
                                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem; color: #4b5563; margin-top: 8px;">
                                   <span>Customer Deposit Deducted</span>
                                   <span style="font-family: monospace;">AED ${viewTicket.depositDeducted.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
-                                </div>
-                                ` : ''}
-                                ${viewTicket.agentBalanceDeducted > 0 ? `
-                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem; color: #7c3aed; margin-top: 8px;">
-                                  <span>Agent ${viewTicket.useAgentBalance === "credit" ? "Credit" : "Deposit"} Deducted</span>
-                                  <span style="font-family: monospace;">AED ${viewTicket.agentBalanceDeducted.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
                                 </div>
                                 ` : ''}
                               </div>
