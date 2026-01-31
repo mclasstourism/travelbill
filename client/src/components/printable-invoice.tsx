@@ -1,6 +1,6 @@
 import { forwardRef } from "react";
 import type { Invoice, Customer, Agent, Vendor } from "@shared/schema";
-import companyLogo from "@assets/Updated_Logo_1769092146053.png";
+import companyLogo from "@assets/logo_optimized.png";
 
 interface PrintableInvoiceProps {
   invoice: Invoice;

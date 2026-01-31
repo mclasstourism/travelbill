@@ -15,7 +15,7 @@ import {
   User,
   Shield,
 } from "lucide-react";
-import companyLogo from "@assets/Updated_Logo_1769092146053.png";
+import companyLogo from "@assets/logo_optimized.png";
 import {
   Sidebar,
   SidebarContent,

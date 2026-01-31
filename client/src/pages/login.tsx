@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Loader2, ArrowLeft, Mail } from "lucide-react";
-import companyLogo from "@assets/Updated_Logo_1769092146053.png";
+import companyLogo from "@assets/logo_optimized.png";
 
 type ViewState = "login" | "forgot" | "reset";
 
