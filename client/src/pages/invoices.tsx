@@ -1100,6 +1100,18 @@ export default function InvoicesPage() {
                       <span className="font-mono">-{formatCurrency(viewInvoice.depositUsed)}</span>
                     </div>
                   )}
+                  {viewInvoice.agentCreditUsed > 0 && (
+                    <div className="flex justify-between py-1 border-b text-purple-600 dark:text-purple-400">
+                      <span>Agent Credit Applied:</span>
+                      <span className="font-mono">-{formatCurrency(viewInvoice.agentCreditUsed)}</span>
+                    </div>
+                  )}
+                  {viewInvoice.vendorBalanceDeducted > 0 && (
+                    <div className="flex justify-between py-1 border-b text-orange-600 dark:text-orange-400">
+                      <span>Vendor {viewInvoice.useVendorBalance === "credit" ? "Credit" : "Deposit"} Applied:</span>
+                      <span className="font-mono">-{formatCurrency(viewInvoice.vendorBalanceDeducted)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between py-2 border-b-2 text-lg font-bold">
                     <span>Total Due:</span>
                     <span className="font-mono">{formatCurrency(viewInvoice.total)}</span>
