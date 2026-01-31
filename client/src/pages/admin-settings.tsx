@@ -783,63 +783,6 @@ export default function AdminSettingsPage() {
         </DialogContent>
       </Dialog>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Key className="w-5 h-5 text-primary" />
-            <CardTitle className="text-lg">Change Your Password</CardTitle>
-          </div>
-          <CardDescription>
-            Update your admin login password. You'll need your current password to make changes.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="current-password">Current Password</Label>
-              <Input
-                id="current-password"
-                type="password"
-                placeholder="Enter current password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                data-testid="input-current-password"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="new-password">New Password</Label>
-              <Input
-                id="new-password"
-                type="password"
-                placeholder="Enter new password (min 6 characters)"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                data-testid="input-new-password"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirm-new-password">Confirm New Password</Label>
-              <Input
-                id="confirm-new-password"
-                type="password"
-                placeholder="Confirm new password"
-                value={confirmNewPassword}
-                onChange={(e) => setConfirmNewPassword(e.target.value)}
-                data-testid="input-confirm-new-password"
-              />
-            </div>
-          </div>
-          <Button
-            onClick={handleChangePassword}
-            disabled={changePasswordMutation.isPending || !currentPassword || !newPassword || !confirmNewPassword}
-            data-testid="button-change-password"
-          >
-            {changePasswordMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Change Password
-          </Button>
-        </CardContent>
-      </Card>
-
       <h2 className="text-xl font-semibold pt-4">Data Reset Operations</h2>
       <p className="text-sm text-muted-foreground -mt-4">These operations are destructive and cannot be undone.</p>
 
