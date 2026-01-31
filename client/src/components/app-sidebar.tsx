@@ -37,7 +37,6 @@ const mainNavItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Invoices", url: "/invoices", icon: FileText },
   { title: "Tickets", url: "/tickets", icon: Ticket },
-  { title: "Reports", url: "/reports", icon: BarChart3 },
 ];
 
 const partyItems = [
@@ -53,6 +52,7 @@ const financeItems = [
 ];
 
 const settingsItems = [
+  { title: "Reports", url: "/reports", icon: BarChart3 },
   { title: "Bill Creators", url: "/settings/bill-creators", icon: Lock },
   { title: "Admin Settings", url: "/settings/admin", icon: Shield },
 ];
