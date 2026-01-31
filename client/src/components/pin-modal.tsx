@@ -11,21 +11,15 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Lock, AlertCircle, Loader2 } from "lucide-react";
+import { Lock, AlertCircle, Loader2, User } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { usePin } from "@/lib/pin-context";
+import { useAuth } from "@/lib/auth-context";
 
-type SimpleBillCreator = { id: string; name: string; active?: boolean };
+type PinStatus = { hasPin: boolean; active: boolean; username: string };
 
 interface PinModalProps {
   open: boolean;
@@ -34,14 +28,19 @@ interface PinModalProps {
 }
 
 export function PinModal({ open, onOpenChange, onSuccess }: PinModalProps) {
-  const [selectedCreatorId, setSelectedCreatorId] = useState<string>("");
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const { authenticate } = usePin();
+  const { user: currentUser } = useAuth();
 
-  const { data: billCreators = [], isLoading: isLoadingCreators } = useQuery<SimpleBillCreator[]>({
-    queryKey: ["/api/bill-creators-from-users"],
-    enabled: open,
+  const { data: pinStatus, isLoading: isLoadingUser } = useQuery<PinStatus>({
+    queryKey: ["/api/users/me/pin-status", currentUser?.id],
+    queryFn: async () => {
+      if (!currentUser?.id) return null;
+      const res = await apiRequest("GET", `/api/users/me/pin-status?userId=${currentUser.id}`);
+      return res.json();
+    },
+    enabled: open && !!currentUser?.id,
   });
 
   const verifyMutation = useMutation({
@@ -68,20 +67,19 @@ export function PinModal({ open, onOpenChange, onSuccess }: PinModalProps) {
   });
 
   useEffect(() => {
-    if (pin.length === 8 && selectedCreatorId) {
-      verifyMutation.mutate({ creatorId: selectedCreatorId, pin });
+    if (pin.length === 8 && currentUser?.id) {
+      verifyMutation.mutate({ creatorId: currentUser.id, pin });
     }
-  }, [pin, selectedCreatorId]);
+  }, [pin, currentUser?.id]);
 
   useEffect(() => {
     if (!open) {
       setPin("");
       setError("");
-      setSelectedCreatorId("");
     }
   }, [open]);
 
-  const activeCreators = billCreators.filter((c) => c.active);
+  const hasPin = pinStatus?.hasPin && pinStatus?.active;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -92,81 +90,71 @@ export function PinModal({ open, onOpenChange, onSuccess }: PinModalProps) {
             PIN Authentication
           </DialogTitle>
           <DialogDescription>
-            Select your staff account and enter your 8-digit PIN to create bills.
+            Enter your 8-digit PIN to create bills.
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-6 py-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="bill-creator">Staff Member</Label>
-            {isLoadingCreators ? (
-              <div className="flex items-center gap-2 h-10 text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Loading...
-              </div>
-            ) : activeCreators.length === 0 ? (
-              <div className="text-sm text-muted-foreground">
-                No staff with PIN found. Please set a PIN in Admin Settings.
-              </div>
-            ) : (
-              <Select
-                value={selectedCreatorId}
-                onValueChange={(value) => {
-                  setSelectedCreatorId(value);
-                  setPin("");
-                  setError("");
-                }}
-              >
-                <SelectTrigger data-testid="select-bill-creator">
-                  <SelectValue placeholder="Select bill creator" />
-                </SelectTrigger>
-                <SelectContent>
-                  {activeCreators.map((creator) => (
-                    <SelectItem key={creator.id} value={creator.id}>
-                      {creator.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-
-          {selectedCreatorId && (
-            <div className="flex flex-col items-center gap-4">
-              <Label>Enter PIN</Label>
-              <InputOTP
-                maxLength={8}
-                value={pin}
-                onChange={setPin}
-                disabled={verifyMutation.isPending}
-                data-testid="input-pin"
-              >
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                  <InputOTPSlot index={3} />
-                  <InputOTPSlot index={4} />
-                  <InputOTPSlot index={5} />
-                  <InputOTPSlot index={6} />
-                  <InputOTPSlot index={7} />
-                </InputOTPGroup>
-              </InputOTP>
-
-              {verifyMutation.isPending && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Verifying...
-                </div>
-              )}
-
-              {error && (
-                <div className="flex items-center gap-2 text-sm text-destructive">
-                  <AlertCircle className="w-4 h-4" />
-                  {error}
-                </div>
-              )}
+          {isLoadingUser ? (
+            <div className="flex items-center justify-center gap-2 py-4 text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Loading...
             </div>
+          ) : !hasPin ? (
+            <div className="flex flex-col items-center gap-3 py-4">
+              <AlertCircle className="w-8 h-8 text-muted-foreground" />
+              <div className="text-center">
+                <p className="font-medium">No PIN Set</p>
+                <p className="text-sm text-muted-foreground">
+                  Your account does not have a PIN configured. Please ask an admin to set your PIN in Settings.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-center gap-2 py-2 px-4 bg-muted rounded-lg">
+                <User className="w-4 h-4 text-muted-foreground" />
+                <span className="font-medium" data-testid="text-current-user">
+                  {currentUser?.username}
+                </span>
+              </div>
+
+              <div className="flex flex-col items-center gap-4">
+                <Label>Enter Your PIN</Label>
+                <InputOTP
+                  maxLength={8}
+                  value={pin}
+                  onChange={setPin}
+                  disabled={verifyMutation.isPending}
+                  data-testid="input-pin"
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                    <InputOTPSlot index={6} />
+                    <InputOTPSlot index={7} />
+                  </InputOTPGroup>
+                </InputOTP>
+
+                {verifyMutation.isPending && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Verifying...
+                  </div>
+                )}
+
+                {error && (
+                  <div className="flex items-center gap-2 text-sm text-destructive">
+                    <AlertCircle className="w-4 h-4" />
+                    {error}
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </div>
 

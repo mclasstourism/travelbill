@@ -84,6 +84,29 @@ export async function registerRoutes(
     }
   });
 
+  // Get current user's PIN status (for PIN modal)
+  app.get("/api/users/me/pin-status", async (req, res) => {
+    try {
+      const { userId } = req.query;
+      if (!userId || typeof userId !== "string") {
+        res.status(400).json({ error: "User ID required" });
+        return;
+      }
+      const user = await storage.getUser(userId);
+      if (!user) {
+        res.status(404).json({ error: "User not found" });
+        return;
+      }
+      res.json({ 
+        hasPin: !!user.pin, 
+        active: user.active,
+        username: user.username 
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch PIN status" });
+    }
+  });
+
   // Create new user (admin only)
   app.post("/api/users", async (req, res) => {
     try {
