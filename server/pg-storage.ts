@@ -639,28 +639,68 @@ export class PgStorage implements IStorage {
     
     const createdTicket = this.mapTicket(result[0]);
     
-    // Record vendor cost transaction - amount owed to vendor for this ticket
+    // Handle vendor balance based on useVendorBalance choice
     if (ticket.vendorCost && ticket.vendorCost > 0) {
       const vendor = await this.getVendor(ticket.vendorId);
       if (vendor) {
-        // Vendor cost increases what we owe the vendor (add to credit balance - what they've given us)
-        const newCreditBalance = vendor.creditBalance + ticket.vendorCost;
-        await db.update(schema.vendorsTable)
-          .set({ creditBalance: newCreditBalance })
-          .where(eq(schema.vendorsTable.id, ticket.vendorId));
+        const useVendorBalance = ticket.useVendorBalance || "none";
+        const vendorBalanceDeducted = ticket.vendorBalanceDeducted || 0;
         
-        // Create vendor transaction record for vendor cost
-        await db.insert(schema.vendorTransactionsTable).values({
-          vendorId: ticket.vendorId,
-          type: "credit",
-          transactionType: "credit",
-          amount: ticket.vendorCost,
-          description: `Ticket ${ticketNumber} - ${ticket.passengerName} - Vendor cost (owed to vendor)`,
-          paymentMethod: "cash",
-          referenceId: createdTicket.id,
-          referenceType: "ticket",
-          balanceAfter: newCreditBalance,
-        });
+        if (useVendorBalance === "none") {
+          // Add vendor cost to credit balance (what we owe the vendor)
+          const newCreditBalance = vendor.creditBalance + ticket.vendorCost;
+          await db.update(schema.vendorsTable)
+            .set({ creditBalance: newCreditBalance })
+            .where(eq(schema.vendorsTable.id, ticket.vendorId));
+          
+          await db.insert(schema.vendorTransactionsTable).values({
+            vendorId: ticket.vendorId,
+            type: "credit",
+            transactionType: "credit",
+            amount: ticket.vendorCost,
+            description: `Ticket ${ticketNumber} - ${ticket.passengerName} - Vendor cost (added to credit owed)`,
+            paymentMethod: "cash",
+            referenceId: createdTicket.id,
+            referenceType: "ticket",
+            balanceAfter: newCreditBalance,
+          });
+        } else if (useVendorBalance === "credit" && vendorBalanceDeducted > 0) {
+          // Deduct from vendor credit balance
+          const newCreditBalance = vendor.creditBalance - vendorBalanceDeducted;
+          await db.update(schema.vendorsTable)
+            .set({ creditBalance: newCreditBalance })
+            .where(eq(schema.vendorsTable.id, ticket.vendorId));
+          
+          await db.insert(schema.vendorTransactionsTable).values({
+            vendorId: ticket.vendorId,
+            type: "debit",
+            transactionType: "debit",
+            amount: vendorBalanceDeducted,
+            description: `Ticket ${ticketNumber} - ${ticket.passengerName} - Deducted from vendor credit`,
+            paymentMethod: "cash",
+            referenceId: createdTicket.id,
+            referenceType: "ticket",
+            balanceAfter: newCreditBalance,
+          });
+        } else if (useVendorBalance === "deposit" && vendorBalanceDeducted > 0) {
+          // Deduct from our deposit with vendor
+          const newDepositBalance = vendor.depositBalance - vendorBalanceDeducted;
+          await db.update(schema.vendorsTable)
+            .set({ depositBalance: newDepositBalance })
+            .where(eq(schema.vendorsTable.id, ticket.vendorId));
+          
+          await db.insert(schema.vendorTransactionsTable).values({
+            vendorId: ticket.vendorId,
+            type: "deposit_debit",
+            transactionType: "deposit_debit",
+            amount: vendorBalanceDeducted,
+            description: `Ticket ${ticketNumber} - ${ticket.passengerName} - Deducted from deposit with vendor`,
+            paymentMethod: "cash",
+            referenceId: createdTicket.id,
+            referenceType: "ticket",
+            balanceAfter: newDepositBalance,
+          });
+        }
       }
     }
     

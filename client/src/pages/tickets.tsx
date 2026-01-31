@@ -86,6 +86,7 @@ const createTicketFormSchema = z.object({
   vendorCost: z.coerce.number().min(0, "Vendor cost is required"),
   mcAddition: z.coerce.number().min(0, "MC addition must be positive").default(0),
   deductFromDeposit: z.boolean().default(false),
+  useVendorBalance: z.enum(["none", "credit", "deposit"]).default("none"),
 });
 
 type CreateTicketForm = z.infer<typeof createTicketFormSchema>;
@@ -127,6 +128,7 @@ export default function TicketsPage() {
       vendorCost: 0,
       mcAddition: 0,
       deductFromDeposit: false,
+      useVendorBalance: "none",
     },
   });
 
@@ -136,6 +138,7 @@ export default function TicketsPage() {
   const watchDeductFromDeposit = form.watch("deductFromDeposit");
   const watchVendorCost = form.watch("vendorCost");
   const watchMcAddition = form.watch("mcAddition");
+  const watchUseVendorBalance = form.watch("useVendorBalance");
 
   const selectedCustomer = customers.find((c) => c.id === watchCustomerId);
   const selectedVendor = vendors.find((v) => v.id === watchVendorId);
@@ -151,9 +154,17 @@ export default function TicketsPage() {
       depositDeducted = Math.min(selectedCustomer.depositBalance, faceValue);
     }
     
+    // Calculate vendor balance deduction
+    let vendorBalanceDeducted = 0;
+    if (watchUseVendorBalance === "credit" && selectedVendor) {
+      vendorBalanceDeducted = Math.min(selectedVendor.creditBalance, vendorCost);
+    } else if (watchUseVendorBalance === "deposit" && selectedVendor) {
+      vendorBalanceDeducted = Math.min(selectedVendor.depositBalance, vendorCost);
+    }
+    
     const amountDue = faceValue - depositDeducted;
-    return { faceValue, vendorCost, mcAddition, depositDeducted, amountDue };
-  }, [watchVendorCost, watchMcAddition, watchDeductFromDeposit, selectedCustomer]);
+    return { faceValue, vendorCost, mcAddition, depositDeducted, amountDue, vendorBalanceDeducted };
+  }, [watchVendorCost, watchMcAddition, watchDeductFromDeposit, selectedCustomer, watchUseVendorBalance, selectedVendor]);
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -216,12 +227,22 @@ export default function TicketsPage() {
       depositDeducted = Math.min(selectedCustomer.depositBalance, faceValue);
     }
 
+    // Calculate vendor balance deduction
+    let vendorBalanceDeducted = 0;
+    if (data.useVendorBalance === "credit" && selectedVendor) {
+      vendorBalanceDeducted = Math.min(selectedVendor.creditBalance, vendorCost);
+    } else if (data.useVendorBalance === "deposit" && selectedVendor) {
+      vendorBalanceDeducted = Math.min(selectedVendor.depositBalance, vendorCost);
+    }
+
     const ticketData = {
       ...data,
       faceValue,
       vendorCost,
       additionalCost: mcAddition,
       depositDeducted,
+      useVendorBalance: data.useVendorBalance,
+      vendorBalanceDeducted,
       issuedBy: session.billCreatorId,
     };
 
@@ -716,7 +737,37 @@ export default function TicketsPage() {
                 </Card>
               )}
 
-              {/* Vendor cost info - auto-deducted from vendor credit */}
+              {/* Vendor Balance Deduction Choice */}
+              {calculations.vendorCost > 0 && selectedVendor && (
+                <FormField
+                  control={form.control}
+                  name="useVendorBalance"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Deduct Vendor Cost From</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-vendor-balance">
+                            <SelectValue placeholder="Select deduction source" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">None - Add to Vendor Credit</SelectItem>
+                          <SelectItem value="credit">
+                            Vendor Credit (Available: {formatCurrency(selectedVendor.creditBalance)})
+                          </SelectItem>
+                          <SelectItem value="deposit">
+                            My Deposit with Vendor (Available: {formatCurrency(selectedVendor.depositBalance)})
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {/* Vendor cost summary */}
               {calculations.vendorCost > 0 && (
                 <Card className="bg-orange-50 dark:bg-orange-900/20">
                   <CardContent className="pt-4 space-y-2">
@@ -724,9 +775,21 @@ export default function TicketsPage() {
                       <span>Vendor Cost</span>
                       <span className="font-mono">{formatCurrency(calculations.vendorCost)}</span>
                     </div>
-                    <p className="text-xs text-orange-600 dark:text-orange-400">
-                      This amount will be automatically added to vendor credit when ticket is issued.
-                    </p>
+                    {watchUseVendorBalance === "none" && (
+                      <p className="text-xs text-orange-600 dark:text-orange-400">
+                        This amount will be added to vendor credit when ticket is issued.
+                      </p>
+                    )}
+                    {watchUseVendorBalance === "credit" && (
+                      <p className="text-xs text-green-600 dark:text-green-400">
+                        {formatCurrency(calculations.vendorBalanceDeducted)} will be deducted from vendor credit.
+                      </p>
+                    )}
+                    {watchUseVendorBalance === "deposit" && (
+                      <p className="text-xs text-blue-600 dark:text-blue-400">
+                        {formatCurrency(calculations.vendorBalanceDeducted)} will be deducted from your deposit with vendor.
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
               )}
