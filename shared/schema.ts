@@ -101,6 +101,8 @@ export const ticketsTable = pgTable("tickets", {
   returnDate: varchar("return_date", { length: 20 }),
   passengerName: varchar("passenger_name", { length: 255 }).notNull(),
   faceValue: real("face_value").default(0),
+  vendorCost: real("vendor_cost").default(0),
+  additionalCost: real("additional_cost").default(0),
   deductFromDeposit: boolean("deduct_from_deposit").default(false),
   depositDeducted: real("deposit_deducted").default(0),
   useVendorBalance: varchar("use_vendor_balance", { length: 20 }).default("none"),
@@ -325,6 +327,8 @@ export const insertTicketSchema = z.object({
   returnDate: z.string().optional(), // Only for round trip
   passengerName: z.string().min(1, "Passenger name is required"),
   faceValue: z.number().min(0, "Face value must be positive"),
+  vendorCost: z.number().min(0, "Vendor cost must be positive").default(0),
+  additionalCost: z.number().min(0, "Additional cost must be positive").default(0),
   deductFromDeposit: z.boolean().default(false),
   depositDeducted: z.number().min(0).default(0),
   useVendorBalance: z.enum(vendorBalanceSources).default("none"),

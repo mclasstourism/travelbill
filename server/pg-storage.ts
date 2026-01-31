@@ -591,6 +591,8 @@ export class PgStorage implements IStorage {
       returnDate: row.returnDate || undefined,
       passengerName: row.passengerName,
       faceValue: row.faceValue || 0,
+      vendorCost: row.vendorCost || 0,
+      additionalCost: row.additionalCost || 0,
       deductFromDeposit: row.deductFromDeposit || false,
       depositDeducted: row.depositDeducted || 0,
       useVendorBalance: (row.useVendorBalance as any) || "none",
@@ -619,6 +621,8 @@ export class PgStorage implements IStorage {
       returnDate: ticket.returnDate,
       passengerName: ticket.passengerName,
       faceValue: ticket.faceValue,
+      vendorCost: ticket.vendorCost || 0,
+      additionalCost: ticket.additionalCost || 0,
       deductFromDeposit: ticket.deductFromDeposit || false,
       depositDeducted: ticket.depositDeducted || 0,
       useVendorBalance: ticket.useVendorBalance || "none",
@@ -628,6 +632,31 @@ export class PgStorage implements IStorage {
     }).returning();
     
     const createdTicket = this.mapTicket(result[0]);
+    
+    // Record vendor cost transaction - amount owed to vendor for this ticket
+    if (ticket.vendorCost && ticket.vendorCost > 0) {
+      const vendor = await this.getVendor(ticket.vendorId);
+      if (vendor) {
+        // Vendor cost increases what we owe the vendor (add to credit balance - what they've given us)
+        const newCreditBalance = vendor.creditBalance + ticket.vendorCost;
+        await db.update(schema.vendorsTable)
+          .set({ creditBalance: newCreditBalance })
+          .where(eq(schema.vendorsTable.id, ticket.vendorId));
+        
+        // Create vendor transaction record for vendor cost
+        await db.insert(schema.vendorTransactionsTable).values({
+          vendorId: ticket.vendorId,
+          type: "credit",
+          transactionType: "credit",
+          amount: ticket.vendorCost,
+          description: `Ticket ${ticketNumber} - ${ticket.passengerName} - Vendor cost (owed to vendor)`,
+          paymentMethod: "cash",
+          referenceId: createdTicket.id,
+          referenceType: "ticket",
+          balanceAfter: newCreditBalance,
+        });
+      }
+    }
     
     // Record deposit deduction transaction for customer
     if (ticket.deductFromDeposit && ticket.depositDeducted && ticket.depositDeducted > 0) {

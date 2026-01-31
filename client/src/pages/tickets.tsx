@@ -85,6 +85,8 @@ const createTicketFormSchema = z.object({
   returnDate: z.string().optional(),
   passengerName: z.string().min(1, "Passenger name is required"),
   faceValue: z.coerce.number().min(1, "Face value is required and must be greater than 0"),
+  vendorCost: z.coerce.number().min(0, "Vendor cost must be positive").default(0),
+  additionalCost: z.coerce.number().min(0, "Additional cost must be positive").default(0),
   deductFromDeposit: z.boolean().default(false),
   useVendorBalance: z.enum(vendorBalanceSources).default("none"),
 });
@@ -126,6 +128,8 @@ export default function TicketsPage() {
       returnDate: "",
       passengerName: "",
       faceValue: 0,
+      vendorCost: 0,
+      additionalCost: 0,
       deductFromDeposit: false,
       useVendorBalance: "none",
     },
@@ -626,7 +630,7 @@ export default function TicketsPage() {
                 name="faceValue"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Face Value *</FormLabel>
+                    <FormLabel>Face Value (Customer Price) *</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -641,6 +645,50 @@ export default function TicketsPage() {
                   </FormItem>
                 )}
               />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="vendorCost"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Vendor Cost *</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          placeholder="0.00"
+                          {...field}
+                          data-testid="input-vendor-cost"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="additionalCost"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Middle Class Additional Cost</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          placeholder="0.00"
+                          {...field}
+                          data-testid="input-additional-cost"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               {selectedCustomer && selectedCustomer.depositBalance > 0 && (
                 <FormField
@@ -792,8 +840,8 @@ export default function TicketsPage() {
                       <p className="font-semibold">{viewTicket.passengerName}</p>
                     </div>
                     <div>
-                      <span className="text-xs text-gray-500">TRAVEL CLASS</span>
-                      <p className="font-semibold capitalize">{viewTicket.travelClass || "Economy"}</p>
+                      <span className="text-xs text-gray-500">TICKET TYPE</span>
+                      <p className="font-semibold capitalize">{viewTicket.ticketType || "Economy"}</p>
                     </div>
                   </div>
                 </div>
@@ -828,10 +876,10 @@ export default function TicketsPage() {
                   </div>
                 </div>
 
-                {/* Value */}
+                {/* Value - Customer sees face value */}
                 <div className="border-t pt-4">
                   <div className="flex justify-between items-center">
-                    <span className="font-semibold">Ticket Value</span>
+                    <span className="font-semibold">Ticket Value (Customer Price)</span>
                     <span className="text-2xl font-bold text-blue-600 font-mono">
                       AED {viewTicket.faceValue.toLocaleString("en-AE", { minimumFractionDigits: 2 })}
                     </span>
@@ -844,6 +892,31 @@ export default function TicketsPage() {
                       </span>
                     </div>
                   )}
+                </div>
+
+                {/* Cost Breakdown - Internal Use Only (Not printed) */}
+                <div className="border-t pt-4 mt-4 bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg" data-no-print="true">
+                  <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-3">Cost Breakdown (Internal Use Only)</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="text-amber-700 dark:text-amber-300">Vendor Cost (Paid to Vendor)</span>
+                      <span className="font-mono font-semibold text-amber-800 dark:text-amber-200">
+                        AED {(viewTicket.vendorCost || 0).toLocaleString("en-AE", { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-amber-700 dark:text-amber-300">Middle Class Additional Cost</span>
+                      <span className="font-mono font-semibold text-amber-800 dark:text-amber-200">
+                        AED {(viewTicket.additionalCost || 0).toLocaleString("en-AE", { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center border-t border-amber-300 dark:border-amber-600 pt-2">
+                      <span className="text-amber-700 dark:text-amber-300 font-semibold">Profit Margin</span>
+                      <span className="font-mono font-bold text-green-600 dark:text-green-400">
+                        AED {(viewTicket.faceValue - (viewTicket.vendorCost || 0) - (viewTicket.additionalCost || 0)).toLocaleString("en-AE", { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Issue Details */}
@@ -928,8 +1001,8 @@ export default function TicketsPage() {
                                     <p style="font-weight: 600; margin: 4px 0 0 0;">${viewTicket.passengerName}</p>
                                   </div>
                                   <div>
-                                    <span style="font-size: 0.75rem; color: #6b7280;">TRAVEL CLASS</span>
-                                    <p style="font-weight: 600; text-transform: capitalize; margin: 4px 0 0 0;">${viewTicket.travelClass || "Economy"}</p>
+                                    <span style="font-size: 0.75rem; color: #6b7280;">TICKET TYPE</span>
+                                    <p style="font-weight: 600; text-transform: capitalize; margin: 4px 0 0 0;">${viewTicket.ticketType || "Economy"}</p>
                                   </div>
                                 </div>
                               </div>
