@@ -84,8 +84,7 @@ const createTicketFormSchema = z.object({
   travelDate: z.string().min(1, "Travel date is required"),
   returnDate: z.string().optional(),
   passengerName: z.string().min(1, "Passenger name is required"),
-  faceValue: z.coerce.number().min(1, "Face value is required and must be greater than 0"),
-  vendorCost: z.coerce.number().min(0, "Vendor cost must be positive").default(0),
+  vendorCost: z.coerce.number().min(1, "Vendor cost is required"),
   additionalCost: z.coerce.number().min(0, "Additional cost must be positive").default(0),
   deductFromDeposit: z.boolean().default(false),
   useVendorBalance: z.enum(vendorBalanceSources).default("none"),
@@ -127,7 +126,6 @@ export default function TicketsPage() {
       travelDate: "",
       returnDate: "",
       passengerName: "",
-      faceValue: 0,
       vendorCost: 0,
       additionalCost: 0,
       deductFromDeposit: false,
@@ -140,8 +138,8 @@ export default function TicketsPage() {
 
   const watchCustomerId = form.watch("customerId");
   const watchDeductFromDeposit = form.watch("deductFromDeposit");
-  const watchFaceValue = form.watch("faceValue");
   const watchVendorCost = form.watch("vendorCost");
+  const watchAdditionalCost = form.watch("additionalCost");
   const watchUseVendorBalance = form.watch("useVendorBalance");
 
   const selectedCustomer = customers.find((c) => c.id === watchCustomerId);
@@ -149,8 +147,11 @@ export default function TicketsPage() {
   const vendorAirlines = selectedVendor?.airlines || [];
 
   const calculations = useMemo(() => {
-    const faceValue = Number(watchFaceValue) || 0;
     const vendorCost = Number(watchVendorCost) || 0;
+    const additionalCost = Number(watchAdditionalCost) || 0;
+    // Face value = Vendor Cost + Middle Class Additional Cost
+    const faceValue = vendorCost + additionalCost;
+    
     let depositDeducted = 0;
     if (watchDeductFromDeposit && selectedCustomer) {
       depositDeducted = Math.min(selectedCustomer.depositBalance, faceValue);
@@ -167,8 +168,8 @@ export default function TicketsPage() {
     
     const amountDue = faceValue - depositDeducted;
     const netVendorCost = vendorCost - vendorBalanceDeducted;
-    return { faceValue, vendorCost, depositDeducted, amountDue, vendorBalanceDeducted, netVendorCost };
-  }, [watchFaceValue, watchVendorCost, watchDeductFromDeposit, selectedCustomer, watchUseVendorBalance, selectedVendor]);
+    return { faceValue, vendorCost, additionalCost, depositDeducted, amountDue, vendorBalanceDeducted, netVendorCost };
+  }, [watchVendorCost, watchAdditionalCost, watchDeductFromDeposit, selectedCustomer, watchUseVendorBalance, selectedVendor]);
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -222,9 +223,11 @@ export default function TicketsPage() {
       return;
     }
 
-    // Calculate deposit deduction from submitted form data directly
-    const faceValue = Number(data.faceValue) || 0;
+    // Face Value = Vendor Cost + Middle Class Additional Cost
     const vendorCost = Number(data.vendorCost) || 0;
+    const additionalCost = Number(data.additionalCost) || 0;
+    const faceValue = vendorCost + additionalCost;
+    
     let depositDeducted = 0;
     if (data.deductFromDeposit && selectedCustomer) {
       depositDeducted = Math.min(selectedCustomer.depositBalance, faceValue);
@@ -243,6 +246,7 @@ export default function TicketsPage() {
       ...data,
       faceValue,
       vendorCost,
+      additionalCost,
       depositDeducted,
       vendorBalanceDeducted,
       issuedBy: session.billCreatorId,
@@ -630,27 +634,6 @@ export default function TicketsPage() {
                 />
               )}
 
-              <FormField
-                control={form.control}
-                name="faceValue"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Face Value (Customer Price) *</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        placeholder="0.00"
-                        {...field}
-                        data-testid="input-face-value"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -678,7 +661,7 @@ export default function TicketsPage() {
                   name="additionalCost"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Middle Class Additional Cost</FormLabel>
+                      <FormLabel>Middle Class Additional Cost *</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -693,6 +676,21 @@ export default function TicketsPage() {
                     </FormItem>
                   )}
                 />
+              </div>
+
+              {/* Face Value = Vendor Cost + Additional Cost (auto-calculated) */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                    Face Value (Customer Price)
+                  </span>
+                  <span className="text-xl font-bold font-mono text-blue-600 dark:text-blue-300">
+                    {formatCurrency(calculations.faceValue)}
+                  </span>
+                </div>
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                  = Vendor Cost + Middle Class Additional Cost
+                </p>
               </div>
 
               {selectedCustomer && selectedCustomer.depositBalance > 0 && (
