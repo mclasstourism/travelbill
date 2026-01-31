@@ -166,7 +166,7 @@ export default function AgentCreditsPage() {
               <div className="text-2xl font-bold font-mono text-blue-600 dark:text-blue-400">
                 {formatCurrency(selectedAgent.creditBalance)}
               </div>
-              <p className="text-xs text-muted-foreground">Credit given to agent</p>
+              <p className="text-xs text-muted-foreground">Middle class money to agent</p>
             </CardContent>
           </Card>
           <Card>
