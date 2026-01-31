@@ -155,6 +155,18 @@ export const PrintableInvoice = forwardRef<HTMLDivElement, PrintableInvoiceProps
                 <span className="font-mono">-{formatCurrency(invoice.depositUsed)}</span>
               </div>
             )}
+            {invoice.agentCreditUsed > 0 && (
+              <div className="flex justify-between py-1 border-b text-purple-700">
+                <span>Agent Credit Applied:</span>
+                <span className="font-mono">-{formatCurrency(invoice.agentCreditUsed)}</span>
+              </div>
+            )}
+            {invoice.vendorBalanceDeducted > 0 && (
+              <div className="flex justify-between py-1 border-b text-orange-700">
+                <span>Vendor {invoice.useVendorBalance === "credit" ? "Credit" : "Deposit"} Applied:</span>
+                <span className="font-mono">-{formatCurrency(invoice.vendorBalanceDeducted)}</span>
+              </div>
+            )}
             <div className="flex justify-between py-2 border-b-2 border-gray-800 text-lg font-bold">
               <span>Total Due:</span>
               <span className="font-mono">{formatCurrency(invoice.total)}</span>
