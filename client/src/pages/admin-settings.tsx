@@ -80,6 +80,7 @@ export default function AdminSettingsPage() {
   
   const [showNewUserPin, setShowNewUserPin] = useState(false);
   const [showEditPin, setShowEditPin] = useState(false);
+  const [visiblePinUserIds, setVisiblePinUserIds] = useState<Set<string>>(new Set());
   
   const { toast } = useToast();
 
@@ -312,6 +313,18 @@ export default function AdminSettingsPage() {
     setIsEditUserOpen(true);
   };
 
+  const togglePinVisibility = (userId: string) => {
+    setVisiblePinUserIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(userId)) {
+        newSet.delete(userId);
+      } else {
+        newSet.add(userId);
+      }
+      return newSet;
+    });
+  };
+
   const handleSaveUser = () => {
     if (!editingUser) return;
     
@@ -432,9 +445,24 @@ export default function AdminSettingsPage() {
                   <TableCell>{user.email || "-"}</TableCell>
                   <TableCell>
                     {user.pin ? (
-                      <span className="font-mono text-sm" data-testid={`text-pin-${user.username}`}>
-                        {user.pin}
-                      </span>
+                      <div className="flex items-center gap-1">
+                        <span className="font-mono text-sm" data-testid={`text-pin-${user.username}`}>
+                          {visiblePinUserIds.has(user.id) ? user.pin : "••••••••"}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => togglePinVisibility(user.id)}
+                          data-testid={`button-toggle-pin-${user.username}`}
+                        >
+                          {visiblePinUserIds.has(user.id) ? (
+                            <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+                          ) : (
+                            <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                          )}
+                        </Button>
+                      </div>
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
