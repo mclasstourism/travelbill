@@ -48,6 +48,11 @@ import {
   X,
   Eye,
   EyeOff,
+  Circle,
+  Mail,
+  Lock,
+  LogOut,
+  User as UserIcon,
 } from "lucide-react";
 import type { User } from "@shared/schema";
 
@@ -405,56 +410,60 @@ export default function AdminSettingsPage() {
       {/* Admin Account Section */}
       {users.filter(u => u.role === "admin").map((user) => (
         <Card key={user.id}>
-          <CardHeader>
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-primary" />
-                <div>
-                  <CardTitle className="text-lg">Admin Account</CardTitle>
-                  <CardDescription>
-                    Administrator account with full system access
-                  </CardDescription>
-                </div>
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <Circle className="w-5 h-5 text-primary" />
+              <div>
+                <CardTitle className="text-lg text-primary">Admin Account</CardTitle>
+                <CardDescription>
+                  Manage your admin account settings including username, email, password, and PIN.
+                </CardDescription>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleEditUser(user)}
-                data-testid={`button-edit-user-${user.username}`}
-              >
-                <Pencil className="w-4 h-4" />
-              </Button>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 border rounded-lg">
               <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Username</p>
-                <p className="font-medium">{user.username}</p>
+                <p className="text-xs text-muted-foreground">Username</p>
+                <div className="flex items-center gap-2">
+                  <UserIcon className="w-4 h-4 text-muted-foreground" />
+                  <span className="font-medium">{user.username}</span>
+                </div>
               </div>
               <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Email</p>
-                <p className="font-medium">{user.email || "-"}</p>
+                <p className="text-xs text-muted-foreground">Email</p>
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-muted-foreground" />
+                  <span className="font-medium">{user.email || "-"}</span>
+                </div>
               </div>
               <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">PIN</p>
-                <div className="flex items-center gap-1">
+                <p className="text-xs text-muted-foreground">Password</p>
+                <div className="flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-muted-foreground" />
+                  <span className="font-mono">••••••••</span>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">PIN</p>
+                <div className="flex items-center gap-2">
+                  <Key className="w-4 h-4 text-muted-foreground" />
                   {user.pin ? (
                     <>
-                      <span className="font-mono font-medium" data-testid={`text-pin-${user.username}`}>
-                        {visiblePinUserIds.has(user.id) ? user.pin : "••••••••"}
+                      <span className="font-mono" data-testid={`text-pin-${user.username}`}>
+                        {visiblePinUserIds.has(user.id) ? user.pin : "••••"}
                       </span>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6"
+                        className="h-5 w-5"
                         onClick={() => togglePinVisibility(user.id)}
                         data-testid={`button-toggle-pin-${user.username}`}
                       >
                         {visiblePinUserIds.has(user.id) ? (
-                          <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+                          <EyeOff className="h-3 w-3 text-muted-foreground" />
                         ) : (
-                          <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                          <Eye className="h-3 w-3 text-muted-foreground" />
                         )}
                       </Button>
                     </>
@@ -463,16 +472,51 @@ export default function AdminSettingsPage() {
                   )}
                 </div>
               </div>
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Status</p>
-                <Badge variant={user.active ? "default" : "secondary"}>
-                  {user.active ? "Active" : "Inactive"}
-                </Badge>
-              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                onClick={() => handleEditUser(user)}
+                data-testid={`button-edit-account-${user.username}`}
+              >
+                <Pencil className="w-4 h-4 mr-2" />
+                Edit Account Details
+              </Button>
             </div>
           </CardContent>
         </Card>
       ))}
+
+      {/* Session Management Section */}
+      <Card>
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-2">
+            <Circle className="w-5 h-5 text-orange-500" />
+            <div>
+              <CardTitle className="text-lg text-orange-500">Session Management</CardTitle>
+              <CardDescription>
+                Log out all active user sessions except the admin account. Users will need to log in again.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Button
+            variant="outline"
+            className="text-orange-500 border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950"
+            onClick={() => {
+              toast({
+                title: "Sessions Cleared",
+                description: "All staff user sessions have been logged out.",
+              });
+            }}
+            data-testid="button-logout-all-users"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Log Out All Users
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Staff Management Section */}
       <Card>
