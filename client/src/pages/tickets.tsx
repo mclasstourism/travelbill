@@ -41,7 +41,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Ticket as TicketIcon, Search, Loader2, Lock, Calendar, Plane } from "lucide-react";
+import { Plus, Ticket as TicketIcon, Search, Loader2, Lock, Calendar, Plane, Eye, Printer } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
@@ -95,6 +95,7 @@ export default function TicketsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [viewTicket, setViewTicket] = useState<Ticket | null>(null);
   const { toast } = useToast();
   const { isAuthenticated, session } = usePin();
 
@@ -294,9 +295,10 @@ export default function TicketsPage() {
                     <TableHead>Ticket #</TableHead>
                     <TableHead>Passenger</TableHead>
                     <TableHead>Route</TableHead>
-                    <TableHead>Travel Date</TableHead>
+                    <TableHead>Date Issued</TableHead>
                     <TableHead className="text-right">Value</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -313,7 +315,7 @@ export default function TicketsPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {format(new Date(ticket.travelDate), "MMM d, yyyy")}
+                        {format(new Date(ticket.createdAt), "MMM d, yyyy")}
                       </TableCell>
                       <TableCell className="text-right font-mono font-semibold">
                         {formatCurrency(ticket.faceValue)}
@@ -322,6 +324,18 @@ export default function TicketsPage() {
                         <Badge variant={getStatusBadgeVariant(ticket.status)}>
                           {ticket.status}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setViewTicket(ticket)}
+                            data-testid={`button-view-ticket-${ticket.id}`}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -739,6 +753,241 @@ export default function TicketsPage() {
               </div>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Ticket Dialog */}
+      <Dialog open={!!viewTicket} onOpenChange={(open) => !open && setViewTicket(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <TicketIcon className="w-5 h-5" />
+              Ticket Details
+            </DialogTitle>
+            <DialogDescription>
+              View and print ticket information
+            </DialogDescription>
+          </DialogHeader>
+          {viewTicket && (
+            <div className="space-y-4">
+              {/* Printable Ticket */}
+              <div id="printable-ticket" className="bg-white text-black p-6 rounded-lg border">
+                {/* Header with Logo */}
+                <div className="text-center border-b pb-4 mb-4">
+                  <h1 className="text-2xl font-bold text-blue-600">Middle Class Tourism</h1>
+                  <p className="text-sm text-gray-600">Your Trusted Travel Partner</p>
+                </div>
+
+                {/* Ticket Number */}
+                <div className="text-center mb-4">
+                  <span className="text-xs text-gray-500">TICKET NUMBER</span>
+                  <p className="font-mono text-xl font-bold">{viewTicket.ticketNumber}</p>
+                </div>
+
+                {/* Passenger Info */}
+                <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-xs text-gray-500">PASSENGER NAME</span>
+                      <p className="font-semibold">{viewTicket.passengerName}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-500">TRAVEL CLASS</span>
+                      <p className="font-semibold capitalize">{viewTicket.travelClass || "Economy"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Flight Details */}
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="border rounded-lg p-3">
+                    <span className="text-xs text-gray-500">ROUTE</span>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Plane className="w-4 h-4 text-blue-600" />
+                      <span className="font-semibold">{viewTicket.route}</span>
+                    </div>
+                  </div>
+                  <div className="border rounded-lg p-3">
+                    <span className="text-xs text-gray-500">TRAVEL DATE</span>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Calendar className="w-4 h-4 text-blue-600" />
+                      <span className="font-semibold">{format(new Date(viewTicket.travelDate), "MMM d, yyyy")}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Customer & Vendor */}
+                <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+                  <div>
+                    <span className="text-xs text-gray-500">CUSTOMER</span>
+                    <p>{customers.find(c => c.id === viewTicket.customerId)?.name || "N/A"}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500">VENDOR</span>
+                    <p>{vendors.find(v => v.id === viewTicket.vendorId)?.name || "N/A"}</p>
+                  </div>
+                </div>
+
+                {/* Value */}
+                <div className="border-t pt-4">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold">Ticket Value</span>
+                    <span className="text-2xl font-bold text-blue-600 font-mono">
+                      AED {viewTicket.faceValue.toLocaleString("en-AE", { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  {viewTicket.depositDeducted > 0 && (
+                    <div className="flex justify-between items-center text-sm text-gray-600 mt-2">
+                      <span>Deposit Deducted</span>
+                      <span className="font-mono">
+                        AED {viewTicket.depositDeducted.toLocaleString("en-AE", { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Issue Details */}
+                <div className="border-t pt-4 mt-4 text-xs text-gray-500">
+                  <div className="flex justify-between">
+                    <span>Issued: {format(new Date(viewTicket.createdAt), "MMM d, yyyy 'at' h:mm a")}</span>
+                    <span>Status: <Badge variant={getStatusBadgeVariant(viewTicket.status)} className="ml-1">{viewTicket.status}</Badge></span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Print Button */}
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setViewTicket(null)}>
+                  Close
+                </Button>
+                <Button 
+                  onClick={() => {
+                    const printContent = document.getElementById('printable-ticket');
+                    if (printContent) {
+                      const printWindow = window.open('', '_blank');
+                      if (printWindow) {
+                        printWindow.document.write(`
+                          <!DOCTYPE html>
+                          <html>
+                          <head>
+                            <title>Ticket - ${viewTicket.ticketNumber}</title>
+                            <style>
+                              body { font-family: Arial, sans-serif; margin: 20px; }
+                              .text-center { text-align: center; }
+                              .text-right { text-align: right; }
+                              .font-bold { font-weight: bold; }
+                              .font-semibold { font-weight: 600; }
+                              .font-mono { font-family: monospace; }
+                              .text-xs { font-size: 0.75rem; }
+                              .text-sm { font-size: 0.875rem; }
+                              .text-xl { font-size: 1.25rem; }
+                              .text-2xl { font-size: 1.5rem; }
+                              .text-blue-600 { color: #2563eb; }
+                              .text-gray-500 { color: #6b7280; }
+                              .text-gray-600 { color: #4b5563; }
+                              .border { border: 1px solid #e5e7eb; }
+                              .border-t { border-top: 1px solid #e5e7eb; }
+                              .border-b { border-bottom: 1px solid #e5e7eb; }
+                              .rounded-lg { border-radius: 0.5rem; }
+                              .p-3 { padding: 0.75rem; }
+                              .p-4 { padding: 1rem; }
+                              .p-6 { padding: 1.5rem; }
+                              .mb-4 { margin-bottom: 1rem; }
+                              .mt-1 { margin-top: 0.25rem; }
+                              .mt-2 { margin-top: 0.5rem; }
+                              .mt-4 { margin-top: 1rem; }
+                              .pt-4 { padding-top: 1rem; }
+                              .pb-4 { padding-bottom: 1rem; }
+                              .gap-2 { gap: 0.5rem; }
+                              .gap-4 { gap: 1rem; }
+                              .bg-gray-50 { background-color: #f9fafb; }
+                              .grid { display: grid; }
+                              .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+                              .flex { display: flex; }
+                              .items-center { align-items: center; }
+                              .justify-between { justify-content: space-between; }
+                              .capitalize { text-transform: capitalize; }
+                              .badge { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; background: #22c55e; color: white; }
+                              @media print { body { margin: 0; } }
+                            </style>
+                          </head>
+                          <body>
+                            <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+                              <div style="text-align: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 16px; margin-bottom: 16px;">
+                                <h1 style="font-size: 1.5rem; font-weight: bold; color: #2563eb; margin: 0;">Middle Class Tourism</h1>
+                                <p style="font-size: 0.875rem; color: #6b7280; margin: 4px 0 0 0;">Your Trusted Travel Partner</p>
+                              </div>
+                              <div style="text-align: center; margin-bottom: 16px;">
+                                <span style="font-size: 0.75rem; color: #6b7280;">TICKET NUMBER</span>
+                                <p style="font-family: monospace; font-size: 1.25rem; font-weight: bold; margin: 4px 0 0 0;">${viewTicket.ticketNumber}</p>
+                              </div>
+                              <div style="background-color: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                  <div>
+                                    <span style="font-size: 0.75rem; color: #6b7280;">PASSENGER NAME</span>
+                                    <p style="font-weight: 600; margin: 4px 0 0 0;">${viewTicket.passengerName}</p>
+                                  </div>
+                                  <div>
+                                    <span style="font-size: 0.75rem; color: #6b7280;">TRAVEL CLASS</span>
+                                    <p style="font-weight: 600; text-transform: capitalize; margin: 4px 0 0 0;">${viewTicket.travelClass || "Economy"}</p>
+                                  </div>
+                                </div>
+                              </div>
+                              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                                <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px;">
+                                  <span style="font-size: 0.75rem; color: #6b7280;">ROUTE</span>
+                                  <p style="font-weight: 600; margin: 4px 0 0 0;">${viewTicket.route}</p>
+                                </div>
+                                <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px;">
+                                  <span style="font-size: 0.75rem; color: #6b7280;">TRAVEL DATE</span>
+                                  <p style="font-weight: 600; margin: 4px 0 0 0;">${format(new Date(viewTicket.travelDate), "MMM d, yyyy")}</p>
+                                </div>
+                              </div>
+                              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; font-size: 0.875rem;">
+                                <div>
+                                  <span style="font-size: 0.75rem; color: #6b7280;">CUSTOMER</span>
+                                  <p style="margin: 4px 0 0 0;">${customers.find(c => c.id === viewTicket.customerId)?.name || "N/A"}</p>
+                                </div>
+                                <div>
+                                  <span style="font-size: 0.75rem; color: #6b7280;">VENDOR</span>
+                                  <p style="margin: 4px 0 0 0;">${vendors.find(v => v.id === viewTicket.vendorId)?.name || "N/A"}</p>
+                                </div>
+                              </div>
+                              <div style="border-top: 1px solid #e5e7eb; padding-top: 16px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                  <span style="font-weight: 600;">Ticket Value</span>
+                                  <span style="font-size: 1.5rem; font-weight: bold; color: #2563eb; font-family: monospace;">AED ${viewTicket.faceValue.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
+                                </div>
+                                ${viewTicket.depositDeducted > 0 ? `
+                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem; color: #4b5563; margin-top: 8px;">
+                                  <span>Deposit Deducted</span>
+                                  <span style="font-family: monospace;">AED ${viewTicket.depositDeducted.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
+                                </div>
+                                ` : ''}
+                              </div>
+                              <div style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 16px; font-size: 0.75rem; color: #6b7280;">
+                                <div style="display: flex; justify-content: space-between;">
+                                  <span>Issued: ${format(new Date(viewTicket.createdAt), "MMM d, yyyy 'at' h:mm a")}</span>
+                                  <span>Status: <span class="badge">${viewTicket.status}</span></span>
+                                </div>
+                              </div>
+                            </div>
+                          </body>
+                          </html>
+                        `);
+                        printWindow.document.close();
+                        printWindow.print();
+                      }
+                    }
+                  }}
+                  data-testid="button-print-ticket"
+                >
+                  <Printer className="w-4 h-4 mr-2" />
+                  Print Ticket
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
