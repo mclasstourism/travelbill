@@ -48,6 +48,7 @@ import {
   X,
   Eye,
   EyeOff,
+  Shield,
 } from "lucide-react";
 import type { User } from "@shared/schema";
 
@@ -402,6 +403,82 @@ export default function AdminSettingsPage() {
         </div>
       </div>
 
+      {/* Admin Account Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Shield className="w-5 h-5 text-primary" />
+            <div>
+              <CardTitle className="text-lg">Admin Account</CardTitle>
+              <CardDescription>
+                Administrator account with full system access
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Username</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>PIN</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-24">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.filter(u => u.role === "admin").map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell className="font-medium">{user.username}</TableCell>
+                  <TableCell>{user.email || "-"}</TableCell>
+                  <TableCell>
+                    {user.pin ? (
+                      <div className="flex items-center gap-1">
+                        <span className="font-mono text-sm" data-testid={`text-pin-${user.username}`}>
+                          {visiblePinUserIds.has(user.id) ? user.pin : "••••••••"}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => togglePinVisibility(user.id)}
+                          data-testid={`button-toggle-pin-${user.username}`}
+                        >
+                          {visiblePinUserIds.has(user.id) ? (
+                            <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+                          ) : (
+                            <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                          )}
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={user.active ? "default" : "secondary"}>
+                      {user.active ? "Active" : "Inactive"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleEditUser(user)}
+                      data-testid={`button-edit-user-${user.username}`}
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Staff Management Section */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -426,23 +503,15 @@ export default function AdminSettingsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Username</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Email</TableHead>
                 <TableHead>PIN</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-24">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user) => (
+              {users.filter(u => u.role === "staff").map((user) => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.username}</TableCell>
-                  <TableCell>
-                    <Badge variant={user.role === "admin" ? "default" : "secondary"}>
-                      {user.role === "admin" ? "Admin" : "Staff"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{user.email || "-"}</TableCell>
                   <TableCell>
                     {user.pin ? (
                       <div className="flex items-center gap-1">
@@ -486,7 +555,7 @@ export default function AdminSettingsPage() {
                         variant="ghost"
                         size="icon"
                         onClick={() => deleteUserMutation.mutate(user.id)}
-                        disabled={user.username === "admin" || deleteUserMutation.isPending}
+                        disabled={deleteUserMutation.isPending}
                         data-testid={`button-delete-user-${user.username}`}
                       >
                         <Trash2 className="w-4 h-4 text-destructive" />
@@ -495,7 +564,7 @@ export default function AdminSettingsPage() {
                   </TableCell>
                 </TableRow>
               ))}
-              {users.length === 0 && (
+              {users.filter(u => u.role === "staff").length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                     No staff accounts found
