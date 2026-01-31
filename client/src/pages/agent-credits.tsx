@@ -213,42 +213,50 @@ export default function AgentCreditsPage() {
                       <TableHead>Account Type</TableHead>
                       <TableHead>Transaction</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
-                      <TableHead className="text-right">Balance After</TableHead>
+                      <TableHead className="text-right text-blue-600 dark:text-blue-400">Credit Balance</TableHead>
+                      <TableHead className="text-right text-green-600 dark:text-green-400">Deposit Balance</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {agentTransactions.map((tx) => (
-                      <TableRow key={tx.id} data-testid={`row-transaction-${tx.id}`}>
-                        <TableCell className="font-mono text-sm">
-                          {format(new Date(tx.createdAt), "dd/MM/yyyy HH:mm")}
-                        </TableCell>
-                        <TableCell>{tx.description}</TableCell>
-                        <TableCell>
-                          <Badge variant={tx.transactionType === "credit" ? "default" : "secondary"}>
-                            {tx.transactionType === "credit" ? "Credit Line" : "Deposit"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {tx.type === "credit" ? (
-                            <Badge variant="default" className="bg-green-600">
-                              <ArrowUpCircle className="w-3 h-3 mr-1" />
-                              Added
+                    {agentTransactions.map((tx) => {
+                      const isCreditType = tx.transactionType === "credit";
+                      const isDepositType = tx.transactionType === "deposit";
+                      return (
+                        <TableRow key={tx.id} data-testid={`row-transaction-${tx.id}`}>
+                          <TableCell className="font-mono text-sm">
+                            {format(new Date(tx.createdAt), "dd/MM/yyyy HH:mm")}
+                          </TableCell>
+                          <TableCell>{tx.description}</TableCell>
+                          <TableCell>
+                            <Badge variant={isCreditType ? "default" : "secondary"}>
+                              {isCreditType ? "Credit Line" : "Deposit"}
                             </Badge>
-                          ) : (
-                            <Badge variant="destructive">
-                              <ArrowDownCircle className="w-3 h-3 mr-1" />
-                              Used
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className={`text-right font-mono font-semibold ${tx.type === "credit" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                          {tx.type === "credit" ? "+" : "-"}{formatCurrency(tx.amount)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono font-semibold">
-                          {formatCurrency(tx.balanceAfter)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                          </TableCell>
+                          <TableCell>
+                            {tx.type === "credit" ? (
+                              <Badge variant="default" className="bg-green-600">
+                                <ArrowUpCircle className="w-3 h-3 mr-1" />
+                                Added
+                              </Badge>
+                            ) : (
+                              <Badge variant="destructive">
+                                <ArrowDownCircle className="w-3 h-3 mr-1" />
+                                Used
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className={`text-right font-mono font-semibold ${tx.type === "credit" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                            {tx.type === "credit" ? "+" : "-"}{formatCurrency(tx.amount)}
+                          </TableCell>
+                          <TableCell className="text-right font-mono font-semibold text-blue-600 dark:text-blue-400">
+                            {isCreditType ? formatCurrency(tx.balanceAfter) : "-"}
+                          </TableCell>
+                          <TableCell className="text-right font-mono font-semibold text-green-600 dark:text-green-400">
+                            {isDepositType ? formatCurrency(tx.balanceAfter) : "-"}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
