@@ -141,6 +141,7 @@ export default function TicketsPage() {
   const watchCustomerId = form.watch("customerId");
   const watchDeductFromDeposit = form.watch("deductFromDeposit");
   const watchFaceValue = form.watch("faceValue");
+  const watchVendorCost = form.watch("vendorCost");
   const watchUseVendorBalance = form.watch("useVendorBalance");
 
   const selectedCustomer = customers.find((c) => c.id === watchCustomerId);
@@ -149,23 +150,25 @@ export default function TicketsPage() {
 
   const calculations = useMemo(() => {
     const faceValue = Number(watchFaceValue) || 0;
+    const vendorCost = Number(watchVendorCost) || 0;
     let depositDeducted = 0;
     if (watchDeductFromDeposit && selectedCustomer) {
       depositDeducted = Math.min(selectedCustomer.depositBalance, faceValue);
     }
     
-    // Calculate vendor balance deduction
+    // Calculate vendor balance deduction - applies to vendor cost, not face value
     let vendorBalanceDeducted = 0;
-    if (watchUseVendorBalance && watchUseVendorBalance !== "none" && selectedVendor) {
+    if (watchUseVendorBalance && watchUseVendorBalance !== "none" && selectedVendor && vendorCost > 0) {
       const vendorBalance = watchUseVendorBalance === "credit" 
         ? selectedVendor.creditBalance 
         : selectedVendor.depositBalance;
-      vendorBalanceDeducted = Math.min(vendorBalance, faceValue);
+      vendorBalanceDeducted = Math.min(vendorBalance, vendorCost);
     }
     
     const amountDue = faceValue - depositDeducted;
-    return { faceValue, depositDeducted, amountDue, vendorBalanceDeducted };
-  }, [watchFaceValue, watchDeductFromDeposit, selectedCustomer, watchUseVendorBalance, selectedVendor]);
+    const netVendorCost = vendorCost - vendorBalanceDeducted;
+    return { faceValue, vendorCost, depositDeducted, amountDue, vendorBalanceDeducted, netVendorCost };
+  }, [watchFaceValue, watchVendorCost, watchDeductFromDeposit, selectedCustomer, watchUseVendorBalance, selectedVendor]);
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -221,23 +224,25 @@ export default function TicketsPage() {
 
     // Calculate deposit deduction from submitted form data directly
     const faceValue = Number(data.faceValue) || 0;
+    const vendorCost = Number(data.vendorCost) || 0;
     let depositDeducted = 0;
     if (data.deductFromDeposit && selectedCustomer) {
       depositDeducted = Math.min(selectedCustomer.depositBalance, faceValue);
     }
 
-    // Calculate vendor balance deduction
+    // Calculate vendor balance deduction - applies to vendor cost
     let vendorBalanceDeducted = 0;
-    if (data.useVendorBalance && data.useVendorBalance !== "none" && selectedVendor) {
+    if (data.useVendorBalance && data.useVendorBalance !== "none" && selectedVendor && vendorCost > 0) {
       const vendorBalance = data.useVendorBalance === "credit" 
         ? selectedVendor.creditBalance 
         : selectedVendor.depositBalance;
-      vendorBalanceDeducted = Math.min(vendorBalance, faceValue);
+      vendorBalanceDeducted = Math.min(vendorBalance, vendorCost);
     }
 
     const ticketData = {
       ...data,
       faceValue,
+      vendorCost,
       depositDeducted,
       vendorBalanceDeducted,
       issuedBy: session.billCreatorId,
@@ -735,13 +740,13 @@ export default function TicketsPage() {
                 </Card>
               )}
 
-              {selectedVendor && (selectedVendor.creditBalance > 0 || selectedVendor.depositBalance > 0) && (
+              {selectedVendor && calculations.vendorCost > 0 && (selectedVendor.creditBalance > 0 || selectedVendor.depositBalance > 0) && (
                 <FormField
                   control={form.control}
                   name="useVendorBalance"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Use Vendor Balance</FormLabel>
+                      <FormLabel>Offset Vendor Cost Using</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger data-testid="select-vendor-balance">
@@ -749,15 +754,15 @@ export default function TicketsPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="none">None</SelectItem>
+                          <SelectItem value="none">Pay Full Vendor Cost</SelectItem>
                           {selectedVendor.creditBalance > 0 && (
                             <SelectItem value="credit">
-                              Credit (Available: {formatCurrency(selectedVendor.creditBalance)})
+                              Use Vendor Credit (Available: {formatCurrency(selectedVendor.creditBalance)})
                             </SelectItem>
                           )}
                           {selectedVendor.depositBalance > 0 && (
                             <SelectItem value="deposit">
-                              Deposit (Available: {formatCurrency(selectedVendor.depositBalance)})
+                              Use Advance Deposit (Available: {formatCurrency(selectedVendor.depositBalance)})
                             </SelectItem>
                           )}
                         </SelectContent>
@@ -768,12 +773,22 @@ export default function TicketsPage() {
                 />
               )}
 
-              {calculations.vendorBalanceDeducted > 0 && (
-                <Card className="bg-green-50 dark:bg-green-900/20">
-                  <CardContent className="pt-4">
-                    <div className="flex justify-between text-sm text-green-700 dark:text-green-400">
-                      <span>Vendor {watchUseVendorBalance === "credit" ? "Credit" : "Deposit"} Used</span>
-                      <span className="font-mono">-{formatCurrency(calculations.vendorBalanceDeducted)}</span>
+              {calculations.vendorCost > 0 && (
+                <Card className="bg-orange-50 dark:bg-orange-900/20">
+                  <CardContent className="pt-4 space-y-2">
+                    <div className="flex justify-between text-sm text-orange-700 dark:text-orange-400">
+                      <span>Vendor Cost</span>
+                      <span className="font-mono">{formatCurrency(calculations.vendorCost)}</span>
+                    </div>
+                    {calculations.vendorBalanceDeducted > 0 && (
+                      <div className="flex justify-between text-sm text-green-700 dark:text-green-400">
+                        <span>Using {watchUseVendorBalance === "credit" ? "Vendor Credit" : "Advance Deposit"}</span>
+                        <span className="font-mono">-{formatCurrency(calculations.vendorBalanceDeducted)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-sm font-semibold text-orange-800 dark:text-orange-300 border-t pt-2">
+                      <span>Net Vendor Cost (Owed)</span>
+                      <span className="font-mono">{formatCurrency(calculations.netVendorCost)}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -899,15 +914,31 @@ export default function TicketsPage() {
                   <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-3">Cost Breakdown (Internal Use Only)</h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between items-center">
-                      <span className="text-amber-700 dark:text-amber-300">Vendor Cost (Paid to Vendor)</span>
+                      <span className="text-amber-700 dark:text-amber-300">Vendor Cost</span>
                       <span className="font-mono font-semibold text-amber-800 dark:text-amber-200">
                         AED {(viewTicket.vendorCost || 0).toLocaleString("en-AE", { minimumFractionDigits: 2 })}
                       </span>
                     </div>
+                    {viewTicket.vendorBalanceDeducted > 0 && (
+                      <div className="flex justify-between items-center text-green-700 dark:text-green-400">
+                        <span>
+                          {viewTicket.useVendorBalance === "credit" ? "Vendor Credit Used" : "Advance Deposit Used"}
+                        </span>
+                        <span className="font-mono font-semibold">
+                          -AED {viewTicket.vendorBalanceDeducted.toLocaleString("en-AE", { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center">
                       <span className="text-amber-700 dark:text-amber-300">Middle Class Additional Cost</span>
                       <span className="font-mono font-semibold text-amber-800 dark:text-amber-200">
                         AED {(viewTicket.additionalCost || 0).toLocaleString("en-AE", { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center border-t border-amber-300 dark:border-amber-600 pt-2">
+                      <span className="text-amber-700 dark:text-amber-300 font-semibold">Net Vendor Cost (Owed)</span>
+                      <span className="font-mono font-bold text-amber-800 dark:text-amber-200">
+                        AED {((viewTicket.vendorCost || 0) - (viewTicket.vendorBalanceDeducted || 0)).toLocaleString("en-AE", { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                     <div className="flex justify-between items-center border-t border-amber-300 dark:border-amber-600 pt-2">
