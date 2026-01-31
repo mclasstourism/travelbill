@@ -714,12 +714,6 @@ export default function AdminSettingsPage() {
 
       <Dialog open={isEditUserOpen} onOpenChange={setIsEditUserOpen}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit {editingUser?.role === "admin" ? "Admin" : "Staff"}: {editingUser?.username}</DialogTitle>
-            <DialogDescription>
-              Update {editingUser?.role === "admin" ? "admin" : "staff"} account details. Leave password blank to keep current password.
-            </DialogDescription>
-          </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="edit-username">Username</Label>
