@@ -408,7 +408,7 @@ export default function AdminSettingsPage() {
                 <TableHead>Username</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>PIN Set</TableHead>
+                <TableHead>PIN</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-24">Actions</TableHead>
               </TableRow>
@@ -425,15 +425,11 @@ export default function AdminSettingsPage() {
                   <TableCell>{user.email || "-"}</TableCell>
                   <TableCell>
                     {user.pin ? (
-                      <Badge variant="outline" className="text-green-600 border-green-600">
-                        <Check className="w-3 h-3 mr-1" />
-                        Yes
-                      </Badge>
+                      <span className="font-mono text-sm" data-testid={`text-pin-${user.username}`}>
+                        {user.pin}
+                      </span>
                     ) : (
-                      <Badge variant="outline" className="text-muted-foreground">
-                        <X className="w-3 h-3 mr-1" />
-                        No
-                      </Badge>
+                      <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
                   <TableCell>
