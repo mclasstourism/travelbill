@@ -14,6 +14,8 @@ import {
   Briefcase,
   User,
   Shield,
+  Sun,
+  Moon,
 } from "lucide-react";
 import companyLogo from "@assets/logo_optimized.png";
 import {
@@ -32,6 +34,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { usePin } from "@/lib/pin-context";
 import { useAuth } from "@/lib/auth-context";
+import { useTheme } from "@/lib/theme-provider";
 
 const mainNavItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
@@ -60,6 +63,7 @@ export function AppSidebar() {
   const [location] = useLocation();
   const { isAuthenticated, billCreatorName, logout: pinLogout } = usePin();
   const { user, logout: authLogout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <Sidebar>
@@ -185,20 +189,33 @@ export function AppSidebar() {
         {user && (
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <Badge variant="outline" className="text-xs">
-                <User className="w-3 h-3 mr-1" />
-                {user.username}
-              </Badge>
+              <User className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-medium">{user.username}</span>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={authLogout}
-              data-testid="button-logout"
-              title="Sign out"
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleTheme}
+                data-testid="button-theme-toggle"
+                title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+              >
+                {theme === "light" ? (
+                  <Moon className="w-4 h-4" />
+                ) : (
+                  <Sun className="w-4 h-4" />
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={authLogout}
+                data-testid="button-logout"
+                title="Sign out"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         )}
       </SidebarFooter>
