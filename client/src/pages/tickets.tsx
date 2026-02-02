@@ -4,6 +4,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { usePin } from "@/lib/pin-context";
 import mcLogo from "@assets/image_1769840649122.png";
+import html2pdf from "html2pdf.js";
 import { PinModal } from "@/components/pin-modal";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -42,7 +43,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Ticket as TicketIcon, Search, Loader2, Lock, Calendar, Plane, Eye, Printer } from "lucide-react";
+import { Plus, Ticket as TicketIcon, Search, Loader2, Lock, Calendar, Plane, Eye, Download } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
@@ -253,87 +254,80 @@ export default function TicketsPage() {
     createMutation.mutate(ticketData);
   };
 
-  const handlePrintTicket = (ticket: Ticket) => {
-    const printWindow = window.open('', '_blank');
-    const logoUrl = mcLogo.startsWith('http') ? mcLogo : window.location.origin + mcLogo;
+  const handleDownloadPdf = (ticket: Ticket) => {
     const customerName = customers.find(c => c.id === ticket.customerId)?.name || 
                          agents.find(a => a.id === ticket.customerId)?.name || "N/A";
     
-    if (printWindow) {
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Ticket - ${ticket.ticketNumber}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .badge { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; background: #22c55e; color: white; }
-            @media print { body { margin: 0; } }
-          </style>
-        </head>
-        <body>
-          <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
-            <div style="text-align: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 16px; margin-bottom: 16px;">
-              <img src="${logoUrl}" alt="Middle Class Tourism" style="height: 64px; margin: 0 auto; display: block;" onerror="this.style.display='none'" />
-              <p style="font-size: 0.875rem; color: #6b7280; margin: 8px 0 0 0; font-style: italic;">become your trusted travel partner</p>
+    // Create a temporary container for the PDF content
+    const container = document.createElement('div');
+    container.innerHTML = `
+      <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
+        <div style="text-align: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 16px; margin-bottom: 16px;">
+          <img src="${mcLogo}" alt="Middle Class Tourism" style="height: 64px; margin: 0 auto; display: block;" />
+          <p style="font-size: 0.875rem; color: #6b7280; margin: 8px 0 0 0; font-style: italic;">become your trusted travel partner</p>
+        </div>
+        <div style="text-align: center; margin-bottom: 16px;">
+          <span style="font-size: 0.75rem; color: #6b7280;">TICKET NUMBER</span>
+          <p style="font-family: monospace; font-size: 1.25rem; font-weight: bold; margin: 4px 0 0 0;">${ticket.ticketNumber}</p>
+        </div>
+        <div style="background-color: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div>
+              <span style="font-size: 0.75rem; color: #6b7280;">PASSENGER NAME</span>
+              <p style="font-weight: 600; margin: 4px 0 0 0;">${ticket.passengerName}</p>
             </div>
-            <div style="text-align: center; margin-bottom: 16px;">
-              <span style="font-size: 0.75rem; color: #6b7280;">TICKET NUMBER</span>
-              <p style="font-family: monospace; font-size: 1.25rem; font-weight: bold; margin: 4px 0 0 0;">${ticket.ticketNumber}</p>
-            </div>
-            <div style="background-color: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                <div>
-                  <span style="font-size: 0.75rem; color: #6b7280;">PASSENGER NAME</span>
-                  <p style="font-weight: 600; margin: 4px 0 0 0;">${ticket.passengerName}</p>
-                </div>
-                <div>
-                  <span style="font-size: 0.75rem; color: #6b7280;">TICKET TYPE</span>
-                  <p style="font-weight: 600; text-transform: capitalize; margin: 4px 0 0 0;">${ticket.ticketType || "Economy"}</p>
-                </div>
-              </div>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-              <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px;">
-                <span style="font-size: 0.75rem; color: #6b7280;">ROUTE</span>
-                <p style="font-weight: 600; margin: 4px 0 0 0;">${ticket.route}</p>
-              </div>
-              <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px;">
-                <span style="font-size: 0.75rem; color: #6b7280;">TRAVEL DATE</span>
-                <p style="font-weight: 600; margin: 4px 0 0 0;">${format(new Date(ticket.travelDate), "MMM d, yyyy")}</p>
-              </div>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; font-size: 0.875rem;">
-              <div>
-                <span style="font-size: 0.75rem; color: #6b7280;">CUSTOMER</span>
-                <p style="margin: 4px 0 0 0;">${customerName}</p>
-              </div>
-            </div>
-            <div style="border-top: 1px solid #e5e7eb; padding-top: 16px;">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-weight: 600;">Ticket Value</span>
-                <span style="font-size: 1.5rem; font-weight: bold; color: #2563eb; font-family: monospace;">AED ${ticket.faceValue.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
-              </div>
-              ${ticket.depositDeducted > 0 ? `
-              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem; color: #4b5563; margin-top: 8px;">
-                <span>Customer Deposit Deducted</span>
-                <span style="font-family: monospace;">AED ${ticket.depositDeducted.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
-              </div>
-              ` : ''}
-            </div>
-            <div style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 16px; font-size: 0.75rem; color: #6b7280;">
-              <div style="display: flex; justify-content: space-between;">
-                <span>Issued: ${format(new Date(ticket.createdAt), "MMM d, yyyy 'at' h:mm a")}</span>
-                <span>Status: <span class="badge">${ticket.status}</span></span>
-              </div>
+            <div>
+              <span style="font-size: 0.75rem; color: #6b7280;">TICKET TYPE</span>
+              <p style="font-weight: 600; text-transform: capitalize; margin: 4px 0 0 0;">${ticket.ticketType || "Economy"}</p>
             </div>
           </div>
-        </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.print();
-    }
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+          <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px;">
+            <span style="font-size: 0.75rem; color: #6b7280;">ROUTE</span>
+            <p style="font-weight: 600; margin: 4px 0 0 0;">${ticket.route}</p>
+          </div>
+          <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px;">
+            <span style="font-size: 0.75rem; color: #6b7280;">TRAVEL DATE</span>
+            <p style="font-weight: 600; margin: 4px 0 0 0;">${format(new Date(ticket.travelDate), "MMM d, yyyy")}</p>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; font-size: 0.875rem;">
+          <div>
+            <span style="font-size: 0.75rem; color: #6b7280;">CUSTOMER</span>
+            <p style="margin: 4px 0 0 0;">${customerName}</p>
+          </div>
+        </div>
+        <div style="border-top: 1px solid #e5e7eb; padding-top: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: 600;">Ticket Value</span>
+            <span style="font-size: 1.5rem; font-weight: bold; color: #2563eb; font-family: monospace;">AED ${ticket.faceValue.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
+          </div>
+          ${ticket.depositDeducted > 0 ? `
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem; color: #4b5563; margin-top: 8px;">
+            <span>Customer Deposit Deducted</span>
+            <span style="font-family: monospace;">AED ${ticket.depositDeducted.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
+          </div>
+          ` : ''}
+        </div>
+        <div style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 16px; font-size: 0.75rem; color: #6b7280;">
+          <div style="display: flex; justify-content: space-between;">
+            <span>Issued: ${format(new Date(ticket.createdAt), "MMM d, yyyy 'at' h:mm a")}</span>
+            <span>Status: ${ticket.status}</span>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    const options = {
+      margin: 10,
+      filename: `${ticket.ticketNumber}.pdf`,
+      image: { type: 'jpeg' as const, quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
+    };
+    
+    html2pdf().set(options).from(container).save();
   };
 
   return (
@@ -432,10 +426,10 @@ export default function TicketsPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handlePrintTicket(ticket)}
-                            data-testid={`button-print-ticket-${ticket.id}`}
+                            onClick={() => handleDownloadPdf(ticket)}
+                            data-testid={`button-download-ticket-${ticket.id}`}
                           >
-                            <Printer className="w-4 h-4" />
+                            <Download className="w-4 h-4" />
                           </Button>
                         </div>
                       </TableCell>
