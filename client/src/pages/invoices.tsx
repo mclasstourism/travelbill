@@ -4,6 +4,8 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { usePin } from "@/lib/pin-context";
 import { PinModal } from "@/components/pin-modal";
+import html2pdf from "html2pdf.js";
+import mcLogo from "@assets/image_1769840649122.png";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
@@ -53,7 +55,7 @@ import {
   CreditCard,
   Wallet,
   Lock,
-  Printer,
+  Download,
   Eye,
 } from "lucide-react";
 import { numberToWords } from "@/lib/number-to-words";
@@ -70,8 +72,6 @@ import {
   type InsertInvoice,
   paymentMethods,
 } from "@shared/schema";
-import { PrintableInvoice } from "@/components/printable-invoice";
-import { useRef } from "react";
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("en-AE", {
@@ -126,8 +126,6 @@ export default function InvoicesPage() {
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
-  const [isPrintMode, setIsPrintMode] = useState(false);
-  const printRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { isAuthenticated, session } = usePin();
 
@@ -155,17 +153,97 @@ export default function InvoicesPage() {
   };
   const getVendorName = (id: string) => vendors.find(v => v.id === id)?.name || "Unknown";
 
-  const handlePrint = (invoice: Invoice) => {
-    const wasDialogOpen = viewInvoice !== null;
-    setViewInvoice(invoice);
-    setIsPrintMode(true);
-    setTimeout(() => {
-      window.print();
-      setIsPrintMode(false);
-      if (!wasDialogOpen) {
-        setViewInvoice(null);
-      }
-    }, 100);
+  const handleDownloadPdf = (invoice: Invoice) => {
+    const partyName = getPartyName(invoice);
+    const vendorName = getVendorName(invoice.vendorId);
+    const items = invoice.items as { description: string; quantity: number; unitPrice: number }[];
+    
+    const container = document.createElement('div');
+    container.innerHTML = `
+      <div style="max-width: 700px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
+        <div style="text-align: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 16px; margin-bottom: 16px;">
+          <img src="${mcLogo}" alt="Middle Class Tourism" style="height: 64px; margin: 0 auto; display: block;" />
+          <p style="font-size: 0.875rem; color: #6b7280; margin: 8px 0 0 0; font-style: italic;">become your trusted travel partner</p>
+        </div>
+        <div style="text-align: center; margin-bottom: 16px;">
+          <span style="font-size: 0.75rem; color: #6b7280;">INVOICE NUMBER</span>
+          <p style="font-family: monospace; font-size: 1.25rem; font-weight: bold; margin: 4px 0 0 0;">${invoice.invoiceNumber}</p>
+          <p style="font-size: 0.75rem; color: #6b7280; margin-top: 4px;">Date: ${format(new Date(invoice.createdAt), "MMM d, yyyy")}</p>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+          <div style="background-color: #f9fafb; padding: 12px; border-radius: 8px;">
+            <span style="font-size: 0.75rem; color: #6b7280;">${invoice.customerType === 'agent' ? 'AGENT' : 'CUSTOMER'}</span>
+            <p style="font-weight: 600; margin: 4px 0 0 0;">${partyName}</p>
+          </div>
+          <div style="background-color: #f9fafb; padding: 12px; border-radius: 8px;">
+            <span style="font-size: 0.75rem; color: #6b7280;">VENDOR</span>
+            <p style="font-weight: 600; margin: 4px 0 0 0;">${vendorName}</p>
+          </div>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+          <thead>
+            <tr style="background-color: #f9fafb;">
+              <th style="text-align: left; padding: 8px; border: 1px solid #e5e7eb; font-size: 0.75rem; color: #6b7280;">Description</th>
+              <th style="text-align: center; padding: 8px; border: 1px solid #e5e7eb; font-size: 0.75rem; color: #6b7280;">Qty</th>
+              <th style="text-align: right; padding: 8px; border: 1px solid #e5e7eb; font-size: 0.75rem; color: #6b7280;">Price</th>
+              <th style="text-align: right; padding: 8px; border: 1px solid #e5e7eb; font-size: 0.75rem; color: #6b7280;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items.map(item => `
+              <tr>
+                <td style="padding: 8px; border: 1px solid #e5e7eb;">${item.description}</td>
+                <td style="text-align: center; padding: 8px; border: 1px solid #e5e7eb;">${item.quantity}</td>
+                <td style="text-align: right; padding: 8px; border: 1px solid #e5e7eb; font-family: monospace;">AED ${item.unitPrice.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+                <td style="text-align: right; padding: 8px; border: 1px solid #e5e7eb; font-family: monospace;">AED ${(item.quantity * item.unitPrice).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <div style="border-top: 1px solid #e5e7eb; padding-top: 16px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+            <span>Subtotal</span>
+            <span style="font-family: monospace;">AED ${invoice.subtotal.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
+          </div>
+          ${invoice.discountAmount > 0 ? `
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #16a34a;">
+            <span>Discount (${invoice.discountPercent}%)</span>
+            <span style="font-family: monospace;">-AED ${invoice.discountAmount.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
+          </div>
+          ` : ''}
+          ${invoice.depositUsed > 0 ? `
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #2563eb;">
+            <span>Deposit Used</span>
+            <span style="font-family: monospace;">-AED ${invoice.depositUsed.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
+          </div>
+          ` : ''}
+          ${invoice.agentCreditUsed > 0 ? `
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #9333ea;">
+            <span>Agent Credit Used</span>
+            <span style="font-family: monospace;">-AED ${invoice.agentCreditUsed.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
+          </div>
+          ` : ''}
+          <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 1.25rem; border-top: 2px solid #e5e7eb; padding-top: 8px; margin-top: 8px;">
+            <span>Total Due</span>
+            <span style="font-family: monospace; color: #2563eb;">AED ${invoice.total.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
+          </div>
+        </div>
+        <div style="margin-top: 16px; padding: 12px; background-color: #f9fafb; border-radius: 8px; font-size: 0.75rem; color: #6b7280;">
+          <p style="margin: 0;">Payment Method: ${invoice.paymentMethod.charAt(0).toUpperCase() + invoice.paymentMethod.slice(1)}</p>
+          <p style="margin: 4px 0 0 0;">Status: ${invoice.status}</p>
+        </div>
+      </div>
+    `;
+    
+    const options = {
+      margin: 10,
+      filename: `${invoice.invoiceNumber}.pdf`,
+      image: { type: 'jpeg' as const, quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
+    };
+    
+    html2pdf().set(options).from(container).save();
   };
 
   const getInvoiceCustomer = (invoice: Invoice) => {
@@ -468,10 +546,10 @@ export default function InvoicesPage() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              onClick={() => handlePrint(invoice)}
-                              data-testid={`button-print-invoice-${invoice.id}`}
+                              onClick={() => handleDownloadPdf(invoice)}
+                              data-testid={`button-download-invoice-${invoice.id}`}
                             >
-                              <Printer className="w-4 h-4" />
+                              <Download className="w-4 h-4" />
                             </Button>
                           </div>
                         </TableCell>
@@ -1026,7 +1104,7 @@ export default function InvoicesPage() {
       </Dialog>
 
       {/* View Invoice Dialog */}
-      <Dialog open={viewInvoice !== null && !isPrintMode} onOpenChange={(open) => !open && setViewInvoice(null)}>
+      <Dialog open={viewInvoice !== null} onOpenChange={(open) => !open && setViewInvoice(null)}>
         <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1034,7 +1112,7 @@ export default function InvoicesPage() {
               Invoice {viewInvoice?.invoiceNumber}
             </DialogTitle>
             <DialogDescription>
-              View invoice details and print
+              View invoice details
             </DialogDescription>
           </DialogHeader>
 
@@ -1141,29 +1219,12 @@ export default function InvoicesPage() {
                   <Button variant="outline" onClick={() => setViewInvoice(null)}>
                     Close
                   </Button>
-                  <Button onClick={() => handlePrint(viewInvoice)}>
-                    <Printer className="w-4 h-4 mr-2" />
-                    Print Invoice
-                  </Button>
                 </div>
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Print Mode - Hidden container for printing */}
-      {isPrintMode && viewInvoice && (
-        <div className="print-container fixed inset-0 z-50 bg-white">
-          <PrintableInvoice
-            ref={printRef}
-            invoice={viewInvoice}
-            customer={getInvoiceCustomer(viewInvoice)}
-            agent={getInvoiceAgent(viewInvoice)}
-            vendor={getInvoiceVendor(viewInvoice)}
-          />
-        </div>
-      )}
     </div>
   );
 }
