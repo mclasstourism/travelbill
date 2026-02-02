@@ -38,12 +38,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertVendorSchema, type Vendor, type InsertVendor } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 
-function formatCurrency(amount: number): string {
+function formatCurrency(amount: number | null | undefined): string {
   return new Intl.NumberFormat("en-AE", {
     style: "currency",
     currency: "AED",
     minimumFractionDigits: 2,
-  }).format(amount);
+  }).format(amount ?? 0);
 }
 
 export default function VendorsPage() {

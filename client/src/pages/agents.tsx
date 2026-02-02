@@ -37,12 +37,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertAgentSchema, type Agent, type InsertAgent } from "@shared/schema";
 
-function formatCurrency(amount: number): string {
+function formatCurrency(amount: number | null | undefined): string {
   return new Intl.NumberFormat("en-AE", {
     style: "currency",
     currency: "AED",
     minimumFractionDigits: 2,
-  }).format(amount);
+  }).format(amount ?? 0);
 }
 
 export default function AgentsPage() {

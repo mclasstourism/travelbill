@@ -48,12 +48,12 @@ import type { Agent, AgentTransaction } from "@shared/schema";
 
 type DateRange = "all" | "today" | "this_month" | "this_year" | "custom";
 
-function formatCurrency(amount: number): string {
+function formatCurrency(amount: number | null | undefined): string {
   return new Intl.NumberFormat("en-AE", {
     style: "currency",
     currency: "AED",
     minimumFractionDigits: 2,
-  }).format(amount);
+  }).format(amount ?? 0);
 }
 
 const addTransactionFormSchema = z.object({
