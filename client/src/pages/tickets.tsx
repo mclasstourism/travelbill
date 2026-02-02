@@ -496,7 +496,12 @@ export default function TicketsPage() {
                     <FormControl>
                       <Input
                         placeholder="e.g., DXB - LHR"
-                        {...field}
+                        value={field.value}
+                        onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                        className="uppercase"
                         data-testid="input-route"
                       />
                     </FormControl>
