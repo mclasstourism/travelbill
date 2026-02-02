@@ -970,8 +970,8 @@ export default function TicketsPage() {
                     const printContent = document.getElementById('printable-ticket');
                     if (printContent) {
                       const printWindow = window.open('', '_blank');
-                      // Get absolute URL for logo
-                      const logoUrl = new URL(mcLogo, window.location.origin).href;
+                      // Get absolute URL for logo - mcLogo from Vite may be relative or absolute
+                      const logoUrl = mcLogo.startsWith('http') ? mcLogo : window.location.origin + mcLogo;
                       if (printWindow) {
                         printWindow.document.write(`
                           <!DOCTYPE html>
