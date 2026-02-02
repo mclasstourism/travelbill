@@ -111,6 +111,10 @@ export default function TicketsPage() {
     queryKey: ["/api/vendors"],
   });
 
+  const { data: agents = [] } = useQuery<Agent[]>({
+    queryKey: ["/api/agents"],
+  });
+
   const form = useForm<CreateTicketForm>({
     resolver: zodResolver(createTicketFormSchema),
     defaultValues: {
@@ -249,6 +253,89 @@ export default function TicketsPage() {
     createMutation.mutate(ticketData);
   };
 
+  const handlePrintTicket = (ticket: Ticket) => {
+    const printWindow = window.open('', '_blank');
+    const logoUrl = mcLogo.startsWith('http') ? mcLogo : window.location.origin + mcLogo;
+    const customerName = customers.find(c => c.id === ticket.customerId)?.name || 
+                         agents.find(a => a.id === ticket.customerId)?.name || "N/A";
+    
+    if (printWindow) {
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Ticket - ${ticket.ticketNumber}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .badge { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; background: #22c55e; color: white; }
+            @media print { body { margin: 0; } }
+          </style>
+        </head>
+        <body>
+          <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+            <div style="text-align: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 16px; margin-bottom: 16px;">
+              <img src="${logoUrl}" alt="Middle Class Tourism" style="height: 64px; margin: 0 auto; display: block;" onerror="this.style.display='none'" />
+              <p style="font-size: 0.875rem; color: #6b7280; margin: 8px 0 0 0; font-style: italic;">become your trusted travel partner</p>
+            </div>
+            <div style="text-align: center; margin-bottom: 16px;">
+              <span style="font-size: 0.75rem; color: #6b7280;">TICKET NUMBER</span>
+              <p style="font-family: monospace; font-size: 1.25rem; font-weight: bold; margin: 4px 0 0 0;">${ticket.ticketNumber}</p>
+            </div>
+            <div style="background-color: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div>
+                  <span style="font-size: 0.75rem; color: #6b7280;">PASSENGER NAME</span>
+                  <p style="font-weight: 600; margin: 4px 0 0 0;">${ticket.passengerName}</p>
+                </div>
+                <div>
+                  <span style="font-size: 0.75rem; color: #6b7280;">TICKET TYPE</span>
+                  <p style="font-weight: 600; text-transform: capitalize; margin: 4px 0 0 0;">${ticket.ticketType || "Economy"}</p>
+                </div>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+              <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px;">
+                <span style="font-size: 0.75rem; color: #6b7280;">ROUTE</span>
+                <p style="font-weight: 600; margin: 4px 0 0 0;">${ticket.route}</p>
+              </div>
+              <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px;">
+                <span style="font-size: 0.75rem; color: #6b7280;">TRAVEL DATE</span>
+                <p style="font-weight: 600; margin: 4px 0 0 0;">${format(new Date(ticket.travelDate), "MMM d, yyyy")}</p>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; font-size: 0.875rem;">
+              <div>
+                <span style="font-size: 0.75rem; color: #6b7280;">CUSTOMER</span>
+                <p style="margin: 4px 0 0 0;">${customerName}</p>
+              </div>
+            </div>
+            <div style="border-top: 1px solid #e5e7eb; padding-top: 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: 600;">Ticket Value</span>
+                <span style="font-size: 1.5rem; font-weight: bold; color: #2563eb; font-family: monospace;">AED ${ticket.faceValue.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
+              </div>
+              ${ticket.depositDeducted > 0 ? `
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem; color: #4b5563; margin-top: 8px;">
+                <span>Customer Deposit Deducted</span>
+                <span style="font-family: monospace;">AED ${ticket.depositDeducted.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
+              </div>
+              ` : ''}
+            </div>
+            <div style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 16px; font-size: 0.75rem; color: #6b7280;">
+              <div style="display: flex; justify-content: space-between;">
+                <span>Issued: ${format(new Date(ticket.createdAt), "MMM d, yyyy 'at' h:mm a")}</span>
+                <span>Status: <span class="badge">${ticket.status}</span></span>
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -341,6 +428,14 @@ export default function TicketsPage() {
                             data-testid={`button-view-ticket-${ticket.id}`}
                           >
                             <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handlePrintTicket(ticket)}
+                            data-testid={`button-print-ticket-${ticket.id}`}
+                          >
+                            <Printer className="w-4 h-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -960,133 +1055,9 @@ export default function TicketsPage() {
                 </div>
               </div>
 
-              {/* Print Button */}
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end">
                 <Button variant="outline" onClick={() => setViewTicket(null)}>
                   Close
-                </Button>
-                <Button 
-                  onClick={() => {
-                    const printContent = document.getElementById('printable-ticket');
-                    if (printContent) {
-                      const printWindow = window.open('', '_blank');
-                      // Get absolute URL for logo - mcLogo from Vite may be relative or absolute
-                      const logoUrl = mcLogo.startsWith('http') ? mcLogo : window.location.origin + mcLogo;
-                      if (printWindow) {
-                        printWindow.document.write(`
-                          <!DOCTYPE html>
-                          <html>
-                          <head>
-                            <title>Ticket - ${viewTicket.ticketNumber}</title>
-                            <style>
-                              body { font-family: Arial, sans-serif; margin: 20px; }
-                              .text-center { text-align: center; }
-                              .text-right { text-align: right; }
-                              .font-bold { font-weight: bold; }
-                              .font-semibold { font-weight: 600; }
-                              .font-mono { font-family: monospace; }
-                              .text-xs { font-size: 0.75rem; }
-                              .text-sm { font-size: 0.875rem; }
-                              .text-xl { font-size: 1.25rem; }
-                              .text-2xl { font-size: 1.5rem; }
-                              .text-blue-600 { color: #2563eb; }
-                              .text-gray-500 { color: #6b7280; }
-                              .text-gray-600 { color: #4b5563; }
-                              .border { border: 1px solid #e5e7eb; }
-                              .border-t { border-top: 1px solid #e5e7eb; }
-                              .border-b { border-bottom: 1px solid #e5e7eb; }
-                              .rounded-lg { border-radius: 0.5rem; }
-                              .p-3 { padding: 0.75rem; }
-                              .p-4 { padding: 1rem; }
-                              .p-6 { padding: 1.5rem; }
-                              .mb-4 { margin-bottom: 1rem; }
-                              .mt-1 { margin-top: 0.25rem; }
-                              .mt-2 { margin-top: 0.5rem; }
-                              .mt-4 { margin-top: 1rem; }
-                              .pt-4 { padding-top: 1rem; }
-                              .pb-4 { padding-bottom: 1rem; }
-                              .gap-2 { gap: 0.5rem; }
-                              .gap-4 { gap: 1rem; }
-                              .bg-gray-50 { background-color: #f9fafb; }
-                              .grid { display: grid; }
-                              .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
-                              .flex { display: flex; }
-                              .items-center { align-items: center; }
-                              .justify-between { justify-content: space-between; }
-                              .capitalize { text-transform: capitalize; }
-                              .badge { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; background: #22c55e; color: white; }
-                              @media print { body { margin: 0; } }
-                            </style>
-                          </head>
-                          <body>
-                            <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
-                              <div style="text-align: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 16px; margin-bottom: 16px;">
-                                <img src="${logoUrl}" alt="Middle Class Tourism" style="height: 64px; margin: 0 auto;" />
-                                <p style="font-size: 0.875rem; color: #6b7280; margin: 8px 0 0 0; font-style: italic;">become your trusted travel partner</p>
-                              </div>
-                              <div style="text-align: center; margin-bottom: 16px;">
-                                <span style="font-size: 0.75rem; color: #6b7280;">TICKET NUMBER</span>
-                                <p style="font-family: monospace; font-size: 1.25rem; font-weight: bold; margin: 4px 0 0 0;">${viewTicket.ticketNumber}</p>
-                              </div>
-                              <div style="background-color: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                                  <div>
-                                    <span style="font-size: 0.75rem; color: #6b7280;">PASSENGER NAME</span>
-                                    <p style="font-weight: 600; margin: 4px 0 0 0;">${viewTicket.passengerName}</p>
-                                  </div>
-                                  <div>
-                                    <span style="font-size: 0.75rem; color: #6b7280;">TICKET TYPE</span>
-                                    <p style="font-weight: 600; text-transform: capitalize; margin: 4px 0 0 0;">${viewTicket.ticketType || "Economy"}</p>
-                                  </div>
-                                </div>
-                              </div>
-                              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-                                <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px;">
-                                  <span style="font-size: 0.75rem; color: #6b7280;">ROUTE</span>
-                                  <p style="font-weight: 600; margin: 4px 0 0 0;">${viewTicket.route}</p>
-                                </div>
-                                <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px;">
-                                  <span style="font-size: 0.75rem; color: #6b7280;">TRAVEL DATE</span>
-                                  <p style="font-weight: 600; margin: 4px 0 0 0;">${format(new Date(viewTicket.travelDate), "MMM d, yyyy")}</p>
-                                </div>
-                              </div>
-                              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; font-size: 0.875rem;">
-                                <div>
-                                  <span style="font-size: 0.75rem; color: #6b7280;">CUSTOMER</span>
-                                  <p style="margin: 4px 0 0 0;">${customers.find(c => c.id === viewTicket.customerId)?.name || "N/A"}</p>
-                                </div>
-                              </div>
-                              <div style="border-top: 1px solid #e5e7eb; padding-top: 16px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                  <span style="font-weight: 600;">Ticket Value</span>
-                                  <span style="font-size: 1.5rem; font-weight: bold; color: #2563eb; font-family: monospace;">AED ${viewTicket.faceValue.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
-                                </div>
-                                ${viewTicket.depositDeducted > 0 ? `
-                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem; color: #4b5563; margin-top: 8px;">
-                                  <span>Customer Deposit Deducted</span>
-                                  <span style="font-family: monospace;">AED ${viewTicket.depositDeducted.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
-                                </div>
-                                ` : ''}
-                              </div>
-                              <div style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 16px; font-size: 0.75rem; color: #6b7280;">
-                                <div style="display: flex; justify-content: space-between;">
-                                  <span>Issued: ${format(new Date(viewTicket.createdAt), "MMM d, yyyy 'at' h:mm a")}</span>
-                                  <span>Status: <span class="badge">${viewTicket.status}</span></span>
-                                </div>
-                              </div>
-                            </div>
-                          </body>
-                          </html>
-                        `);
-                        printWindow.document.close();
-                        printWindow.print();
-                      }
-                    }
-                  }}
-                  data-testid="button-print-ticket"
-                >
-                  <Printer className="w-4 h-4 mr-2" />
-                  Print Ticket
                 </Button>
               </div>
             </div>
