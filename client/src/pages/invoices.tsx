@@ -748,7 +748,11 @@ export default function InvoicesPage() {
                           type="number"
                           min={0}
                           max={100}
-                          {...field}
+                          value={field.value || ""}
+                          onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
                           data-testid="input-discount-percent"
                         />
                       </FormControl>
@@ -808,7 +812,11 @@ export default function InvoicesPage() {
                         min={0}
                         step="0.01"
                         placeholder="Enter actual cost from vendor"
-                        {...field}
+                        value={field.value || ""}
+                        onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
                         data-testid="input-vendor-cost"
                       />
                     </FormControl>
