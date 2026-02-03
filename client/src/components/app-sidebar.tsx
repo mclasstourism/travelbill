@@ -1,4 +1,6 @@
 import { Link, useLocation } from "wouter";
+import { useState } from "react";
+import { useSidebar } from "@/components/ui/sidebar";
 import {
   LayoutDashboard,
   FileText,
@@ -9,6 +11,7 @@ import {
   CreditCard,
   Settings,
   Lock,
+  LockOpen,
   LogOut,
   BarChart3,
   Briefcase,
@@ -32,6 +35,14 @@ import {
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { usePin } from "@/lib/pin-context";
 import { useAuth } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme-provider";
@@ -61,9 +72,49 @@ const settingsItems = [
 
 export function AppSidebar() {
   const [location] = useLocation();
-  const { isAuthenticated, billCreatorName, logout: pinLogout } = usePin();
+  const { isAuthenticated, billCreatorName, logout: pinLogout, authenticate } = usePin();
   const { user, logout: authLogout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { setOpenMobile } = useSidebar();
+  const [showPinDialog, setShowPinDialog] = useState(false);
+  const [pinInput, setPinInput] = useState("");
+  const [pinError, setPinError] = useState("");
+
+  const handleNavClick = () => {
+    setOpenMobile(false);
+  };
+
+  const handleLockClick = () => {
+    if (isAuthenticated) {
+      pinLogout();
+    } else {
+      setShowPinDialog(true);
+      setPinInput("");
+      setPinError("");
+    }
+  };
+
+  const handlePinVerify = async () => {
+    try {
+      const res = await fetch("/api/auth/verify-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ creatorId: user?.id, pin: pinInput }),
+      });
+      
+      const data = await res.json();
+      if (res.ok && data.success) {
+        authenticate(data.billCreator);
+        setShowPinDialog(false);
+        setPinInput("");
+        setPinError("");
+      } else {
+        setPinError("Invalid PIN");
+      }
+    } catch (error) {
+      setPinError("Failed to verify PIN");
+    }
+  };
 
   return (
     <Sidebar>
@@ -88,8 +139,9 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={location === item.url}
+                    className="hover:bg-blue-500 hover:text-white transition-colors"
                   >
-                    <Link href={item.url} data-testid={`link-nav-${item.title.toLowerCase()}`}>
+                    <Link href={item.url} onClick={handleNavClick} data-testid={`link-nav-${item.title.toLowerCase()}`}>
                       <item.icon className="w-4 h-4" />
                       <span>{item.title}</span>
                     </Link>
@@ -109,8 +161,9 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={location === item.url}
+                    className="hover:bg-blue-500 hover:text-white transition-colors"
                   >
-                    <Link href={item.url} data-testid={`link-nav-${item.title.toLowerCase().replace(" ", "-")}`}>
+                    <Link href={item.url} onClick={handleNavClick} data-testid={`link-nav-${item.title.toLowerCase().replace(" ", "-")}`}>
                       <item.icon className="w-4 h-4" />
                       <span>{item.title}</span>
                     </Link>
@@ -130,8 +183,9 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={location === item.url}
+                    className="hover:bg-blue-500 hover:text-white transition-colors"
                   >
-                    <Link href={item.url} data-testid={`link-nav-${item.title.toLowerCase().replace(" ", "-")}`}>
+                    <Link href={item.url} onClick={handleNavClick} data-testid={`link-nav-${item.title.toLowerCase().replace(" ", "-")}`}>
                       <item.icon className="w-4 h-4" />
                       <span>{item.title}</span>
                     </Link>
@@ -152,8 +206,9 @@ export function AppSidebar() {
                     <SidebarMenuButton
                       asChild
                       isActive={location === item.url}
+                      className="hover:bg-blue-500 hover:text-white transition-colors"
                     >
-                      <Link href={item.url} data-testid={`link-nav-${item.title.toLowerCase().replace(" ", "-")}`}>
+                      <Link href={item.url} onClick={handleNavClick} data-testid={`link-nav-${item.title.toLowerCase().replace(" ", "-")}`}>
                         <item.icon className="w-4 h-4" />
                         <span>{item.title}</span>
                       </Link>
@@ -167,32 +222,33 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-4 border-t border-sidebar-border space-y-3">
-        {isAuthenticated && (
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <Badge variant="secondary" className="text-xs">
-                <Lock className="w-3 h-3 mr-1" />
-                {billCreatorName}
-              </Badge>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={pinLogout}
-              data-testid="button-pin-logout"
-              title="End PIN session"
-            >
-              <Lock className="w-4 h-4" />
-            </Button>
-          </div>
-        )}
         {user && (
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <User className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm font-medium">{user.username}</span>
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <span className="text-sm font-medium truncate">{user.username}</span>
+                {isAuthenticated && billCreatorName !== user.username && (
+                  <Badge variant="secondary" className="text-xs flex-shrink-0">
+                    {billCreatorName}
+                  </Badge>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleLockClick}
+                data-testid="button-pin-toggle"
+                title={isAuthenticated ? "Lock PIN session" : "Unlock with PIN"}
+              >
+                {isAuthenticated ? (
+                  <LockOpen className="w-4 h-4 animate-pulse" />
+                ) : (
+                  <Lock className="w-4 h-4" />
+                )}
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -219,6 +275,33 @@ export function AppSidebar() {
           </div>
         )}
       </SidebarFooter>
+
+      <Dialog open={showPinDialog} onOpenChange={setShowPinDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enter PIN to Unlock</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Input
+                type="password"
+                placeholder="Enter PIN"
+                value={pinInput}
+                onChange={(e) => setPinInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handlePinVerify()}
+                maxLength={8}
+              />
+              {pinError && <p className="text-sm text-destructive mt-2">{pinError}</p>}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPinDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handlePinVerify}>Unlock</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sidebar>
   );
 }

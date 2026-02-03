@@ -315,6 +315,7 @@ export default function AdminSettingsPage() {
     setEditUsername(user.username);
     setEditPassword("");
     setEditPin(user.pin || "");
+    setCurrentPassword("");
     setIsEditUserOpen(true);
   };
 
@@ -341,6 +342,16 @@ export default function AdminSettingsPage() {
       });
       return;
     }
+    
+    if (editingUser.role === "admin" && !currentPassword) {
+      toast({
+        title: "Current Password Required",
+        description: "Enter your current password to update admin account.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (editPassword && editPassword.length < 6) {
       toast({
         title: "Password Too Short",
@@ -358,12 +369,27 @@ export default function AdminSettingsPage() {
       return;
     }
     
-    const updates: { id: string; username?: string; password?: string; pin?: string } = { id: editingUser.id };
-    if (editUsername !== editingUser.username) updates.username = editUsername;
-    if (editPassword) updates.password = editPassword;
-    if (editPin !== (editingUser.pin || "")) updates.pin = editPin;
-    
-    updateUserMutation.mutate(updates);
+    if (editingUser.role === "admin") {
+      // Use change password endpoint for admin
+      if (editPassword) {
+        changePasswordMutation.mutate({ currentPassword, newPassword: editPassword });
+      }
+      // Update other fields separately if needed
+      const updates: { id: string; username?: string; pin?: string } = { id: editingUser.id };
+      if (editUsername !== editingUser.username) updates.username = editUsername;
+      if (editPin !== (editingUser.pin || "")) updates.pin = editPin;
+      if (Object.keys(updates).length > 1) {
+        updateUserMutation.mutate(updates);
+      } else if (!editPassword) {
+        setIsEditUserOpen(false);
+      }
+    } else {
+      const updates: { id: string; username?: string; password?: string; pin?: string } = { id: editingUser.id };
+      if (editUsername !== editingUser.username) updates.username = editUsername;
+      if (editPassword) updates.password = editPassword;
+      if (editPin !== (editingUser.pin || "")) updates.pin = editPin;
+      updateUserMutation.mutate(updates);
+    }
   };
 
   const getResetInfo = (type: ResetType) => {
@@ -707,7 +733,30 @@ export default function AdminSettingsPage() {
 
       <Dialog open={isEditUserOpen} onOpenChange={setIsEditUserOpen}>
         <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingUser?.role === "admin" ? "Edit Admin Account" : "Edit Staff Account"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingUser?.role === "admin" 
+                ? "Update admin account details. Current password required for security."
+                : "Update staff account details."}
+            </DialogDescription>
+          </DialogHeader>
           <div className="space-y-4 py-4">
+            {editingUser?.role === "admin" && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-current-password">Current Password *</Label>
+                <Input
+                  id="edit-current-password"
+                  type="password"
+                  placeholder="Enter current password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  data-testid="input-edit-current-password"
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="edit-username">Username</Label>
               <Input
@@ -760,7 +809,7 @@ export default function AdminSettingsPage() {
             <Button variant="ghost" onClick={() => setIsEditUserOpen(false)}>Cancel</Button>
             <Button
               onClick={handleSaveUser}
-              disabled={updateUserMutation.isPending || !editUsername}
+              disabled={updateUserMutation.isPending || !editUsername || (editingUser?.role === "admin" && !currentPassword)}
               data-testid="button-save-user"
             >
               {updateUserMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
