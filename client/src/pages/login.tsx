@@ -404,8 +404,12 @@ export default function LoginPage() {
 
       {/* Right Panel - Login Form */}
       <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-background via-background to-green-50/30 dark:to-green-950/10 p-6 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-[#1a5632]/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#1a5632]/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.02]" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%231a5632' fill-opacity='1'%3E%3Cpath d='M20 20.5V18H0v-2h20v-2H0v-2h20v-2H0V8h20V6H0V4h20V2H0V0h22v20h2V0h2v20h2V0h2v20h2V0h2v20h2V0h2v20.5L20 20.5z'/%3E%3C/g%3E%3C/svg%3E")`,
+        }} />
+        <div className="absolute top-0 right-0 w-72 h-72 bg-[#1a5632]/[0.04] rounded-full -translate-y-1/3 translate-x-1/3" />
+        <div className="absolute bottom-0 left-0 w-56 h-56 bg-[#1a5632]/[0.04] rounded-full translate-y-1/3 -translate-x-1/3" />
+        <div className="absolute top-1/2 right-0 w-40 h-40 bg-[#1a5632]/[0.03] rounded-full translate-x-1/2" />
 
         <div className="w-full max-w-md space-y-6 relative z-10">
           {/* Mobile logo */}
