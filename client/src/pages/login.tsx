@@ -394,22 +394,6 @@ export default function LoginPage() {
             {view === "reset" && renderResetPassword()}
           </div>
 
-          {/* Bottom Badges */}
-          <div className="flex items-center justify-center gap-6 text-white/40 text-xs">
-            <div className="flex items-center gap-1.5">
-              <Shield className="w-3.5 h-3.5" />
-              <span>Secure</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5" />
-              <span>24/7 Service</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <CheckCircle className="w-3.5 h-3.5" />
-              <span>Trusted</span>
-            </div>
-          </div>
-
           <p className="text-center text-white/30 text-xs italic">Your Travel Partner, Our Priority</p>
 
         </div>
