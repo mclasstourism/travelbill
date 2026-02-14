@@ -403,8 +403,11 @@ export default function LoginPage() {
       </div>
 
       {/* Right Panel - Login Form */}
-      <div className="flex-1 flex items-center justify-center bg-background p-6">
-        <div className="w-full max-w-md space-y-8">
+      <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-background via-background to-green-50/30 dark:to-green-950/10 p-6 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[#1a5632]/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#1a5632]/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+
+        <div className="w-full max-w-md space-y-6 relative z-10">
           {/* Mobile logo */}
           <div className="lg:hidden text-center space-y-4">
             <img 
@@ -418,13 +421,17 @@ export default function LoginPage() {
 
           {/* Heading */}
           <div className="space-y-2 text-center">
-            <h2 className="text-2xl font-bold tracking-tight" data-testid="text-login-title">{getViewTitle()}</h2>
+            <div className="inline-flex items-center gap-2 bg-[#1a5632]/10 dark:bg-[#1a5632]/20 rounded-full px-4 py-1.5 mb-2">
+              <div className="w-2 h-2 rounded-full bg-[#1a5632] animate-pulse" />
+              <span className="text-xs font-medium text-[#1a5632] dark:text-green-400">Staff Portal</span>
+            </div>
+            <h2 className="text-3xl font-bold tracking-tight" data-testid="text-login-title">{getViewTitle()}</h2>
             <p className="text-sm text-muted-foreground">{getViewDescription()}</p>
           </div>
 
           {/* Form Card */}
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="pt-6 pb-6">
               {view === "login" && renderLogin()}
               {view === "forgot" && renderForgotPassword()}
               {view === "reset" && renderResetPassword()}
@@ -438,7 +445,8 @@ export default function LoginPage() {
           )}
 
           {/* Footer info */}
-          <div className="text-center space-y-1 pt-4">
+          <div className="text-center space-y-1 pt-2">
+            <div className="h-[1px] w-16 bg-gradient-to-r from-transparent via-[#1a5632]/20 to-transparent mx-auto mb-3" />
             <p className="text-xs text-muted-foreground/60">
               www.middleclass.ae | sales@middleclass.ae
             </p>
