@@ -169,26 +169,26 @@ export default function LoginPage() {
   const renderLogin = () => (
     <form onSubmit={handleLogin} className="space-y-4">
       <div className="relative">
-        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#1a5632]/50" />
         <input
           type="text"
           placeholder="Username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           disabled={isLoading}
-          className="w-full bg-white/10 border border-white/20 rounded-md py-3 pl-10 pr-4 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent"
+          className="w-full bg-white/90 border border-white/20 rounded-md py-3 pl-10 pr-4 text-[#1a5632] placeholder:text-[#1a5632]/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent"
           data-testid="input-username"
         />
       </div>
       <div className="relative">
-        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#1a5632]/50" />
         <input
           type="password"
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           disabled={isLoading}
-          className="w-full bg-white/10 border border-white/20 rounded-md py-3 pl-10 pr-4 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent"
+          className="w-full bg-white/90 border border-white/20 rounded-md py-3 pl-10 pr-4 text-[#1a5632] placeholder:text-[#1a5632]/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent"
           data-testid="input-password"
         />
       </div>
@@ -234,14 +234,14 @@ export default function LoginPage() {
       <div className="space-y-2">
         <label className="text-white/70 text-sm font-medium">Email Address</label>
         <div className="relative">
-          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#1a5632]/50" />
           <input
             type="email"
             placeholder="Enter your registered email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={isLoading}
-            className="w-full bg-white/10 border border-white/20 rounded-md py-3 pl-10 pr-4 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent"
+            className="w-full bg-white/90 border border-white/20 rounded-md py-3 pl-10 pr-4 text-[#1a5632] placeholder:text-[#1a5632]/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent"
             data-testid="input-reset-email"
           />
         </div>
@@ -287,7 +287,7 @@ export default function LoginPage() {
           onChange={(e) => setResetCode(e.target.value.toUpperCase())}
           disabled={isLoading}
           maxLength={6}
-          className="w-full bg-white/10 border border-white/20 rounded-md py-3 px-4 text-white text-center text-lg tracking-widest font-mono placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent"
+          className="w-full bg-white/90 border border-white/20 rounded-md py-3 px-4 text-[#1a5632] text-center text-lg tracking-widest font-mono placeholder:text-[#1a5632]/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent"
           data-testid="input-reset-code"
         />
         <p className="text-white/40 text-xs">Check your email for the reset code.</p>
@@ -300,7 +300,7 @@ export default function LoginPage() {
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
           disabled={isLoading}
-          className="w-full bg-white/10 border border-white/20 rounded-md py-3 px-4 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent"
+          className="w-full bg-white/90 border border-white/20 rounded-md py-3 px-4 text-[#1a5632] placeholder:text-[#1a5632]/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent"
           data-testid="input-new-password"
         />
       </div>
@@ -312,7 +312,7 @@ export default function LoginPage() {
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           disabled={isLoading}
-          className="w-full bg-white/10 border border-white/20 rounded-md py-3 px-4 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent"
+          className="w-full bg-white/90 border border-white/20 rounded-md py-3 px-4 text-[#1a5632] placeholder:text-[#1a5632]/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent"
           data-testid="input-confirm-password"
         />
       </div>
