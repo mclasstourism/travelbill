@@ -56,7 +56,6 @@ import {
   Download,
   Eye,
 } from "lucide-react";
-import { numberToWords } from "@/lib/number-to-words";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
@@ -150,6 +149,44 @@ export default function InvoicesPage() {
   };
   const getVendorName = (id: string) => vendors.find(v => v.id === id)?.name || "Unknown";
 
+  const numberToArabicWords = (num: number): string => {
+    const ones = ['', 'واحد', 'اثنان', 'ثلاثة', 'أربعة', 'خمسة', 'ستة', 'سبعة', 'ثمانية', 'تسعة'];
+    const teens = ['عشرة', 'أحد عشر', 'اثنا عشر', 'ثلاثة عشر', 'أربعة عشر', 'خمسة عشر', 'ستة عشر', 'سبعة عشر', 'ثمانية عشر', 'تسعة عشر'];
+    const tens = ['', 'عشرة', 'عشرون', 'ثلاثون', 'أربعون', 'خمسون', 'ستون', 'سبعون', 'ثمانون', 'تسعون'];
+    const hundreds = ['', 'مائة', 'مائتان', 'ثلاثمائة', 'أربعمائة', 'خمسمائة', 'ستمائة', 'سبعمائة', 'ثمانمائة', 'تسعمائة'];
+    const thousands = ['', 'ألف', 'ألفان', 'ثلاثة آلاف', 'أربعة آلاف', 'خمسة آلاف', 'ستة آلاف', 'سبعة آلاف', 'ثمانية آلاف', 'تسعة آلاف'];
+
+    if (num === 0) return 'صفر';
+
+    const wholeNum = Math.floor(num);
+    const decimal = Math.round((num - wholeNum) * 100);
+    
+    const parts: string[] = [];
+    
+    const thousandsPart = Math.floor(wholeNum / 1000);
+    const hundredsPart = Math.floor((wholeNum % 1000) / 100);
+    const tensPart = wholeNum % 100;
+
+    if (thousandsPart > 0 && thousandsPart < 10) parts.push(thousands[thousandsPart]);
+    else if (thousandsPart >= 10) parts.push(`${thousandsPart} ألف`);
+    
+    if (hundredsPart > 0) parts.push(hundreds[hundredsPart]);
+    
+    if (tensPart >= 10 && tensPart < 20) {
+      parts.push(teens[tensPart - 10]);
+    } else if (tensPart >= 20) {
+      const onesDigit = tensPart % 10;
+      if (onesDigit > 0) parts.push(`${ones[onesDigit]} و ${tens[Math.floor(tensPart / 10)]}`);
+      else parts.push(tens[Math.floor(tensPart / 10)]);
+    } else if (tensPart > 0) {
+      parts.push(ones[tensPart]);
+    }
+
+    let result = parts.join(' و ') + ' درهم إماراتي';
+    if (decimal > 0) result += ` و ${decimal} فلس`;
+    return result;
+  };
+
   const handleDownloadPdf = (invoice: Invoice) => {
     const partyName = getPartyName(invoice);
     const vendorName = getVendorName(invoice.vendorId);
@@ -158,8 +195,17 @@ export default function InvoicesPage() {
     const container = document.createElement('div');
     container.innerHTML = `
       <div style="max-width: 700px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
-        <div style="text-align: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 16px; margin-bottom: 16px;">
-          <img src="${mcLogo}" alt="MCT - Tourism Organizers" style="height: 64px; margin: 0 auto; display: block;" />
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #1a5632; padding-bottom: 16px; margin-bottom: 20px;">
+          <div style="flex-shrink: 0;">
+            <img src="${mcLogo}" alt="Middle Class Tourism" style="height: 70px;" />
+          </div>
+          <div style="text-align: right; font-size: 0.7rem; color: #4b5563; line-height: 1.6;">
+            <p style="margin: 0;"><strong>Email:</strong> sales@middleclass.ae</p>
+            <p style="margin: 0;"><strong>Web:</strong> www.middleclass.ae</p>
+            <p style="margin: 0;"><strong>Phone:</strong> 025 640 224, 050 222 1042</p>
+            <p style="margin: 0;"><strong>Address:</strong> Shop 41, Al Dhannah Traditional Souq,</p>
+            <p style="margin: 0;">Al Dhannah City, Abu Dhabi - UAE</p>
+          </div>
         </div>
         <div style="text-align: center; margin-bottom: 16px;">
           <span style="font-size: 0.75rem; color: #6b7280;">INVOICE NUMBER</span>
@@ -221,12 +267,18 @@ export default function InvoicesPage() {
           ` : ''}
           <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 1.25rem; border-top: 2px solid #e5e7eb; padding-top: 8px; margin-top: 8px;">
             <span>Total Due</span>
-            <span style="font-family: monospace; color: #2563eb;">AED ${invoice.total.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
+            <span style="font-family: monospace; color: #1a5632;">AED ${invoice.total.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div style="text-align: right; font-size: 0.75rem; color: #6b7280; margin-top: 4px; direction: rtl; font-family: 'Arial', sans-serif;">
+            ${numberToArabicWords(invoice.total)}
           </div>
         </div>
         <div style="margin-top: 16px; padding: 12px; background-color: #f9fafb; border-radius: 8px; font-size: 0.75rem; color: #6b7280;">
           <p style="margin: 0;">Payment Method: ${invoice.paymentMethod.charAt(0).toUpperCase() + invoice.paymentMethod.slice(1)}</p>
           <p style="margin: 4px 0 0 0;">Status: ${invoice.status}</p>
+        </div>
+        <div style="text-align: center; margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 0.8rem; color: #1a5632; font-weight: 500;">
+          Thank you for choosing Middle Class Tourism
         </div>
       </div>
     `;
@@ -1095,6 +1147,20 @@ export default function InvoicesPage() {
 
           {viewInvoice && (
             <div className="space-y-6">
+              {/* Header: Logo left, Contact info right */}
+              <div className="flex justify-between items-start border-b-2 border-[#1a5632] pb-4">
+                <div className="flex-shrink-0">
+                  <img src={mcLogo} alt="Middle Class Tourism" className="h-16" />
+                </div>
+                <div className="text-right text-[0.65rem] text-muted-foreground leading-relaxed">
+                  <p><strong>Email:</strong> sales@middleclass.ae</p>
+                  <p><strong>Web:</strong> www.middleclass.ae</p>
+                  <p><strong>Phone:</strong> 025 640 224, 050 222 1042</p>
+                  <p><strong>Address:</strong> Shop 41, Al Dhannah Traditional Souq,</p>
+                  <p>Al Dhannah City, Abu Dhabi - UAE</p>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div>
@@ -1181,6 +1247,9 @@ export default function InvoicesPage() {
                     <span>Total Due:</span>
                     <span className="font-mono">{formatCurrency(viewInvoice.total)}</span>
                   </div>
+                  <div className="text-right text-xs text-muted-foreground mt-1" style={{ direction: "rtl" }}>
+                    {numberToArabicWords(viewInvoice.total)}
+                  </div>
                   <div className="flex justify-between py-2 bg-muted/50 px-2 rounded text-lg font-bold">
                     <span>Grand Total:</span>
                     <span className="font-mono">{formatCurrency(viewInvoice.subtotal - viewInvoice.discountAmount)}</span>
@@ -1197,6 +1266,11 @@ export default function InvoicesPage() {
                     Close
                   </Button>
                 </div>
+              </div>
+
+              {/* Footer */}
+              <div className="text-center pt-4 border-t text-sm text-[#1a5632] font-medium">
+                Thank you for choosing Middle Class Tourism
               </div>
             </div>
           )}

@@ -240,16 +240,62 @@ export default function TicketsPage() {
     createMutation.mutate(ticketData);
   };
 
+  const numberToArabicWords = (num: number): string => {
+    const ones = ['', 'واحد', 'اثنان', 'ثلاثة', 'أربعة', 'خمسة', 'ستة', 'سبعة', 'ثمانية', 'تسعة'];
+    const teens = ['عشرة', 'أحد عشر', 'اثنا عشر', 'ثلاثة عشر', 'أربعة عشر', 'خمسة عشر', 'ستة عشر', 'سبعة عشر', 'ثمانية عشر', 'تسعة عشر'];
+    const tens = ['', 'عشرة', 'عشرون', 'ثلاثون', 'أربعون', 'خمسون', 'ستون', 'سبعون', 'ثمانون', 'تسعون'];
+    const hundreds = ['', 'مائة', 'مائتان', 'ثلاثمائة', 'أربعمائة', 'خمسمائة', 'ستمائة', 'سبعمائة', 'ثمانمائة', 'تسعمائة'];
+    const thousands = ['', 'ألف', 'ألفان', 'ثلاثة آلاف', 'أربعة آلاف', 'خمسة آلاف', 'ستة آلاف', 'سبعة آلاف', 'ثمانية آلاف', 'تسعة آلاف'];
+
+    if (num === 0) return 'صفر';
+
+    const wholeNum = Math.floor(num);
+    const decimal = Math.round((num - wholeNum) * 100);
+    
+    const parts: string[] = [];
+    
+    const thousandsPart = Math.floor(wholeNum / 1000);
+    const hundredsPart = Math.floor((wholeNum % 1000) / 100);
+    const tensPart = wholeNum % 100;
+
+    if (thousandsPart > 0 && thousandsPart < 10) parts.push(thousands[thousandsPart]);
+    else if (thousandsPart >= 10) parts.push(`${thousandsPart} ألف`);
+    
+    if (hundredsPart > 0) parts.push(hundreds[hundredsPart]);
+    
+    if (tensPart >= 10 && tensPart < 20) {
+      parts.push(teens[tensPart - 10]);
+    } else if (tensPart >= 20) {
+      const onesDigit = tensPart % 10;
+      if (onesDigit > 0) parts.push(`${ones[onesDigit]} و ${tens[Math.floor(tensPart / 10)]}`);
+      else parts.push(tens[Math.floor(tensPart / 10)]);
+    } else if (tensPart > 0) {
+      parts.push(ones[tensPart]);
+    }
+
+    let result = parts.join(' و ') + ' درهم إماراتي';
+    if (decimal > 0) result += ` و ${decimal} فلس`;
+    return result;
+  };
+
   const handleDownloadPdf = (ticket: Ticket) => {
     const customerName = customers.find(c => c.id === ticket.customerId)?.name || 
                          agents.find(a => a.id === ticket.customerId)?.name || "N/A";
     
-    // Create a temporary container for the PDF content
     const container = document.createElement('div');
     container.innerHTML = `
-      <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
-        <div style="text-align: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 16px; margin-bottom: 16px;">
-          <img src="${mcLogo}" alt="MCT - Tourism Organizers" style="height: 64px; margin: 0 auto; display: block;" />
+      <div style="max-width: 700px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #1a5632; padding-bottom: 16px; margin-bottom: 20px;">
+          <div style="flex-shrink: 0;">
+            <img src="${mcLogo}" alt="Middle Class Tourism" style="height: 70px;" />
+          </div>
+          <div style="text-align: right; font-size: 0.7rem; color: #4b5563; line-height: 1.6;">
+            <p style="margin: 0;"><strong>Email:</strong> sales@middleclass.ae</p>
+            <p style="margin: 0;"><strong>Web:</strong> www.middleclass.ae</p>
+            <p style="margin: 0;"><strong>Phone:</strong> 025 640 224, 050 222 1042</p>
+            <p style="margin: 0;"><strong>Address:</strong> Shop 41, Al Dhannah Traditional Souq,</p>
+            <p style="margin: 0;">Al Dhannah City, Abu Dhabi - UAE</p>
+          </div>
         </div>
         <div style="text-align: center; margin-bottom: 16px;">
           <span style="font-size: 0.75rem; color: #6b7280;">TICKET NUMBER</span>
@@ -286,7 +332,10 @@ export default function TicketsPage() {
         <div style="border-top: 1px solid #e5e7eb; padding-top: 16px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span style="font-weight: 600;">Ticket Value</span>
-            <span style="font-size: 1.5rem; font-weight: bold; color: #2563eb; font-family: monospace;">AED ${ticket.faceValue.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
+            <span style="font-size: 1.5rem; font-weight: bold; color: #1a5632; font-family: monospace;">AED ${ticket.faceValue.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div style="text-align: right; font-size: 0.75rem; color: #6b7280; margin-top: 4px; direction: rtl; font-family: 'Arial', sans-serif;">
+            ${numberToArabicWords(ticket.faceValue)}
           </div>
           ${ticket.depositDeducted > 0 ? `
           <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem; color: #4b5563; margin-top: 8px;">
@@ -300,6 +349,9 @@ export default function TicketsPage() {
             <span>Issued: ${format(new Date(ticket.createdAt), "MMM d, yyyy 'at' h:mm a")}</span>
             <span>Status: ${ticket.status}</span>
           </div>
+        </div>
+        <div style="text-align: center; margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 0.8rem; color: #1a5632; font-weight: 500;">
+          Thank you for choosing Middle Class Tourism
         </div>
       </div>
     `;
@@ -913,20 +965,26 @@ export default function TicketsPage() {
           </DialogHeader>
           {viewTicket && (
             <div className="space-y-4">
-              {/* Printable Ticket */}
               <div id="printable-ticket" className="bg-white text-black p-6 rounded-lg border">
-                {/* Header with Logo */}
-                <div className="text-center border-b pb-4 mb-4">
-                  <img src={mcLogo} alt="MCT - Tourism Organizers" className="h-16 mx-auto" />
+                {/* Header: Logo left, Contact info right */}
+                <div className="flex justify-between items-start border-b-2 border-[#1a5632] pb-4 mb-5">
+                  <div className="flex-shrink-0">
+                    <img src={mcLogo} alt="Middle Class Tourism" className="h-16" />
+                  </div>
+                  <div className="text-right text-[0.65rem] text-gray-500 leading-relaxed">
+                    <p><strong>Email:</strong> sales@middleclass.ae</p>
+                    <p><strong>Web:</strong> www.middleclass.ae</p>
+                    <p><strong>Phone:</strong> 025 640 224, 050 222 1042</p>
+                    <p><strong>Address:</strong> Shop 41, Al Dhannah Traditional Souq,</p>
+                    <p>Al Dhannah City, Abu Dhabi - UAE</p>
+                  </div>
                 </div>
 
-                {/* Ticket Number */}
                 <div className="text-center mb-4">
                   <span className="text-xs text-gray-500">TICKET NUMBER</span>
                   <p className="font-mono text-xl font-bold">{viewTicket.ticketNumber}</p>
                 </div>
 
-                {/* Passenger Info */}
                 <div className="bg-gray-50 p-4 rounded-lg mb-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -940,47 +998,48 @@ export default function TicketsPage() {
                   </div>
                 </div>
 
-                {/* Flight Details */}
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div className="border rounded-lg p-3">
                     <span className="text-xs text-gray-500">ROUTE</span>
                     <div className="flex items-center gap-2 mt-1">
-                      <Plane className="w-4 h-4 text-blue-600" />
+                      <Plane className="w-4 h-4 text-[#1a5632]" />
                       <span className="font-semibold">{viewTicket.route}</span>
                     </div>
                   </div>
                   <div className="border rounded-lg p-3">
                     <span className="text-xs text-gray-500">TRAVEL DATE</span>
                     <div className="flex items-center gap-2 mt-1">
-                      <Calendar className="w-4 h-4 text-blue-600" />
+                      <Calendar className="w-4 h-4 text-[#1a5632]" />
                       <span className="font-semibold">{format(new Date(viewTicket.travelDate), "MMM d, yyyy")}</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Customer info - visible on print */}
                 <div className="mb-4 text-sm">
                   <div>
                     <span className="text-xs text-gray-500">CUSTOMER</span>
                     <p>
-                      {customers.find(c => c.id === viewTicket.customerId)?.name || "N/A"}
+                      {viewTicket.customerType === "agent"
+                        ? agents.find(a => a.id === viewTicket.customerId)?.name
+                        : customers.find(c => c.id === viewTicket.customerId)?.name || "N/A"}
                     </p>
                   </div>
                 </div>
                 
-                {/* Vendor info - internal only, NOT shown on print */}
                 <div className="mb-4 text-sm bg-gray-100 dark:bg-gray-800 p-2 rounded" data-no-print="true">
                   <span className="text-xs text-gray-500">VENDOR (Internal Only)</span>
                   <p>{vendors.find(v => v.id === viewTicket.vendorId)?.name || "N/A"}</p>
                 </div>
 
-                {/* Value - Customer sees face value */}
                 <div className="border-t pt-4">
                   <div className="flex justify-between items-center">
                     <span className="font-semibold">Ticket Value ({viewTicket.customerType === "agent" ? "Agent" : "Customer"} Price)</span>
-                    <span className="text-2xl font-bold text-blue-600 font-mono">
+                    <span className="text-2xl font-bold text-[#1a5632] font-mono">
                       AED {viewTicket.faceValue.toLocaleString("en-AE", { minimumFractionDigits: 2 })}
                     </span>
+                  </div>
+                  <div className="text-right text-xs text-gray-500 mt-1" style={{ direction: "rtl" }}>
+                    {numberToArabicWords(viewTicket.faceValue)}
                   </div>
                   {viewTicket.depositDeducted > 0 && (
                     <div className="flex justify-between items-center text-sm text-gray-600 mt-2">
@@ -992,7 +1051,6 @@ export default function TicketsPage() {
                   )}
                 </div>
 
-                {/* Cost Breakdown - Internal Use Only (Not printed) */}
                 <div className="border-t pt-4 mt-4 bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg" data-no-print="true">
                   <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-3">Cost Breakdown (Internal Use Only)</h4>
                   <div className="space-y-2 text-sm">
@@ -1017,12 +1075,16 @@ export default function TicketsPage() {
                   </div>
                 </div>
 
-                {/* Issue Details */}
                 <div className="border-t pt-4 mt-4 text-xs text-gray-500">
-                  <div className="flex justify-between">
+                  <div className="flex justify-between flex-wrap gap-2">
                     <span>Issued: {format(new Date(viewTicket.createdAt), "MMM d, yyyy 'at' h:mm a")}</span>
                     <span>Status: <Badge variant={getStatusBadgeVariant(viewTicket.status)} className="ml-1">{viewTicket.status}</Badge></span>
                   </div>
+                </div>
+
+                {/* Footer */}
+                <div className="text-center mt-6 pt-4 border-t text-sm text-[#1a5632] font-medium">
+                  Thank you for choosing Middle Class Tourism
                 </div>
               </div>
 
