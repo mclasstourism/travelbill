@@ -410,6 +410,8 @@ export default function LoginPage() {
             </div>
           </div>
 
+          <p className="text-center text-white/30 text-xs italic">Your Travel Partner, Our Priority</p>
+
         </div>
       </div>
     </div>
