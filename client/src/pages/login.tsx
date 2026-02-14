@@ -403,7 +403,7 @@ export default function LoginPage() {
 
       {/* Right Panel - Login Form */}
       <div className="flex-1 flex items-center justify-center bg-background p-6">
-        <div className="w-full max-w-sm space-y-8">
+        <div className="w-full max-w-md space-y-8">
           {/* Mobile logo */}
           <div className="lg:hidden text-center space-y-4">
             <img 
@@ -416,7 +416,7 @@ export default function LoginPage() {
           </div>
 
           {/* Heading */}
-          <div className="space-y-2">
+          <div className="space-y-2 text-center">
             <h2 className="text-2xl font-bold tracking-tight" data-testid="text-login-title">{getViewTitle()}</h2>
             <p className="text-sm text-muted-foreground">{getViewDescription()}</p>
           </div>
@@ -438,10 +438,10 @@ export default function LoginPage() {
 
           {/* Footer info */}
           <div className="text-center space-y-1 pt-4">
-            <p className="text-[10px] text-muted-foreground/60">
+            <p className="text-xs text-muted-foreground/60">
               www.middleclass.ae | sales@middleclass.ae
             </p>
-            <p className="text-[10px] text-muted-foreground/60">
+            <p className="text-xs text-muted-foreground/60">
               025 640 224 | 050 222 1042
             </p>
           </div>
