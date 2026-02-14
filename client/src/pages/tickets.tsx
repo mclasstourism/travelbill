@@ -285,16 +285,12 @@ export default function TicketsPage() {
     const container = document.createElement('div');
     container.innerHTML = `
       <div style="max-width: 700px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #1a5632; padding-bottom: 16px; margin-bottom: 20px;">
-          <div style="flex-shrink: 0;">
-            <img src="${mcLogo}" alt="Middle Class Tourism" style="height: 70px;" />
-          </div>
-          <div style="text-align: right; font-size: 0.7rem; color: #4b5563; line-height: 1.6;">
-            <p style="margin: 0;"><strong>Email:</strong> sales@middleclass.ae</p>
-            <p style="margin: 0;"><strong>Web:</strong> www.middleclass.ae</p>
-            <p style="margin: 0;"><strong>Phone:</strong> 025 640 224, 050 222 1042</p>
-            <p style="margin: 0;"><strong>Address:</strong> Shop 41, Al Dhannah Traditional Souq,</p>
-            <p style="margin: 0;">Al Dhannah City, Abu Dhabi - UAE</p>
+        <div style="text-align: center; border-bottom: 2px solid #1a5632; padding-bottom: 16px; margin-bottom: 20px;">
+          <img src="${mcLogo}" alt="Middle Class Tourism" style="height: 70px; margin: 0 auto 12px auto; display: block;" />
+          <div style="font-size: 0.75rem; color: #6b7280; line-height: 1.8;">
+            <p style="margin: 0;">Phone: 025 640 224 | 050 222 1042</p>
+            <p style="margin: 0;">www.middleclass.ae | sales@middleclass.ae</p>
+            <p style="margin: 0;">Address: Shop 41, Al Dhannah Traditional Souq, Al Dhannah City, Abu Dhabi \u2013 UAE</p>
           </div>
         </div>
         <div style="text-align: center; margin-bottom: 16px;">
@@ -967,16 +963,12 @@ export default function TicketsPage() {
             <div className="space-y-4">
               <div id="printable-ticket" className="bg-white text-black p-6 rounded-lg border">
                 {/* Header: Logo left, Contact info right */}
-                <div className="flex justify-between items-start border-b-2 border-[#1a5632] pb-4 mb-5">
-                  <div className="flex-shrink-0">
-                    <img src={mcLogo} alt="Middle Class Tourism" className="h-16" />
-                  </div>
-                  <div className="text-right text-[0.65rem] text-gray-500 leading-relaxed">
-                    <p><strong>Email:</strong> sales@middleclass.ae</p>
-                    <p><strong>Web:</strong> www.middleclass.ae</p>
-                    <p><strong>Phone:</strong> 025 640 224, 050 222 1042</p>
-                    <p><strong>Address:</strong> Shop 41, Al Dhannah Traditional Souq,</p>
-                    <p>Al Dhannah City, Abu Dhabi - UAE</p>
+                <div className="text-center border-b-2 border-[#1a5632] pb-4 mb-5">
+                  <img src={mcLogo} alt="Middle Class Tourism" className="h-16 mx-auto mb-3" />
+                  <div className="text-xs text-gray-500 leading-relaxed">
+                    <p>Phone: 025 640 224 | 050 222 1042</p>
+                    <p>www.middleclass.ae | sales@middleclass.ae</p>
+                    <p>Address: Shop 41, Al Dhannah Traditional Souq, Al Dhannah City, Abu Dhabi {"\u2013"} UAE</p>
                   </div>
                 </div>
 
