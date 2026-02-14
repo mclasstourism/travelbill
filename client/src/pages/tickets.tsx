@@ -240,41 +240,34 @@ export default function TicketsPage() {
     createMutation.mutate(ticketData);
   };
 
-  const numberToArabicWords = (num: number): string => {
-    const ones = ['', 'واحد', 'اثنان', 'ثلاثة', 'أربعة', 'خمسة', 'ستة', 'سبعة', 'ثمانية', 'تسعة'];
-    const teens = ['عشرة', 'أحد عشر', 'اثنا عشر', 'ثلاثة عشر', 'أربعة عشر', 'خمسة عشر', 'ستة عشر', 'سبعة عشر', 'ثمانية عشر', 'تسعة عشر'];
-    const tens = ['', 'عشرة', 'عشرون', 'ثلاثون', 'أربعون', 'خمسون', 'ستون', 'سبعون', 'ثمانون', 'تسعون'];
-    const hundreds = ['', 'مائة', 'مائتان', 'ثلاثمائة', 'أربعمائة', 'خمسمائة', 'ستمائة', 'سبعمائة', 'ثمانمائة', 'تسعمائة'];
-    const thousands = ['', 'ألف', 'ألفان', 'ثلاثة آلاف', 'أربعة آلاف', 'خمسة آلاف', 'ستة آلاف', 'سبعة آلاف', 'ثمانية آلاف', 'تسعة آلاف'];
+  const numberToWords = (num: number): string => {
+    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+      'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
 
-    if (num === 0) return 'صفر';
+    if (num === 0) return 'Zero AED';
 
     const wholeNum = Math.floor(num);
     const decimal = Math.round((num - wholeNum) * 100);
-    
+
+    const convertChunk = (n: number): string => {
+      if (n === 0) return '';
+      if (n < 20) return ones[n];
+      if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
+      return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + convertChunk(n % 100) : '');
+    };
+
     const parts: string[] = [];
-    
-    const thousandsPart = Math.floor(wholeNum / 1000);
-    const hundredsPart = Math.floor((wholeNum % 1000) / 100);
-    const tensPart = wholeNum % 100;
+    const million = Math.floor(wholeNum / 1000000);
+    const thousand = Math.floor((wholeNum % 1000000) / 1000);
+    const remainder = wholeNum % 1000;
 
-    if (thousandsPart > 0 && thousandsPart < 10) parts.push(thousands[thousandsPart]);
-    else if (thousandsPart >= 10) parts.push(`${thousandsPart} ألف`);
-    
-    if (hundredsPart > 0) parts.push(hundreds[hundredsPart]);
-    
-    if (tensPart >= 10 && tensPart < 20) {
-      parts.push(teens[tensPart - 10]);
-    } else if (tensPart >= 20) {
-      const onesDigit = tensPart % 10;
-      if (onesDigit > 0) parts.push(`${ones[onesDigit]} و ${tens[Math.floor(tensPart / 10)]}`);
-      else parts.push(tens[Math.floor(tensPart / 10)]);
-    } else if (tensPart > 0) {
-      parts.push(ones[tensPart]);
-    }
+    if (million > 0) parts.push(convertChunk(million) + ' Million');
+    if (thousand > 0) parts.push(convertChunk(thousand) + ' Thousand');
+    if (remainder > 0) parts.push(convertChunk(remainder));
 
-    let result = parts.join(' و ') + ' درهم إماراتي';
-    if (decimal > 0) result += ` و ${decimal} فلس`;
+    let result = parts.join(' ') + ' AED';
+    if (decimal > 0) result += ' and ' + decimal + ' Fils';
     return result;
   };
 
@@ -330,8 +323,8 @@ export default function TicketsPage() {
             <span style="font-weight: 600;">Ticket Value</span>
             <span style="font-size: 1.5rem; font-weight: bold; color: #1a5632; font-family: monospace;">AED ${ticket.faceValue.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
           </div>
-          <div style="text-align: right; font-size: 0.75rem; color: #6b7280; margin-top: 4px; direction: rtl; font-family: 'Arial', sans-serif;">
-            ${numberToArabicWords(ticket.faceValue)}
+          <div style="text-align: right; font-size: 0.75rem; color: #6b7280; margin-top: 4px; font-style: italic;">
+            ${numberToWords(ticket.faceValue)}
           </div>
           ${ticket.depositDeducted > 0 ? `
           <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem; color: #4b5563; margin-top: 8px;">
@@ -1030,8 +1023,8 @@ export default function TicketsPage() {
                       AED {viewTicket.faceValue.toLocaleString("en-AE", { minimumFractionDigits: 2 })}
                     </span>
                   </div>
-                  <div className="text-right text-xs text-gray-500 mt-1" style={{ direction: "rtl" }}>
-                    {numberToArabicWords(viewTicket.faceValue)}
+                  <div className="text-right text-xs text-gray-500 mt-1 italic">
+                    {numberToWords(viewTicket.faceValue)}
                   </div>
                   {viewTicket.depositDeducted > 0 && (
                     <div className="flex justify-between items-center text-sm text-gray-600 mt-2">
