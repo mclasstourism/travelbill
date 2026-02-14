@@ -346,7 +346,9 @@ export default function LoginPage() {
           {/* Logo & Heading */}
           <div className="text-center space-y-5">
             <div className="flex items-center justify-center">
-              <img src={companyLogoWhite} alt="Middle Class Tourism" className="h-14 w-auto" data-testid="img-brand-logo" />
+              <div className="bg-white/10 backdrop-blur-sm rounded-md px-6 py-4">
+                <img src={companyLogoWhite} alt="Middle Class Tourism" className="h-14 w-auto" data-testid="img-brand-logo" />
+              </div>
             </div>
             <div className="space-y-2">
               <h2 className="text-3xl font-bold text-white leading-snug">
