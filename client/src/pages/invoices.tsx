@@ -184,92 +184,138 @@ export default function InvoicesPage() {
     const partyName = getPartyName(invoice);
     const vendorName = getVendorName(invoice.vendorId);
     const items = invoice.items as { description: string; quantity: number; unitPrice: number }[];
+    const grandTotal = invoice.subtotal - invoice.discountAmount;
     
     const container = document.createElement('div');
     container.innerHTML = `
-      <div style="max-width: 700px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1a5632; padding-bottom: 16px; margin-bottom: 20px;">
+      <div style="max-width: 700px; margin: 0 auto; padding: 30px 36px; font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b;">
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0;">
           <div style="flex-shrink: 0;">
-            <img src="${mcLogo}" alt="Middle Class Tourism" style="height: 70px;" />
+            <img src="${mcLogo}" alt="Middle Class Tourism" style="height: 65px;" />
           </div>
-          <div style="text-align: right; font-size: 0.75rem; color: #6b7280; line-height: 1.8;">
+          <div style="text-align: right;">
+            <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #1a5632; letter-spacing: 2px;">INVOICE</h1>
+            <p style="margin: 6px 0 0 0; font-size: 13px; color: #64748b;">${invoice.invoiceNumber}</p>
+          </div>
+        </div>
+        <div style="height: 3px; background: linear-gradient(to right, #1a5632, #22c55e, #1a5632); margin: 14px 0 20px 0; border-radius: 2px;"></div>
+
+        <!-- Company & Invoice Info Row -->
+        <div style="display: flex; justify-content: space-between; margin-bottom: 24px;">
+          <div style="font-size: 11px; color: #64748b; line-height: 1.7;">
             <p style="margin: 0;">Phone: 025 640 224 | 050 222 1042</p>
             <p style="margin: 0;">www.middleclass.ae | sales@middleclass.ae</p>
-            <p style="margin: 0;">Address: Shop 41, Al Dhannah Traditional Souq, Al Dhannah City, Abu Dhabi \u2013 UAE</p>
+            <p style="margin: 0;">Shop 41, Al Dhannah Traditional Souq, Al Dhannah City, Abu Dhabi \u2013 UAE</p>
+          </div>
+          <div style="text-align: right; font-size: 12px;">
+            <table style="border-collapse: collapse; margin-left: auto;">
+              <tr>
+                <td style="padding: 3px 12px 3px 0; color: #64748b; font-weight: 500;">Date:</td>
+                <td style="padding: 3px 0; font-weight: 600;">${format(new Date(invoice.createdAt), "MMM d, yyyy")}</td>
+              </tr>
+              <tr>
+                <td style="padding: 3px 12px 3px 0; color: #64748b; font-weight: 500;">Status:</td>
+                <td style="padding: 3px 0;"><span style="display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; background-color: ${invoice.status === 'paid' ? '#dcfce7' : invoice.status === 'cancelled' ? '#fce4e4' : '#fef9c3'}; color: ${invoice.status === 'paid' ? '#166534' : invoice.status === 'cancelled' ? '#991b1b' : '#854d0e'}; text-transform: uppercase;">${invoice.status}</span></td>
+              </tr>
+              <tr>
+                <td style="padding: 3px 12px 3px 0; color: #64748b; font-weight: 500;">Payment:</td>
+                <td style="padding: 3px 0; font-weight: 600; text-transform: capitalize;">${invoice.paymentMethod}</td>
+              </tr>
+            </table>
           </div>
         </div>
-        <div style="text-align: center; margin-bottom: 16px;">
-          <span style="font-size: 0.75rem; color: #6b7280;">INVOICE NUMBER</span>
-          <p style="font-family: monospace; font-size: 1.25rem; font-weight: bold; margin: 4px 0 0 0;">${invoice.invoiceNumber}</p>
-          <p style="font-size: 0.75rem; color: #6b7280; margin-top: 4px;">Date: ${format(new Date(invoice.createdAt), "MMM d, yyyy")}</p>
-        </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-          <div style="background-color: #f9fafb; padding: 12px; border-radius: 8px;">
-            <span style="font-size: 0.75rem; color: #6b7280;">${invoice.customerType === 'agent' ? 'AGENT' : 'CUSTOMER'}</span>
-            <p style="font-weight: 600; margin: 4px 0 0 0;">${partyName}</p>
+
+        <!-- Bill To / Vendor -->
+        <div style="display: flex; gap: 16px; margin-bottom: 24px;">
+          <div style="flex: 1; background: #f0fdf4; border-left: 4px solid #1a5632; padding: 14px 16px; border-radius: 0 6px 6px 0;">
+            <p style="margin: 0 0 4px 0; font-size: 10px; font-weight: 700; color: #1a5632; text-transform: uppercase; letter-spacing: 1px;">${invoice.customerType === 'agent' ? 'Bill To (Agent)' : 'Bill To'}</p>
+            <p style="margin: 0; font-size: 15px; font-weight: 600; color: #1e293b;">${partyName}</p>
           </div>
-          <div style="background-color: #f9fafb; padding: 12px; border-radius: 8px;">
-            <span style="font-size: 0.75rem; color: #6b7280;">VENDOR</span>
-            <p style="font-weight: 600; margin: 4px 0 0 0;">${vendorName}</p>
+          <div style="flex: 1; background: #f8fafc; border-left: 4px solid #94a3b8; padding: 14px 16px; border-radius: 0 6px 6px 0;">
+            <p style="margin: 0 0 4px 0; font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px;">Vendor / Supplier</p>
+            <p style="margin: 0; font-size: 15px; font-weight: 600; color: #1e293b;">${vendorName}</p>
           </div>
         </div>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+
+        <!-- Items Table -->
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px;">
           <thead>
-            <tr style="background-color: #f9fafb;">
-              <th style="text-align: left; padding: 8px; border: 1px solid #e5e7eb; font-size: 0.75rem; color: #6b7280;">Description</th>
-              <th style="text-align: center; padding: 8px; border: 1px solid #e5e7eb; font-size: 0.75rem; color: #6b7280;">Qty</th>
-              <th style="text-align: right; padding: 8px; border: 1px solid #e5e7eb; font-size: 0.75rem; color: #6b7280;">Price</th>
-              <th style="text-align: right; padding: 8px; border: 1px solid #e5e7eb; font-size: 0.75rem; color: #6b7280;">Total</th>
+            <tr>
+              <th style="text-align: left; padding: 10px 12px; background: #1a5632; color: white; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 4px 0 0 0;">#</th>
+              <th style="text-align: left; padding: 10px 12px; background: #1a5632; color: white; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Description</th>
+              <th style="text-align: center; padding: 10px 12px; background: #1a5632; color: white; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Qty</th>
+              <th style="text-align: right; padding: 10px 12px; background: #1a5632; color: white; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Unit Price</th>
+              <th style="text-align: right; padding: 10px 12px; background: #1a5632; color: white; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 0 4px 0 0;">Amount</th>
             </tr>
           </thead>
           <tbody>
-            ${items.map(item => `
-              <tr>
-                <td style="padding: 8px; border: 1px solid #e5e7eb;">${item.description}</td>
-                <td style="text-align: center; padding: 8px; border: 1px solid #e5e7eb;">${item.quantity}</td>
-                <td style="text-align: right; padding: 8px; border: 1px solid #e5e7eb; font-family: monospace;">AED ${item.unitPrice.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
-                <td style="text-align: right; padding: 8px; border: 1px solid #e5e7eb; font-family: monospace;">AED ${(item.quantity * item.unitPrice).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+            ${items.map((item, i) => `
+              <tr style="background: ${i % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+                <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">${i + 1}</td>
+                <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-weight: 500;">${item.description}</td>
+                <td style="text-align: center; padding: 10px 12px; border-bottom: 1px solid #e2e8f0;">${item.quantity}</td>
+                <td style="text-align: right; padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">AED ${item.unitPrice.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+                <td style="text-align: right; padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace; font-weight: 600;">AED ${(item.quantity * item.unitPrice).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
               </tr>
             `).join('')}
           </tbody>
         </table>
-        <div style="border-top: 1px solid #e5e7eb; padding-top: 16px;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-            <span>Subtotal</span>
-            <span style="font-family: monospace;">AED ${invoice.subtotal.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
-          </div>
-          ${invoice.discountAmount > 0 ? `
-          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #16a34a;">
-            <span>Discount (${invoice.discountPercent}%)</span>
-            <span style="font-family: monospace;">-AED ${invoice.discountAmount.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
-          </div>
-          ` : ''}
-          ${invoice.depositUsed > 0 ? `
-          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #2563eb;">
-            <span>Deposit Used</span>
-            <span style="font-family: monospace;">-AED ${invoice.depositUsed.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
-          </div>
-          ` : ''}
-          ${invoice.agentCreditUsed > 0 ? `
-          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #9333ea;">
-            <span>Agent Credit Used</span>
-            <span style="font-family: monospace;">-AED ${invoice.agentCreditUsed.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
-          </div>
-          ` : ''}
-          <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 1.25rem; border-top: 2px solid #e5e7eb; padding-top: 8px; margin-top: 8px;">
-            <span>Total Due</span>
-            <span style="font-family: monospace; color: #1a5632;">AED ${invoice.total.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</span>
-          </div>
-          <div style="text-align: right; font-size: 0.75rem; color: #6b7280; margin-top: 4px; font-style: italic;">
-            ${numberToWords(invoice.total)}
+
+        <!-- Totals Section -->
+        <div style="display: flex; justify-content: flex-end;">
+          <div style="width: 320px;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+              <tr>
+                <td style="padding: 6px 0; color: #64748b;">Subtotal</td>
+                <td style="padding: 6px 0; text-align: right; font-family: 'Courier New', monospace; font-weight: 500;">AED ${invoice.subtotal.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+              </tr>
+              ${invoice.discountAmount > 0 ? `
+              <tr>
+                <td style="padding: 6px 0; color: #16a34a;">Discount (${invoice.discountPercent}%)</td>
+                <td style="padding: 6px 0; text-align: right; font-family: 'Courier New', monospace; color: #16a34a;">-AED ${invoice.discountAmount.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+              </tr>
+              ` : ''}
+              ${invoice.depositUsed > 0 ? `
+              <tr>
+                <td style="padding: 6px 0; color: #2563eb;">Deposit Applied</td>
+                <td style="padding: 6px 0; text-align: right; font-family: 'Courier New', monospace; color: #2563eb;">-AED ${invoice.depositUsed.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+              </tr>
+              ` : ''}
+              ${invoice.agentCreditUsed > 0 ? `
+              <tr>
+                <td style="padding: 6px 0; color: #7c3aed;">Agent Credit Applied</td>
+                <td style="padding: 6px 0; text-align: right; font-family: 'Courier New', monospace; color: #7c3aed;">-AED ${invoice.agentCreditUsed.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+              </tr>
+              ` : ''}
+              ${invoice.vendorBalanceDeducted > 0 ? `
+              <tr>
+                <td style="padding: 6px 0; color: #ea580c;">Vendor ${invoice.useVendorBalance === "credit" ? "Credit" : "Deposit"} Applied</td>
+                <td style="padding: 6px 0; text-align: right; font-family: 'Courier New', monospace; color: #ea580c;">-AED ${invoice.vendorBalanceDeducted.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+              </tr>
+              ` : ''}
+              <tr>
+                <td colspan="2" style="padding: 0;"><div style="height: 2px; background: linear-gradient(to right, #1a5632, #22c55e); margin: 8px 0; border-radius: 1px;"></div></td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-size: 11px; color: #64748b; font-weight: 500;">Grand Total</td>
+                <td style="padding: 6px 0; text-align: right; font-family: 'Courier New', monospace; font-size: 14px; font-weight: 700; color: #1e293b;">AED ${grandTotal.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; font-weight: 700; font-size: 16px; color: #1a5632;">Total Due</td>
+                <td style="padding: 8px 0; text-align: right; font-family: 'Courier New', monospace; font-size: 18px; font-weight: 800; color: #1a5632;">AED ${invoice.total.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+              </tr>
+            </table>
+            <p style="text-align: right; font-size: 11px; color: #94a3b8; margin: 2px 0 0 0; font-style: italic;">${numberToWords(invoice.total)}</p>
           </div>
         </div>
-        <div style="margin-top: 16px; padding: 12px; background-color: #f9fafb; border-radius: 8px; font-size: 0.75rem; color: #6b7280;">
-          <p style="margin: 0;">Payment Method: ${invoice.paymentMethod.charAt(0).toUpperCase() + invoice.paymentMethod.slice(1)}</p>
-          <p style="margin: 4px 0 0 0;">Status: ${invoice.status}</p>
-        </div>
-        <div style="text-align: center; margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 0.8rem; color: #1a5632; font-weight: 500;">
-          Thank you for choosing Middle Class Tourism
+
+        <!-- Footer -->
+        <div style="margin-top: 32px; padding-top: 16px; border-top: 2px solid #e2e8f0;">
+          <div style="text-align: center;">
+            <p style="margin: 0; font-size: 13px; color: #1a5632; font-weight: 600;">Thank you for choosing Middle Class Tourism</p>
+            <p style="margin: 6px 0 0 0; font-size: 10px; color: #94a3b8;">This is a computer-generated invoice.</p>
+          </div>
         </div>
       </div>
     `;
@@ -1125,140 +1171,155 @@ export default function InvoicesPage() {
 
       {/* View Invoice Dialog */}
       <Dialog open={viewInvoice !== null} onOpenChange={(open) => !open && setViewInvoice(null)}>
-        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              Invoice {viewInvoice?.invoiceNumber}
-            </DialogTitle>
-            <DialogDescription>
-              View invoice details
-            </DialogDescription>
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto p-0">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Invoice {viewInvoice?.invoiceNumber}</DialogTitle>
+            <DialogDescription>View invoice details</DialogDescription>
           </DialogHeader>
 
           {viewInvoice && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center border-b-2 border-[#1a5632] pb-4 gap-4">
+            <div className="p-8">
+              {/* Header */}
+              <div className="flex justify-between items-start">
                 <div className="flex-shrink-0">
-                  <img src={mcLogo} alt="Middle Class Tourism" className="h-16" />
+                  <img src={mcLogo} alt="Middle Class Tourism" className="h-14" />
                 </div>
-                <div className="text-right text-xs text-muted-foreground leading-relaxed">
-                  <p>Phone: 025 640 224 | 050 222 1042</p>
-                  <p>www.middleclass.ae | sales@middleclass.ae</p>
-                  <p>Address: Shop 41, Al Dhannah Traditional Souq, Al Dhannah City, Abu Dhabi {"\u2013"} UAE</p>
+                <div className="text-right">
+                  <h2 className="text-2xl font-bold tracking-widest text-[#1a5632]">INVOICE</h2>
+                  <p className="text-sm text-muted-foreground mt-1">{viewInvoice.invoiceNumber}</p>
                 </div>
               </div>
+              <div className="h-[3px] bg-gradient-to-r from-[#1a5632] via-green-500 to-[#1a5632] rounded-full mt-3 mb-5" />
 
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">
-                      {viewInvoice.customerType === "agent" ? "Agent" : "Customer"}
-                    </h3>
-                    <p className="font-medium">{getPartyName(viewInvoice)}</p>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Vendor</h3>
-                    <p className="font-medium">{getVendorName(viewInvoice.vendorId)}</p>
-                  </div>
+              {/* Company Info & Invoice Meta */}
+              <div className="flex justify-between mb-6 gap-4">
+                <div className="text-xs text-muted-foreground leading-relaxed">
+                  <p>Phone: 025 640 224 | 050 222 1042</p>
+                  <p>www.middleclass.ae | sales@middleclass.ae</p>
+                  <p>Shop 41, Al Dhannah Traditional Souq, Al Dhannah City, Abu Dhabi {"\u2013"} UAE</p>
                 </div>
-                <div className="space-y-4 text-right">
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Date</h3>
-                    <p className="font-medium">{format(new Date(viewInvoice.createdAt), "PPP")}</p>
+                <div className="text-right text-sm space-y-1">
+                  <div className="flex items-center justify-end gap-3">
+                    <span className="text-muted-foreground text-xs font-medium">Date:</span>
+                    <span className="font-semibold text-xs">{format(new Date(viewInvoice.createdAt), "MMM d, yyyy")}</span>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Status</h3>
-                    <Badge variant={getStatusBadgeVariant(viewInvoice.status)} className="capitalize">
+                  <div className="flex items-center justify-end gap-3">
+                    <span className="text-muted-foreground text-xs font-medium">Status:</span>
+                    <Badge variant={getStatusBadgeVariant(viewInvoice.status)} className="capitalize text-[10px]">
                       {viewInvoice.status}
                     </Badge>
                   </div>
+                  <div className="flex items-center justify-end gap-3">
+                    <span className="text-muted-foreground text-xs font-medium">Payment:</span>
+                    <span className="font-semibold text-xs capitalize">{viewInvoice.paymentMethod}</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="border rounded-lg overflow-hidden">
+              {/* Bill To / Vendor */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="bg-green-50 dark:bg-green-950/30 py-3 px-4">
+                  <p className="text-[10px] font-bold text-[#1a5632] uppercase tracking-wider mb-1">
+                    {viewInvoice.customerType === "agent" ? "Bill To (Agent)" : "Bill To"}
+                  </p>
+                  <p className="font-semibold text-sm">{getPartyName(viewInvoice)}</p>
+                </div>
+                <div className="bg-muted/50 py-3 px-4">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Vendor / Supplier</p>
+                  <p className="font-semibold text-sm">{getVendorName(viewInvoice.vendorId)}</p>
+                </div>
+              </div>
+
+              {/* Items Table */}
+              <div className="rounded-md overflow-hidden border mb-6">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead className="w-12">#</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead className="text-center">Qty</TableHead>
-                      <TableHead className="text-right">Unit Price</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
+                    <TableRow className="bg-[#1a5632] [&:hover]:bg-[#1a5632]" data-testid="invoice-table-header">
+                      <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide w-10">#</TableHead>
+                      <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide">Description</TableHead>
+                      <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide text-center">Qty</TableHead>
+                      <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide text-right">Unit Price</TableHead>
+                      <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide text-right">Amount</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {viewInvoice.items.map((item, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell>{idx + 1}</TableCell>
-                        <TableCell>{item.description}</TableCell>
-                        <TableCell className="text-center">{item.quantity}</TableCell>
-                        <TableCell className="text-right font-mono">{formatCurrency(item.unitPrice)}</TableCell>
-                        <TableCell className="text-right font-mono">{formatCurrency(item.quantity * item.unitPrice)}</TableCell>
+                      <TableRow key={idx} className={idx % 2 === 0 ? "" : "bg-muted/30"}>
+                        <TableCell className="text-muted-foreground text-sm">{idx + 1}</TableCell>
+                        <TableCell className="font-medium text-sm">{item.description}</TableCell>
+                        <TableCell className="text-center text-sm">{item.quantity}</TableCell>
+                        <TableCell className="text-right font-mono text-sm">{formatCurrency(item.unitPrice)}</TableCell>
+                        <TableCell className="text-right font-mono text-sm font-semibold">{formatCurrency(item.quantity * item.unitPrice)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </div>
 
-              <div className="flex justify-end">
-                <div className="w-80 space-y-2">
-                  <div className="flex justify-between py-1 border-b">
-                    <span className="text-muted-foreground">Subtotal:</span>
-                    <span className="font-mono font-medium">{formatCurrency(viewInvoice.subtotal)}</span>
-                  </div>
-                  {viewInvoice.discountAmount > 0 && (
-                    <div className="flex justify-between py-1 border-b text-green-600 dark:text-green-400">
-                      <span>Discount ({viewInvoice.discountPercent}%):</span>
-                      <span className="font-mono">-{formatCurrency(viewInvoice.discountAmount)}</span>
+              {/* Totals */}
+              <div className="flex justify-end mb-6">
+                <div className="w-80">
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between py-1">
+                      <span className="text-muted-foreground">Subtotal</span>
+                      <span className="font-mono font-medium">{formatCurrency(viewInvoice.subtotal)}</span>
                     </div>
-                  )}
-                  {viewInvoice.depositUsed > 0 && (
-                    <div className="flex justify-between py-1 border-b text-blue-600 dark:text-blue-400">
-                      <span>Deposit Applied:</span>
-                      <span className="font-mono">-{formatCurrency(viewInvoice.depositUsed)}</span>
-                    </div>
-                  )}
-                  {viewInvoice.agentCreditUsed > 0 && (
-                    <div className="flex justify-between py-1 border-b text-purple-600 dark:text-purple-400">
-                      <span>Agent Credit Applied:</span>
-                      <span className="font-mono">-{formatCurrency(viewInvoice.agentCreditUsed)}</span>
-                    </div>
-                  )}
-                  {viewInvoice.vendorBalanceDeducted > 0 && (
-                    <div className="flex justify-between py-1 border-b text-orange-600 dark:text-orange-400">
-                      <span>Vendor {viewInvoice.useVendorBalance === "credit" ? "Credit" : "Deposit"} Applied:</span>
-                      <span className="font-mono">-{formatCurrency(viewInvoice.vendorBalanceDeducted)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between py-2 border-b-2 text-lg font-bold">
-                    <span>Total Due:</span>
-                    <span className="font-mono">{formatCurrency(viewInvoice.total)}</span>
+                    {viewInvoice.discountAmount > 0 && (
+                      <div className="flex justify-between py-1 text-green-600 dark:text-green-400">
+                        <span>Discount ({viewInvoice.discountPercent}%)</span>
+                        <span className="font-mono">-{formatCurrency(viewInvoice.discountAmount)}</span>
+                      </div>
+                    )}
+                    {viewInvoice.depositUsed > 0 && (
+                      <div className="flex justify-between py-1 text-blue-600 dark:text-blue-400">
+                        <span>Deposit Applied</span>
+                        <span className="font-mono">-{formatCurrency(viewInvoice.depositUsed)}</span>
+                      </div>
+                    )}
+                    {viewInvoice.agentCreditUsed > 0 && (
+                      <div className="flex justify-between py-1 text-purple-600 dark:text-purple-400">
+                        <span>Agent Credit Applied</span>
+                        <span className="font-mono">-{formatCurrency(viewInvoice.agentCreditUsed)}</span>
+                      </div>
+                    )}
+                    {viewInvoice.vendorBalanceDeducted > 0 && (
+                      <div className="flex justify-between py-1 text-orange-600 dark:text-orange-400">
+                        <span>Vendor {viewInvoice.useVendorBalance === "credit" ? "Credit" : "Deposit"} Applied</span>
+                        <span className="font-mono">-{formatCurrency(viewInvoice.vendorBalanceDeducted)}</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="text-right text-xs text-muted-foreground mt-1 italic">
-                    {numberToWords(viewInvoice.total)}
+                  <div className="h-[2px] bg-gradient-to-r from-[#1a5632] to-green-400 rounded my-2" />
+                  <div className="flex justify-between py-1 text-xs">
+                    <span className="text-muted-foreground font-medium">Grand Total</span>
+                    <span className="font-mono font-bold">{formatCurrency(viewInvoice.subtotal - viewInvoice.discountAmount)}</span>
                   </div>
-                  <div className="flex justify-between py-2 bg-muted/50 px-2 rounded text-lg font-bold">
-                    <span>Grand Total:</span>
-                    <span className="font-mono">{formatCurrency(viewInvoice.subtotal - viewInvoice.discountAmount)}</span>
+                  <div className="flex justify-between py-2">
+                    <span className="text-[#1a5632] font-bold text-base">Total Due</span>
+                    <span className="font-mono font-extrabold text-lg text-[#1a5632]">{formatCurrency(viewInvoice.total)}</span>
                   </div>
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center pt-4 border-t">
-                <div className="text-sm text-muted-foreground">
-                  <span className="capitalize">Payment: {viewInvoice.paymentMethod}</span>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setViewInvoice(null)}>
-                    Close
-                  </Button>
+                  <p className="text-right text-[11px] text-muted-foreground italic">{numberToWords(viewInvoice.total)}</p>
                 </div>
               </div>
 
               {/* Footer */}
-              <div className="text-center pt-4 border-t text-sm text-[#1a5632] font-medium">
-                Thank you for choosing Middle Class Tourism
+              <div className="border-t-2 pt-4 flex justify-between items-center">
+                <div className="text-center flex-1">
+                  <p className="text-sm text-[#1a5632] font-semibold">Thank you for choosing Middle Class Tourism</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">This is a computer-generated invoice.</p>
+                </div>
+              </div>
+
+              <div className="flex justify-end mt-4 pt-3 border-t">
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => handleDownloadPdf(viewInvoice)} data-testid="button-download-invoice-view">
+                    <Download className="w-4 h-4 mr-2" />
+                    Download PDF
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setViewInvoice(null)}>
+                    Close
+                  </Button>
+                </div>
               </div>
             </div>
           )}
