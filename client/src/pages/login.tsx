@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, ArrowLeft, Mail, User, Lock, Plane } from "lucide-react";
+import { Loader2, ArrowLeft, Mail, User, Lock, Plane, FileText, Receipt } from "lucide-react";
 import companyLogo from "@assets/logo_optimized.png";
 
 type ViewState = "login" | "forgot" | "reset";
@@ -380,18 +380,18 @@ export default function LoginPage() {
               Comprehensive billing and management system for travel agencies
             </p>
           </div>
-          <div className="flex items-center justify-center gap-6 text-green-100/60 text-xs pt-4">
-            <div className="flex items-center gap-2">
-              <Plane className="w-3.5 h-3.5" />
-              <span>Ticketing</span>
+          <div className="flex items-center justify-center gap-4 pt-4">
+            <div className="flex flex-col items-center gap-2 bg-white/10 backdrop-blur-sm rounded-md px-5 py-3">
+              <Plane className="w-5 h-5 text-green-100/80" />
+              <span className="text-green-100/80 text-xs font-medium">Ticketing</span>
             </div>
-            <div className="w-1 h-1 rounded-full bg-green-100/30" />
-            <div className="flex items-center gap-2">
-              <span>Invoicing</span>
+            <div className="flex flex-col items-center gap-2 bg-white/10 backdrop-blur-sm rounded-md px-5 py-3">
+              <FileText className="w-5 h-5 text-green-100/80" />
+              <span className="text-green-100/80 text-xs font-medium">Invoicing</span>
             </div>
-            <div className="w-1 h-1 rounded-full bg-green-100/30" />
-            <div className="flex items-center gap-2">
-              <span>Billing</span>
+            <div className="flex flex-col items-center gap-2 bg-white/10 backdrop-blur-sm rounded-md px-5 py-3">
+              <Receipt className="w-5 h-5 text-green-100/80" />
+              <span className="text-green-100/80 text-xs font-medium">Billing</span>
             </div>
           </div>
         </div>
