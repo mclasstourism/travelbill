@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -469,7 +469,6 @@ export default function DepositsPage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-2">
-          <SidebarTrigger data-testid="button-sidebar-toggle" />
           <div>
             <h1 className="text-2xl font-semibold" data-testid="text-deposits-title">Customer Deposits</h1>
             <p className="text-sm text-muted-foreground">Track customer deposit balances and transactions</p>

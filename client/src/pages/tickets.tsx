@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import mcLogo from "@assets/image_1769840649122.png";
 import html2pdf from "html2pdf.js";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -362,7 +362,6 @@ export default function TicketsPage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-2">
-          <SidebarTrigger data-testid="button-sidebar-toggle" />
           <div>
             <h1 className="text-2xl font-semibold" data-testid="text-tickets-title">Tickets</h1>
             <p className="text-sm text-muted-foreground">Issue and manage travel tickets</p>

@@ -29,6 +29,7 @@ import {
   SidebarMenuItem,
   SidebarHeader,
   SidebarFooter,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
@@ -182,6 +183,7 @@ export function AppSidebar() {
               </div>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
+              <SidebarTrigger data-testid="button-sidebar-toggle" />
               <Button
                 variant="ghost"
                 size="icon"
