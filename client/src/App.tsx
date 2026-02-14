@@ -4,7 +4,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/lib/theme-provider";
-import { PinProvider } from "@/lib/pin-context";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -49,18 +48,16 @@ function AuthenticatedApp() {
   };
 
   return (
-    <PinProvider>
-      <SidebarProvider style={sidebarStyle as React.CSSProperties}>
-        <div className="flex h-screen w-full">
-          <AppSidebar />
-          <div className="flex flex-col flex-1 overflow-hidden">
-                        <main className="flex-1 overflow-auto bg-muted/30">
-              <Router />
-            </main>
-          </div>
+    <SidebarProvider style={sidebarStyle as React.CSSProperties}>
+      <div className="flex h-screen w-full">
+        <AppSidebar />
+        <div className="flex flex-col flex-1 overflow-hidden">
+                      <main className="flex-1 overflow-auto bg-muted/30">
+            <Router />
+          </main>
         </div>
-      </SidebarProvider>
-    </PinProvider>
+      </div>
+    </SidebarProvider>
   );
 }
 

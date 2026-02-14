@@ -1,5 +1,4 @@
 import { Link, useLocation } from "wouter";
-import { useState } from "react";
 import { useSidebar } from "@/components/ui/sidebar";
 import {
   LayoutDashboard,
@@ -9,9 +8,6 @@ import {
   Ticket,
   Wallet,
   CreditCard,
-  Settings,
-  Lock,
-  LockOpen,
   LogOut,
   BarChart3,
   Briefcase,
@@ -33,17 +29,7 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { usePin } from "@/lib/pin-context";
 import { useAuth } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme-provider";
 
@@ -72,48 +58,12 @@ const settingsItems = [
 
 export function AppSidebar() {
   const [location] = useLocation();
-  const { isAuthenticated, billCreatorName, logout: pinLogout, authenticate } = usePin();
   const { user, logout: authLogout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { setOpenMobile } = useSidebar();
-  const [showPinDialog, setShowPinDialog] = useState(false);
-  const [pinInput, setPinInput] = useState("");
-  const [pinError, setPinError] = useState("");
 
   const handleNavClick = () => {
     setOpenMobile(false);
-  };
-
-  const handleLockClick = () => {
-    if (isAuthenticated) {
-      pinLogout();
-    } else {
-      setShowPinDialog(true);
-      setPinInput("");
-      setPinError("");
-    }
-  };
-
-  const handlePinVerify = async () => {
-    try {
-      const res = await fetch("/api/auth/verify-pin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ creatorId: user?.id, pin: pinInput }),
-      });
-      
-      const data = await res.json();
-      if (res.ok && data.success) {
-        authenticate(data.billCreator);
-        setShowPinDialog(false);
-        setPinInput("");
-        setPinError("");
-      } else {
-        setPinError("Invalid PIN");
-      }
-    } catch (error) {
-      setPinError("Failed to verify PIN");
-    }
   };
 
   return (
@@ -228,27 +178,9 @@ export function AppSidebar() {
               <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
               <div className="flex items-center gap-2 min-w-0 flex-1">
                 <span className="text-sm font-medium truncate">{user.username}</span>
-                {isAuthenticated && billCreatorName !== user.username && (
-                  <Badge variant="secondary" className="text-xs flex-shrink-0">
-                    {billCreatorName}
-                  </Badge>
-                )}
               </div>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleLockClick}
-                data-testid="button-pin-toggle"
-                title={isAuthenticated ? "Lock PIN session" : "Unlock with PIN"}
-              >
-                {isAuthenticated ? (
-                  <LockOpen className="w-4 h-4 animate-pulse" />
-                ) : (
-                  <Lock className="w-4 h-4" />
-                )}
-              </Button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -276,32 +208,6 @@ export function AppSidebar() {
         )}
       </SidebarFooter>
 
-      <Dialog open={showPinDialog} onOpenChange={setShowPinDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Enter PIN to Unlock</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Input
-                type="password"
-                placeholder="Enter PIN"
-                value={pinInput}
-                onChange={(e) => setPinInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handlePinVerify()}
-                maxLength={8}
-              />
-              {pinError && <p className="text-sm text-destructive mt-2">{pinError}</p>}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPinDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handlePinVerify}>Unlock</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Sidebar>
   );
 }

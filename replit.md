@@ -1,7 +1,7 @@
 # MCT - Tourism Organizers - Billing Application
 
 ## Overview
-A comprehensive billing application for travel agencies featuring invoice management, payment tracking, customer deposits, vendor credits, ticket issuance, and PIN-based authentication for bill creators. Supports three party types: Vendors, Agents (bulk buyers), and Individual Customers.
+A comprehensive billing application for travel agencies featuring invoice management, payment tracking, customer deposits, vendor credits, and ticket issuance. Supports three party types: Vendors, Agents (bulk buyers), and Individual Customers.
 
 ## Current State
 MVP fully implemented with:
@@ -11,7 +11,6 @@ MVP fully implemented with:
 - Vendor/Supplier management with credit and deposit tracking
 - Invoice creation with party type selection (Customer or Agent), discount, multiple payment methods (cash/card/credit), and deposit usage
 - Ticket issuance with deposit deduction
-- PIN authentication for bill creators (8-digit PIN)
 - Customer deposit management with transaction history
 - Vendor credit/deposit transaction tracking
 - All currency displays in AED
@@ -41,11 +40,10 @@ MVP fully implemented with:
 - `server/routes.ts` - All API endpoints
 - `server/lib/resend.ts` - Email service for password reset
 - `client/src/App.tsx` - Main app with routing and providers
-- `client/src/lib/pin-context.tsx` - PIN authentication context
 - `client/src/lib/theme-provider.tsx` - Theme context
 
 ## Data Models
-- **User**: Staff members with username, password, role (admin/staff), and optional 8-digit PIN for bill creation
+- **User**: Staff members with username, password, and role (admin/staff)
 - **Customer**: Individual clients with deposit balance tracking
 - **Agent**: Bulk ticket buyers with credit and deposit balances
 - **Vendor**: Suppliers with credit and deposit balances, registered airlines
@@ -63,12 +61,6 @@ MVP fully implemented with:
 - Role-based access control:
   - **Admin role**: Full access including Settings
   - **Staff role**: Cannot access Settings section
-
-### PIN Authentication (Unified with User Management)
-- Staff with PIN set can create invoices and tickets
-- PIN is configured per-user in Admin Settings (no separate Bill Creators)
-- Session persists for 30 minutes in localStorage
-- Default admin has PIN "12345678"
 
 ### Invoice Creation
 - Select party type: Individual Customer or Agent

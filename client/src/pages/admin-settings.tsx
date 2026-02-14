@@ -40,16 +40,10 @@ import {
   CreditCard,
   FileText,
   Ticket,
-  Key,
   UserPlus,
   Users,
   Pencil,
-  Check,
-  X,
-  Eye,
-  EyeOff,
   Circle,
-  Mail,
   Lock,
   LogOut,
   User as UserIcon,
@@ -58,7 +52,7 @@ import type { User } from "@shared/schema";
 
 type ResetType = "finance" | "invoices" | "tickets" | null;
 
-type SafeUser = Omit<User, "password"> & { pin?: string };
+type SafeUser = Omit<User, "password">;
 
 export default function AdminSettingsPage() {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
@@ -74,18 +68,12 @@ export default function AdminSettingsPage() {
   const [newUsername, setNewUsername] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
   const [newUserEmail, setNewUserEmail] = useState("");
-  const [newUserPin, setNewUserPin] = useState("");
   const [newUserRole, setNewUserRole] = useState<"admin" | "staff">("staff");
   
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<SafeUser | null>(null);
   const [editUsername, setEditUsername] = useState("");
   const [editPassword, setEditPassword] = useState("");
-  const [editPin, setEditPin] = useState("");
-  
-  const [showNewUserPin, setShowNewUserPin] = useState(false);
-  const [showEditPin, setShowEditPin] = useState(false);
-  const [visiblePinUserIds, setVisiblePinUserIds] = useState<Set<string>>(new Set());
   
   const { toast } = useToast();
 
@@ -193,7 +181,7 @@ export default function AdminSettingsPage() {
   };
 
   const createUserMutation = useMutation({
-    mutationFn: async (data: { username: string; password: string; email?: string; role: "admin" | "staff"; pin?: string }) => {
+    mutationFn: async (data: { username: string; password: string; email?: string; role: "admin" | "staff" }) => {
       const res = await apiRequest("POST", "/api/users", data);
       if (!res.ok) {
         const err = await res.json();
@@ -207,9 +195,7 @@ export default function AdminSettingsPage() {
       setNewUsername("");
       setNewUserPassword("");
       setNewUserEmail("");
-      setNewUserPin("");
       setNewUserRole("staff");
-      setShowNewUserPin(false);
       toast({
         title: "User Created",
         description: "The new staff account has been created successfully.",
@@ -225,7 +211,7 @@ export default function AdminSettingsPage() {
   });
 
   const updateUserMutation = useMutation({
-    mutationFn: async ({ id, ...data }: { id: string; username?: string; password?: string; pin?: string }) => {
+    mutationFn: async ({ id, ...data }: { id: string; username?: string; password?: string }) => {
       const res = await apiRequest("PATCH", `/api/users/${id}`, data);
       if (!res.ok) {
         const err = await res.json();
@@ -239,8 +225,6 @@ export default function AdminSettingsPage() {
       setEditingUser(null);
       setEditUsername("");
       setEditPassword("");
-      setEditPin("");
-      setShowEditPin(false);
       toast({
         title: "User Updated",
         description: "The staff account has been updated successfully.",
@@ -293,20 +277,11 @@ export default function AdminSettingsPage() {
       });
       return;
     }
-    if (newUserPin && (newUserPin.length !== 8 || !/^\d{8}$/.test(newUserPin))) {
-      toast({
-        title: "Invalid PIN",
-        description: "PIN must be exactly 8 digits.",
-        variant: "destructive",
-      });
-      return;
-    }
     createUserMutation.mutate({
       username: newUsername,
       password: newUserPassword,
       email: newUserRole === "admin" ? (newUserEmail || undefined) : undefined,
       role: newUserRole,
-      pin: newUserPin || undefined,
     });
   };
 
@@ -314,21 +289,8 @@ export default function AdminSettingsPage() {
     setEditingUser(user);
     setEditUsername(user.username);
     setEditPassword("");
-    setEditPin(user.pin || "");
     setCurrentPassword("");
     setIsEditUserOpen(true);
-  };
-
-  const togglePinVisibility = (userId: string) => {
-    setVisiblePinUserIds((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(userId)) {
-        newSet.delete(userId);
-      } else {
-        newSet.add(userId);
-      }
-      return newSet;
-    });
   };
 
   const handleSaveUser = () => {
@@ -360,34 +322,23 @@ export default function AdminSettingsPage() {
       });
       return;
     }
-    if (editPin && (editPin.length !== 8 || !/^\d{8}$/.test(editPin))) {
-      toast({
-        title: "Invalid PIN",
-        description: "PIN must be exactly 8 digits.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     if (editingUser.role === "admin") {
       // Use change password endpoint for admin
       if (editPassword) {
         changePasswordMutation.mutate({ currentPassword, newPassword: editPassword });
       }
       // Update other fields separately if needed
-      const updates: { id: string; username?: string; pin?: string } = { id: editingUser.id };
+      const updates: { id: string; username?: string } = { id: editingUser.id };
       if (editUsername !== editingUser.username) updates.username = editUsername;
-      if (editPin !== (editingUser.pin || "")) updates.pin = editPin;
       if (Object.keys(updates).length > 1) {
         updateUserMutation.mutate(updates);
       } else if (!editPassword) {
         setIsEditUserOpen(false);
       }
     } else {
-      const updates: { id: string; username?: string; password?: string; pin?: string } = { id: editingUser.id };
+      const updates: { id: string; username?: string; password?: string } = { id: editingUser.id };
       if (editUsername !== editingUser.username) updates.username = editUsername;
       if (editPassword) updates.password = editPassword;
-      if (editPin !== (editingUser.pin || "")) updates.pin = editPin;
       updateUserMutation.mutate(updates);
     }
   };
@@ -442,7 +393,7 @@ export default function AdminSettingsPage() {
               <div>
                 <CardTitle className="text-lg text-primary">Admin Account</CardTitle>
                 <CardDescription>
-                  Manage your admin account settings including username, email, password, and PIN.
+                  Manage your admin account settings including username, email, and password.
                 </CardDescription>
               </div>
             </div>
@@ -461,34 +412,6 @@ export default function AdminSettingsPage() {
                 <div className="flex items-center gap-2">
                   <Lock className="w-4 h-4 text-muted-foreground" />
                   <span className="font-mono">••••••••</span>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">PIN</p>
-                <div className="flex items-center gap-2">
-                  <Key className="w-4 h-4 text-muted-foreground" />
-                  {user.pin ? (
-                    <>
-                      <span className="font-mono" data-testid={`text-pin-${user.username}`}>
-                        {visiblePinUserIds.has(user.id) ? user.pin : "••••"}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-5 w-5"
-                        onClick={() => togglePinVisibility(user.id)}
-                        data-testid={`button-toggle-pin-${user.username}`}
-                      >
-                        {visiblePinUserIds.has(user.id) ? (
-                          <EyeOff className="h-3 w-3 text-muted-foreground" />
-                        ) : (
-                          <Eye className="h-3 w-3 text-muted-foreground" />
-                        )}
-                      </Button>
-                    </>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
                 </div>
               </div>
             </div>
@@ -546,8 +469,7 @@ export default function AdminSettingsPage() {
               <div>
                 <CardTitle className="text-lg">Staff Management</CardTitle>
                 <CardDescription>
-                  Manage staff login accounts and bill creator PINs. Staff users cannot access Settings. 
-                  Users with a PIN can create invoices and tickets.
+                  Manage staff login accounts. Staff users cannot access Settings.
                 </CardDescription>
               </div>
             </div>
@@ -562,7 +484,6 @@ export default function AdminSettingsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Username</TableHead>
-                <TableHead>PIN</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-24">Actions</TableHead>
               </TableRow>
@@ -571,30 +492,6 @@ export default function AdminSettingsPage() {
               {users.filter(u => u.role === "staff").map((user) => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.username}</TableCell>
-                  <TableCell>
-                    {user.pin ? (
-                      <div className="flex items-center gap-1">
-                        <span className="font-mono text-sm" data-testid={`text-pin-${user.username}`}>
-                          {visiblePinUserIds.has(user.id) ? user.pin : "••••••••"}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          onClick={() => togglePinVisibility(user.id)}
-                          data-testid={`button-toggle-pin-${user.username}`}
-                        >
-                          {visiblePinUserIds.has(user.id) ? (
-                            <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
-                          ) : (
-                            <Eye className="h-3.5 w-3.5 text-muted-foreground" />
-                          )}
-                        </Button>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
                   <TableCell>
                     <Badge variant={user.active ? "default" : "secondary"}>
                       {user.active ? "Active" : "Inactive"}
@@ -625,7 +522,7 @@ export default function AdminSettingsPage() {
               ))}
               {users.filter(u => u.role === "staff").length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
                     No staff accounts found
                   </TableCell>
                 </TableRow>
@@ -640,7 +537,7 @@ export default function AdminSettingsPage() {
           <DialogHeader>
             <DialogTitle>Add New Staff</DialogTitle>
             <DialogDescription>
-              Create a new staff login account. Set a PIN to allow them to create invoices and tickets.
+              Create a new staff login account.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -664,32 +561,6 @@ export default function AdminSettingsPage() {
                 onChange={(e) => setNewUserPassword(e.target.value)}
                 data-testid="input-new-user-password"
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="new-user-pin">Bill Creator PIN (8 digits)</Label>
-              <div className="relative">
-                <Input
-                  id="new-user-pin"
-                  type={showNewUserPin ? "text" : "password"}
-                  placeholder="Enter 8-digit PIN for creating bills"
-                  value={newUserPin}
-                  onChange={(e) => setNewUserPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
-                  maxLength={8}
-                  className="pr-10"
-                  data-testid="input-new-user-pin"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                  onClick={() => setShowNewUserPin(!showNewUserPin)}
-                  data-testid="button-toggle-new-pin-visibility"
-                >
-                  {showNewUserPin ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">Required to create invoices and tickets</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="new-user-role">Role</Label>
@@ -777,32 +648,6 @@ export default function AdminSettingsPage() {
                 onChange={(e) => setEditPassword(e.target.value)}
                 data-testid="input-edit-password"
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-pin">Bill Creator PIN (8 digits)</Label>
-              <div className="relative">
-                <Input
-                  id="edit-pin"
-                  type={showEditPin ? "text" : "password"}
-                  placeholder="Enter 8-digit PIN"
-                  value={editPin}
-                  onChange={(e) => setEditPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
-                  maxLength={8}
-                  className="pr-10"
-                  data-testid="input-edit-pin"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                  onClick={() => setShowEditPin(!showEditPin)}
-                  data-testid="button-toggle-edit-pin-visibility"
-                >
-                  {showEditPin ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">Required to create invoices and tickets</p>
             </div>
           </div>
           <DialogFooter>
