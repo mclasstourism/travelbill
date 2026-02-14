@@ -32,6 +32,17 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useAuth } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme-provider";
 
@@ -196,15 +207,30 @@ export function AppSidebar() {
                   <Sun className="w-4 h-4" />
                 )}
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={authLogout}
-                data-testid="button-logout"
-                title="Sign out"
-              >
-                <LogOut className="w-4 h-4" />
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    data-testid="button-logout"
+                    title="Sign out"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Sign Out</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to sign out?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel data-testid="button-cancel-logout">No</AlertDialogCancel>
+                    <AlertDialogAction onClick={authLogout} data-testid="button-confirm-logout">Yes</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
         )}
