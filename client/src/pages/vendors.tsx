@@ -293,7 +293,7 @@ export default function VendorsPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right font-mono font-semibold">
-                        <span className="text-blue-600 dark:text-blue-400">
+                        <span className="text-green-700 dark:text-green-400">
                           {formatCurrency(vendor.creditBalance)}
                         </span>
                       </TableCell>

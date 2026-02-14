@@ -150,7 +150,7 @@ export const PrintableInvoice = forwardRef<HTMLDivElement, PrintableInvoiceProps
               </div>
             )}
             {invoice.depositUsed > 0 && (
-              <div className="flex justify-between py-1 border-b text-blue-700">
+              <div className="flex justify-between py-1 border-b text-green-700">
                 <span>Deposit Applied:</span>
                 <span className="font-mono">-{formatCurrency(invoice.depositUsed)}</span>
               </div>

@@ -764,7 +764,7 @@ export default function InvoicesPage() {
                     <div className="text-muted-foreground">Phone:</div>
                     <div data-testid="text-vendor-phone">{selectedVendor.phone || "-"}</div>
                     <div className="text-muted-foreground">Credit Balance:</div>
-                    <div className="font-semibold text-blue-600 dark:text-blue-400" data-testid="text-vendor-credit">
+                    <div className="font-semibold text-green-700 dark:text-green-400" data-testid="text-vendor-credit">
                       {formatCurrency(selectedVendor.creditBalance)}
                     </div>
                     <div className="text-muted-foreground">Deposit Balance:</div>
@@ -1107,7 +1107,7 @@ export default function InvoicesPage() {
                       </div>
                     )}
                     {calculations.depositUsed > 0 && (
-                      <div className="flex justify-between text-sm text-blue-600 dark:text-blue-400">
+                      <div className="flex justify-between text-sm text-green-700 dark:text-green-400">
                         <span>{watchCustomerType === "agent" ? "Agent" : "Customer"} Deposit Applied</span>
                         <span className="font-mono">-{formatCurrency(calculations.depositUsed)}</span>
                       </div>
@@ -1271,7 +1271,7 @@ export default function InvoicesPage() {
                       </div>
                     )}
                     {viewInvoice.depositUsed > 0 && (
-                      <div className="flex justify-between py-1 text-blue-600 dark:text-blue-400">
+                      <div className="flex justify-between py-1 text-green-700 dark:text-green-400">
                         <span>Deposit Applied</span>
                         <span className="font-mono">-{formatCurrency(viewInvoice.depositUsed)}</span>
                       </div>

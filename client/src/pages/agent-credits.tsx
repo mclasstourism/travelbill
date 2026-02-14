@@ -400,7 +400,7 @@ export default function AgentCreditsPage() {
               <CreditCard className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold font-mono text-blue-600 dark:text-blue-400">
+              <div className="text-2xl font-bold font-mono text-green-700 dark:text-green-400">
                 {formatCurrency(selectedAgent.creditBalance)}
               </div>
               <p className="text-xs text-muted-foreground">Middle class money to agent</p>
@@ -450,7 +450,7 @@ export default function AgentCreditsPage() {
                       <TableHead>Account Type</TableHead>
                       <TableHead>Transaction</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
-                      <TableHead className="text-right text-blue-600 dark:text-blue-400">Credit Given</TableHead>
+                      <TableHead className="text-right text-green-700 dark:text-green-400">Credit Given</TableHead>
                       <TableHead className="text-right text-green-600 dark:text-green-400">Deposit Received</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -485,7 +485,7 @@ export default function AgentCreditsPage() {
                           <TableCell className={`text-right font-mono font-semibold ${tx.type === "credit" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                             {tx.type === "credit" ? "+" : "-"}{formatCurrency(tx.amount)}
                           </TableCell>
-                          <TableCell className="text-right font-mono font-semibold text-blue-600 dark:text-blue-400">
+                          <TableCell className="text-right font-mono font-semibold text-green-700 dark:text-green-400">
                             {isCreditType ? formatCurrency(tx.balanceAfter) : "-"}
                           </TableCell>
                           <TableCell className="text-right font-mono font-semibold text-green-600 dark:text-green-400">
@@ -527,7 +527,7 @@ export default function AgentCreditsPage() {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 font-mono">
+            <div className="text-2xl font-bold text-green-700 dark:text-green-400 font-mono">
               {formatCurrency(totalCredits)}
             </div>
             <p className="text-xs text-muted-foreground">Credit given to agents</p>
@@ -603,7 +603,7 @@ export default function AgentCreditsPage() {
                       <TableCell className="font-medium">{agent.name}</TableCell>
                       <TableCell className="text-muted-foreground">{agent.company || "-"}</TableCell>
                       <TableCell className="text-muted-foreground">{agent.phone || "-"}</TableCell>
-                      <TableCell className="text-right font-mono font-semibold text-blue-600 dark:text-blue-400">
+                      <TableCell className="text-right font-mono font-semibold text-green-700 dark:text-green-400">
                         {formatCurrency(agent.creditBalance)}
                       </TableCell>
                       <TableCell className="text-right font-mono font-semibold text-green-600 dark:text-green-400">

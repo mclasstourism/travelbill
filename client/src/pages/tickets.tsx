@@ -799,16 +799,16 @@ export default function TicketsPage() {
 
               {/* Customer Price (auto-calculated) */}
               {calculations.faceValue > 0 && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                    <span className="text-sm font-medium text-green-800 dark:text-green-200">
                       Customer Price (Face Value)
                     </span>
-                    <span className="text-xl font-bold font-mono text-blue-600 dark:text-blue-300">
+                    <span className="text-xl font-bold font-mono text-green-700 dark:text-green-300">
                       {formatCurrency(calculations.faceValue)}
                     </span>
                   </div>
-                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                  <p className="text-xs text-green-700 dark:text-green-400 mt-1">
                     = Vendor Cost ({formatCurrency(calculations.vendorCost)}) + MC Addition ({formatCurrency(calculations.mcAddition)})
                   </p>
                 </div>
@@ -847,7 +847,7 @@ export default function TicketsPage() {
                         <span>Customer Price</span>
                         <span className="font-mono">{formatCurrency(calculations.faceValue)}</span>
                       </div>
-                      <div className="flex justify-between text-sm text-blue-600 dark:text-blue-400">
+                      <div className="flex justify-between text-sm text-green-700 dark:text-green-400">
                         <span>Customer Deposit Deducted</span>
                         <span className="font-mono">-{formatCurrency(calculations.depositDeducted)}</span>
                       </div>
@@ -909,7 +909,7 @@ export default function TicketsPage() {
                       </p>
                     )}
                     {watchUseVendorBalance === "deposit" && (
-                      <p className="text-xs text-blue-600 dark:text-blue-400">
+                      <p className="text-xs text-green-700 dark:text-green-400">
                         {formatCurrency(calculations.vendorBalanceDeducted)} will be deducted from your deposit with vendor.
                       </p>
                     )}

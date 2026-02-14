@@ -89,7 +89,7 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={location === item.url}
-                    className="hover:bg-blue-500 hover:text-white transition-colors"
+                    className="hover:bg-green-700 hover:text-white transition-colors"
                   >
                     <Link href={item.url} onClick={handleNavClick} data-testid={`link-nav-${item.title.toLowerCase()}`}>
                       <item.icon className="w-4 h-4" />
@@ -111,7 +111,7 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={location === item.url}
-                    className="hover:bg-blue-500 hover:text-white transition-colors"
+                    className="hover:bg-green-700 hover:text-white transition-colors"
                   >
                     <Link href={item.url} onClick={handleNavClick} data-testid={`link-nav-${item.title.toLowerCase().replace(" ", "-")}`}>
                       <item.icon className="w-4 h-4" />
@@ -133,7 +133,7 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={location === item.url}
-                    className="hover:bg-blue-500 hover:text-white transition-colors"
+                    className="hover:bg-green-700 hover:text-white transition-colors"
                   >
                     <Link href={item.url} onClick={handleNavClick} data-testid={`link-nav-${item.title.toLowerCase().replace(" ", "-")}`}>
                       <item.icon className="w-4 h-4" />
@@ -156,7 +156,7 @@ export function AppSidebar() {
                     <SidebarMenuButton
                       asChild
                       isActive={location === item.url}
-                      className="hover:bg-blue-500 hover:text-white transition-colors"
+                      className="hover:bg-green-700 hover:text-white transition-colors"
                     >
                       <Link href={item.url} onClick={handleNavClick} data-testid={`link-nav-${item.title.toLowerCase().replace(" ", "-")}`}>
                         <item.icon className="w-4 h-4" />
