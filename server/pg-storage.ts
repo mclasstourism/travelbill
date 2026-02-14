@@ -137,11 +137,12 @@ export class PgStorage implements IStorage {
     return this.mapUser(result[0]);
   }
 
-  async updateUser(id: string, updates: Partial<{ username: string; password: string; active: boolean }>): Promise<User | undefined> {
+  async updateUser(id: string, updates: Partial<{ username: string; password: string; active: boolean; email: string }>): Promise<User | undefined> {
     const dbUpdates: any = {};
     if (updates.username !== undefined) dbUpdates.username = updates.username;
     if (updates.password !== undefined) dbUpdates.password = bcrypt.hashSync(updates.password, 10);
     if (updates.active !== undefined) dbUpdates.active = updates.active;
+    if (updates.email !== undefined) dbUpdates.email = updates.email;
     
     if (Object.keys(dbUpdates).length === 0) {
       return this.getUser(id);

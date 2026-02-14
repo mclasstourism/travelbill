@@ -43,10 +43,12 @@ import {
   UserPlus,
   Users,
   Pencil,
-  Circle,
   Lock,
   LogOut,
   User as UserIcon,
+  ShieldCheck,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import type { User } from "@shared/schema";
 
@@ -68,18 +70,24 @@ export default function AdminSettingsPage() {
   const [newUsername, setNewUsername] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
   const [newUserEmail, setNewUserEmail] = useState("");
-  const [newUserRole, setNewUserRole] = useState<"admin" | "staff">("staff");
+  const [newUserRole, setNewUserRole] = useState<"admin" | "staff">("admin");
   
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<SafeUser | null>(null);
   const [editUsername, setEditUsername] = useState("");
   const [editPassword, setEditPassword] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+
+  const [isStaffExpanded, setIsStaffExpanded] = useState(false);
   
   const { toast } = useToast();
 
   const { data: users = [] } = useQuery<SafeUser[]>({
     queryKey: ["/api/users"],
   });
+
+  const adminUsers = users.filter(u => u.role === "admin");
+  const staffUsers = users.filter(u => u.role === "staff");
 
   const resetMutation = useMutation({
     mutationFn: async ({ type, password }: { type: string; password: string }) => {
@@ -152,34 +160,6 @@ export default function AdminSettingsPage() {
     resetMutation.mutate({ type: resetType, password: adminPassword });
   };
 
-  const handleChangePassword = () => {
-    if (!currentPassword || !newPassword) {
-      toast({
-        title: "Missing Fields",
-        description: "Please fill in all password fields.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (newPassword !== confirmNewPassword) {
-      toast({
-        title: "Passwords Don't Match",
-        description: "New password and confirmation don't match.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (newPassword.length < 6) {
-      toast({
-        title: "Password Too Short",
-        description: "New password must be at least 6 characters.",
-        variant: "destructive",
-      });
-      return;
-    }
-    changePasswordMutation.mutate({ currentPassword, newPassword });
-  };
-
   const createUserMutation = useMutation({
     mutationFn: async (data: { username: string; password: string; email?: string; role: "admin" | "staff" }) => {
       const res = await apiRequest("POST", "/api/users", data);
@@ -195,10 +175,10 @@ export default function AdminSettingsPage() {
       setNewUsername("");
       setNewUserPassword("");
       setNewUserEmail("");
-      setNewUserRole("staff");
+      setNewUserRole("admin");
       toast({
         title: "User Created",
-        description: "The new staff account has been created successfully.",
+        description: "The new account has been created successfully.",
       });
     },
     onError: (error: Error) => {
@@ -211,7 +191,7 @@ export default function AdminSettingsPage() {
   });
 
   const updateUserMutation = useMutation({
-    mutationFn: async ({ id, ...data }: { id: string; username?: string; password?: string }) => {
+    mutationFn: async ({ id, ...data }: { id: string; username?: string; password?: string; email?: string }) => {
       const res = await apiRequest("PATCH", `/api/users/${id}`, data);
       if (!res.ok) {
         const err = await res.json();
@@ -225,9 +205,11 @@ export default function AdminSettingsPage() {
       setEditingUser(null);
       setEditUsername("");
       setEditPassword("");
+      setEditEmail("");
+      setCurrentPassword("");
       toast({
         title: "User Updated",
-        description: "The staff account has been updated successfully.",
+        description: "The account has been updated successfully.",
       });
     },
     onError: (error: Error) => {
@@ -248,7 +230,7 @@ export default function AdminSettingsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       toast({
         title: "User Deleted",
-        description: "The staff account has been deleted.",
+        description: "The account has been deleted.",
       });
     },
     onError: (error: Error) => {
@@ -259,6 +241,14 @@ export default function AdminSettingsPage() {
       });
     },
   });
+
+  const handleOpenAddUser = (role: "admin" | "staff") => {
+    setNewUserRole(role);
+    setNewUsername("");
+    setNewUserPassword("");
+    setNewUserEmail("");
+    setIsAddUserOpen(true);
+  };
 
   const handleCreateUser = () => {
     if (!newUsername || !newUserPassword) {
@@ -280,7 +270,7 @@ export default function AdminSettingsPage() {
     createUserMutation.mutate({
       username: newUsername,
       password: newUserPassword,
-      email: newUserRole === "admin" ? (newUserEmail || undefined) : undefined,
+      email: newUserEmail || undefined,
       role: newUserRole,
     });
   };
@@ -289,6 +279,7 @@ export default function AdminSettingsPage() {
     setEditingUser(user);
     setEditUsername(user.username);
     setEditPassword("");
+    setEditEmail(user.email || "");
     setCurrentPassword("");
     setIsEditUserOpen(true);
   };
@@ -305,15 +296,6 @@ export default function AdminSettingsPage() {
       return;
     }
     
-    if (editingUser.role === "admin" && !currentPassword) {
-      toast({
-        title: "Current Password Required",
-        description: "Enter your current password to update admin account.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     if (editPassword && editPassword.length < 6) {
       toast({
         title: "Password Too Short",
@@ -322,25 +304,18 @@ export default function AdminSettingsPage() {
       });
       return;
     }
-    if (editingUser.role === "admin") {
-      // Use change password endpoint for admin
-      if (editPassword) {
-        changePasswordMutation.mutate({ currentPassword, newPassword: editPassword });
-      }
-      // Update other fields separately if needed
-      const updates: { id: string; username?: string } = { id: editingUser.id };
-      if (editUsername !== editingUser.username) updates.username = editUsername;
-      if (Object.keys(updates).length > 1) {
-        updateUserMutation.mutate(updates);
-      } else if (!editPassword) {
-        setIsEditUserOpen(false);
-      }
-    } else {
-      const updates: { id: string; username?: string; password?: string } = { id: editingUser.id };
-      if (editUsername !== editingUser.username) updates.username = editUsername;
-      if (editPassword) updates.password = editPassword;
-      updateUserMutation.mutate(updates);
+
+    const updates: { id: string; username?: string; password?: string; email?: string } = { id: editingUser.id };
+    if (editUsername !== editingUser.username) updates.username = editUsername;
+    if (editPassword) updates.password = editPassword;
+    if (editEmail !== (editingUser.email || "")) updates.email = editEmail;
+    
+    if (Object.keys(updates).length <= 1) {
+      setIsEditUserOpen(false);
+      return;
     }
+    
+    updateUserMutation.mutate(updates);
   };
 
   const getResetInfo = (type: ResetType) => {
@@ -380,60 +355,102 @@ export default function AdminSettingsPage() {
         <Shield className="w-8 h-8 text-primary" />
         <div>
           <h1 className="text-2xl font-semibold" data-testid="text-admin-settings-title">Admin Settings</h1>
-          <p className="text-sm text-muted-foreground">Manage staff accounts and system data</p>
+          <p className="text-sm text-muted-foreground">Manage admin accounts, staff, and system data</p>
         </div>
       </div>
 
-      {/* Admin Account Section */}
-      {users.filter(u => u.role === "admin").map((user) => (
-        <Card key={user.id}>
-          <CardHeader className="pb-4">
+      {/* Admin Users Management Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2">
-              <Circle className="w-5 h-5 text-primary" />
+              <ShieldCheck className="w-5 h-5 text-primary" />
               <div>
-                <CardTitle className="text-lg text-primary">Admin Account</CardTitle>
+                <CardTitle className="text-lg">Admin Users</CardTitle>
                 <CardDescription>
-                  Manage your admin account settings including username, email, and password.
+                  Admin users have full access to all features including settings. You can add multiple admins.
                 </CardDescription>
               </div>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 border rounded-lg">
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Username</p>
-                <div className="flex items-center gap-2">
-                  <UserIcon className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-medium">{user.username}</span>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Password</p>
-                <div className="flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-mono">••••••••</span>
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                onClick={() => handleEditUser(user)}
-                data-testid={`button-edit-account-${user.username}`}
-              >
-                <Pencil className="w-4 h-4 mr-2" />
-                Edit Account Details
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+            <Button onClick={() => handleOpenAddUser("admin")} data-testid="button-add-admin">
+              <UserPlus className="w-4 h-4 mr-2" />
+              Add Admin
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Username</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-24">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {adminUsers.map((user) => (
+                <TableRow key={user.id} data-testid={`row-admin-${user.username}`}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <UserIcon className="w-4 h-4 text-muted-foreground" />
+                      <span className="font-medium">{user.username}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {user.email || "—"}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={user.active ? "default" : "secondary"} className="text-xs">
+                      {user.active ? "Active" : "Inactive"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEditUser(user)}
+                        data-testid={`button-edit-admin-${user.username}`}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      {adminUsers.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            if (confirm("Are you sure you want to delete this admin account?")) {
+                              deleteUserMutation.mutate(user.id);
+                            }
+                          }}
+                          disabled={deleteUserMutation.isPending}
+                          data-testid={`button-delete-admin-${user.username}`}
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {adminUsers.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                    No admin accounts found
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       {/* Session Management Section */}
       <Card>
         <CardHeader className="pb-4">
           <div className="flex items-center gap-2">
-            <Circle className="w-5 h-5 text-orange-500" />
+            <LogOut className="w-5 h-5 text-orange-500" />
             <div>
               <CardTitle className="text-lg text-orange-500">Session Management</CardTitle>
               <CardDescription>
@@ -445,7 +462,7 @@ export default function AdminSettingsPage() {
         <CardContent>
           <Button
             variant="outline"
-            className="text-orange-500 border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950"
+            className="text-orange-500 border-orange-500"
             onClick={() => {
               toast({
                 title: "Sessions Cleared",
@@ -460,84 +477,113 @@ export default function AdminSettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Staff Management Section */}
+      {/* Staff Management Section (Collapsible/Optional) */}
       <Card>
-        <CardHeader>
+        <CardHeader
+          className="cursor-pointer select-none"
+          onClick={() => setIsStaffExpanded(!isStaffExpanded)}
+          data-testid="button-toggle-staff-section"
+        >
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-primary" />
+              <Users className="w-5 h-5 text-muted-foreground" />
               <div>
                 <CardTitle className="text-lg">Staff Management</CardTitle>
                 <CardDescription>
-                  Manage staff login accounts. Staff users cannot access Settings.
+                  Optional. Staff users have limited access — they cannot access Settings.
+                  {staffUsers.length > 0 && ` (${staffUsers.length} staff account${staffUsers.length > 1 ? "s" : ""})`}
                 </CardDescription>
               </div>
             </div>
-            <Button onClick={() => setIsAddUserOpen(true)} data-testid="button-add-user">
-              <UserPlus className="w-4 h-4 mr-2" />
-              Add Staff
-            </Button>
+            <div className="flex items-center gap-2">
+              {isStaffExpanded && (
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenAddUser("staff");
+                  }}
+                  data-testid="button-add-staff"
+                >
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Add Staff
+                </Button>
+              )}
+              <Button variant="ghost" size="icon">
+                {isStaffExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </Button>
+            </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Username</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-24">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.filter(u => u.role === "staff").map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.username}</TableCell>
-                  <TableCell>
-                    <Badge variant={user.active ? "default" : "secondary"}>
-                      {user.active ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEditUser(user)}
-                        data-testid={`button-edit-user-${user.username}`}
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => deleteUserMutation.mutate(user.id)}
-                        disabled={deleteUserMutation.isPending}
-                        data-testid={`button-delete-user-${user.username}`}
-                      >
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {users.filter(u => u.role === "staff").length === 0 && (
+        {isStaffExpanded && (
+          <CardContent>
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
-                    No staff accounts found
-                  </TableCell>
+                  <TableHead>Username</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="w-24">Actions</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
+              </TableHeader>
+              <TableBody>
+                {staffUsers.map((user) => (
+                  <TableRow key={user.id} data-testid={`row-staff-${user.username}`}>
+                    <TableCell className="font-medium">{user.username}</TableCell>
+                    <TableCell>
+                      <Badge variant={user.active ? "default" : "secondary"} className="text-xs">
+                        {user.active ? "Active" : "Inactive"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEditUser(user)}
+                          data-testid={`button-edit-staff-${user.username}`}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            if (confirm("Are you sure you want to delete this staff account?")) {
+                              deleteUserMutation.mutate(user.id);
+                            }
+                          }}
+                          disabled={deleteUserMutation.isPending}
+                          data-testid={`button-delete-staff-${user.username}`}
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {staffUsers.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                      No staff accounts. Add staff members if needed.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        )}
       </Card>
 
+      {/* Add User Dialog */}
       <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add New Staff</DialogTitle>
+            <DialogTitle>
+              {newUserRole === "admin" ? "Add New Admin" : "Add New Staff"}
+            </DialogTitle>
             <DialogDescription>
-              Create a new staff login account.
+              {newUserRole === "admin"
+                ? "Create a new admin account with full access to all features."
+                : "Create a new staff account with limited access."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -562,18 +608,6 @@ export default function AdminSettingsPage() {
                 data-testid="input-new-user-password"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="new-user-role">Role</Label>
-              <Select value={newUserRole} onValueChange={(v: "admin" | "staff") => setNewUserRole(v)}>
-                <SelectTrigger data-testid="select-new-user-role">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="staff">Staff (Limited Access)</SelectItem>
-                  <SelectItem value="admin">Admin (Full Access)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
             {newUserRole === "admin" && (
               <div className="space-y-2">
                 <Label htmlFor="new-user-email">Email (for password reset)</Label>
@@ -596,12 +630,13 @@ export default function AdminSettingsPage() {
               data-testid="button-create-user"
             >
               {createUserMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Create Staff
+              {newUserRole === "admin" ? "Create Admin" : "Create Staff"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* Edit User Dialog */}
       <Dialog open={isEditUserOpen} onOpenChange={setIsEditUserOpen}>
         <DialogContent>
           <DialogHeader>
@@ -609,25 +644,10 @@ export default function AdminSettingsPage() {
               {editingUser?.role === "admin" ? "Edit Admin Account" : "Edit Staff Account"}
             </DialogTitle>
             <DialogDescription>
-              {editingUser?.role === "admin" 
-                ? "Update admin account details. Current password required for security."
-                : "Update staff account details."}
+              Update account details. Leave password blank to keep the current one.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            {editingUser?.role === "admin" && (
-              <div className="space-y-2">
-                <Label htmlFor="edit-current-password">Current Password *</Label>
-                <Input
-                  id="edit-current-password"
-                  type="password"
-                  placeholder="Enter current password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  data-testid="input-edit-current-password"
-                />
-              </div>
-            )}
             <div className="space-y-2">
               <Label htmlFor="edit-username">Username</Label>
               <Input
@@ -649,12 +669,25 @@ export default function AdminSettingsPage() {
                 data-testid="input-edit-password"
               />
             </div>
+            {editingUser?.role === "admin" && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">Email (for password reset)</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  placeholder="Enter email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  data-testid="input-edit-email"
+                />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setIsEditUserOpen(false)}>Cancel</Button>
             <Button
               onClick={handleSaveUser}
-              disabled={updateUserMutation.isPending || !editUsername || (editingUser?.role === "admin" && !currentPassword)}
+              disabled={updateUserMutation.isPending || !editUsername}
               data-testid="button-save-user"
             >
               {updateUserMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}

@@ -31,7 +31,7 @@ export interface IStorage {
   getUserByPhone(phone: string): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
-  updateUser(id: string, updates: Partial<{ username: string; password: string; active: boolean }>): Promise<User | undefined>;
+  updateUser(id: string, updates: Partial<{ username: string; password: string; active: boolean; email: string }>): Promise<User | undefined>;
   deleteUser(id: string): Promise<void>;
   updateUserPassword(userId: string, newPassword: string): Promise<boolean>;
   verifyUserPassword(username: string, password: string): Promise<User | null>;
@@ -185,12 +185,13 @@ export class MemStorage implements IStorage {
     return user;
   }
 
-  async updateUser(id: string, updates: Partial<{ username: string; password: string; active: boolean }>): Promise<User | undefined> {
+  async updateUser(id: string, updates: Partial<{ username: string; password: string; active: boolean; email: string }>): Promise<User | undefined> {
     const user = this.users.get(id);
     if (!user) return undefined;
     if (updates.username !== undefined) user.username = updates.username;
     if (updates.password !== undefined) user.password = bcrypt.hashSync(updates.password, 10);
     if (updates.active !== undefined) user.active = updates.active;
+    if (updates.email !== undefined) user.email = updates.email;
     this.users.set(id, user);
     return user;
   }
