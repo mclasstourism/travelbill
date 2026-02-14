@@ -374,9 +374,9 @@ export default function LoginPage() {
             <img src={companyLogo} alt="Middle Class Tourism" className="h-20 w-auto" data-testid="img-brand-logo" />
           </div>
           <div className="space-y-3">
-            <h1 className="text-3xl font-bold text-white tracking-wide">MCT - Tourism Organizers</h1>
+            <h1 className="text-3xl font-bold text-white tracking-wide">Tourism Organizers</h1>
             <div className="h-[2px] w-24 bg-gradient-to-r from-transparent via-white/50 to-transparent mx-auto" />
-            <p className="text-green-100/80 text-sm max-w-sm mx-auto leading-relaxed">
+            <p className="text-green-100/80 text-sm mx-auto leading-relaxed whitespace-nowrap">
               Comprehensive billing and management system for travel agencies
             </p>
           </div>
@@ -395,7 +395,7 @@ export default function LoginPage() {
             </div>
           </div>
         </div>
-        <div className="absolute bottom-6 text-center text-green-100/40 text-[10px] z-10">
+        <div className="absolute bottom-6 text-center text-green-100/40 text-xs z-10">
           <p>Shop 41, Al Dhannah Traditional Souq, Al Dhannah City</p>
           <p>Abu Dhabi {"\u2013"} UAE</p>
         </div>
