@@ -52,7 +52,6 @@ export default function VendorsPage() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
   const [deletingVendor, setDeletingVendor] = useState<Vendor | null>(null);
-  const [deletePassword, setDeletePassword] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
@@ -160,8 +159,8 @@ export default function VendorsPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async ({ id, password }: { id: string; password: string }) => {
-      const res = await apiRequest("DELETE", `/api/vendors/${id}`, { password });
+    mutationFn: async ({ id }: { id: string }) => {
+      const res = await apiRequest("DELETE", `/api/vendors/${id}`);
       return res.json();
     },
     onSuccess: () => {
@@ -170,7 +169,6 @@ export default function VendorsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/vendor-transactions"] });
       setIsDeleteOpen(false);
       setDeletingVendor(null);
-      setDeletePassword("");
       toast({
         title: "Vendor deleted",
         description: "The vendor has been deleted successfully.",
@@ -179,7 +177,7 @@ export default function VendorsPage() {
     onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to delete vendor. Check admin password.",
+        description: error.message || "Failed to delete vendor.",
         variant: "destructive",
       });
     },
@@ -208,13 +206,12 @@ export default function VendorsPage() {
 
   const handleDeleteClick = (vendor: Vendor) => {
     setDeletingVendor(vendor);
-    setDeletePassword("");
     setIsDeleteOpen(true);
   };
 
   const handleConfirmDelete = () => {
-    if (!deletingVendor || !deletePassword) return;
-    deleteMutation.mutate({ id: deletingVendor.id, password: deletePassword });
+    if (!deletingVendor) return;
+    deleteMutation.mutate({ id: deletingVendor.id });
   };
 
   return (
@@ -654,7 +651,6 @@ export default function VendorsPage() {
         setIsDeleteOpen(open);
         if (!open) {
           setDeletingVendor(null);
-          setDeletePassword("");
         }
       }}>
         <DialogContent className="sm:max-w-md">
@@ -670,20 +666,6 @@ export default function VendorsPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="delete-vendor-password">Admin Password</Label>
-              <Input
-                id="delete-vendor-password"
-                type="password"
-                placeholder="Enter admin password to confirm"
-                value={deletePassword}
-                onChange={(e) => setDeletePassword(e.target.value)}
-                data-testid="input-delete-vendor-password"
-              />
-            </div>
-          </div>
-
           <DialogFooter className="gap-2">
             <Button
               variant="ghost"
@@ -695,7 +677,7 @@ export default function VendorsPage() {
             <Button
               variant="destructive"
               onClick={handleConfirmDelete}
-              disabled={deleteMutation.isPending || !deletePassword}
+              disabled={deleteMutation.isPending}
               data-testid="button-confirm-delete-vendor"
             >
               {deleteMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}

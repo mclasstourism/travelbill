@@ -51,7 +51,6 @@ export default function CustomersPage() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null);
-  const [deletePassword, setDeletePassword] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
@@ -147,8 +146,8 @@ export default function CustomersPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async ({ id, password }: { id: string; password: string }) => {
-      const res = await apiRequest("DELETE", `/api/customers/${id}`, { password });
+    mutationFn: async ({ id }: { id: string }) => {
+      const res = await apiRequest("DELETE", `/api/customers/${id}`);
       return res.json();
     },
     onSuccess: () => {
@@ -157,7 +156,6 @@ export default function CustomersPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/deposit-transactions"] });
       setIsDeleteOpen(false);
       setDeletingCustomer(null);
-      setDeletePassword("");
       toast({
         title: "Customer deleted",
         description: "The customer has been deleted successfully.",
@@ -166,7 +164,7 @@ export default function CustomersPage() {
     onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to delete customer. Check admin password.",
+        description: error.message || "Failed to delete customer.",
         variant: "destructive",
       });
     },
@@ -193,13 +191,12 @@ export default function CustomersPage() {
 
   const handleDeleteClick = (customer: Customer) => {
     setDeletingCustomer(customer);
-    setDeletePassword("");
     setIsDeleteOpen(true);
   };
 
   const handleConfirmDelete = () => {
-    if (!deletingCustomer || !deletePassword) return;
-    deleteMutation.mutate({ id: deletingCustomer.id, password: deletePassword });
+    if (!deletingCustomer) return;
+    deleteMutation.mutate({ id: deletingCustomer.id });
   };
 
   return (
@@ -566,7 +563,6 @@ export default function CustomersPage() {
         setIsDeleteOpen(open);
         if (!open) {
           setDeletingCustomer(null);
-          setDeletePassword("");
         }
       }}>
         <DialogContent className="sm:max-w-md">
@@ -582,20 +578,6 @@ export default function CustomersPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="delete-password">Admin Password</Label>
-              <Input
-                id="delete-password"
-                type="password"
-                placeholder="Enter admin password to confirm"
-                value={deletePassword}
-                onChange={(e) => setDeletePassword(e.target.value)}
-                data-testid="input-delete-customer-password"
-              />
-            </div>
-          </div>
-
           <DialogFooter className="gap-2">
             <Button
               variant="ghost"
@@ -607,7 +589,7 @@ export default function CustomersPage() {
             <Button
               variant="destructive"
               onClick={handleConfirmDelete}
-              disabled={deleteMutation.isPending || !deletePassword}
+              disabled={deleteMutation.isPending}
               data-testid="button-confirm-delete-customer"
             >
               {deleteMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}

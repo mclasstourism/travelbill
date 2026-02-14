@@ -51,7 +51,6 @@ export default function AgentsPage() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [deletingAgent, setDeletingAgent] = useState<Agent | null>(null);
-  const [deletePassword, setDeletePassword] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
@@ -150,8 +149,8 @@ export default function AgentsPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async ({ id, password }: { id: string; password: string }) => {
-      const res = await apiRequest("DELETE", `/api/agents/${id}`, { password });
+    mutationFn: async ({ id }: { id: string }) => {
+      const res = await apiRequest("DELETE", `/api/agents/${id}`);
       return res.json();
     },
     onSuccess: () => {
@@ -160,7 +159,6 @@ export default function AgentsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/agent-transactions"] });
       setIsDeleteOpen(false);
       setDeletingAgent(null);
-      setDeletePassword("");
       toast({
         title: "Agent deleted",
         description: "The agent has been deleted successfully.",
@@ -169,7 +167,7 @@ export default function AgentsPage() {
     onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to delete agent. Check admin password.",
+        description: error.message || "Failed to delete agent.",
         variant: "destructive",
       });
     },
@@ -196,13 +194,12 @@ export default function AgentsPage() {
 
   const handleDeleteClick = (agent: Agent) => {
     setDeletingAgent(agent);
-    setDeletePassword("");
     setIsDeleteOpen(true);
   };
 
   const handleConfirmDelete = () => {
-    if (!deletingAgent || !deletePassword) return;
-    deleteMutation.mutate({ id: deletingAgent.id, password: deletePassword });
+    if (!deletingAgent) return;
+    deleteMutation.mutate({ id: deletingAgent.id });
   };
 
   return (
@@ -575,7 +572,6 @@ export default function AgentsPage() {
         setIsDeleteOpen(open);
         if (!open) {
           setDeletingAgent(null);
-          setDeletePassword("");
         }
       }}>
         <DialogContent className="sm:max-w-md">
@@ -591,20 +587,6 @@ export default function AgentsPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="delete-agent-password">Admin Password</Label>
-              <Input
-                id="delete-agent-password"
-                type="password"
-                placeholder="Enter admin password to confirm"
-                value={deletePassword}
-                onChange={(e) => setDeletePassword(e.target.value)}
-                data-testid="input-delete-agent-password"
-              />
-            </div>
-          </div>
-
           <DialogFooter className="gap-2">
             <Button
               variant="ghost"
@@ -616,7 +598,7 @@ export default function AgentsPage() {
             <Button
               variant="destructive"
               onClick={handleConfirmDelete}
-              disabled={deleteMutation.isPending || !deletePassword}
+              disabled={deleteMutation.isPending}
               data-testid="button-confirm-delete-agent"
             >
               {deleteMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}

@@ -694,21 +694,8 @@ export async function registerRoutes(
     }
   });
 
-  // Delete individual party with password verification
   app.delete("/api/customers/:id", async (req, res) => {
     try {
-      const { password } = req.body;
-      if (!password) {
-        res.status(400).json({ error: "Admin password is required" });
-        return;
-      }
-
-      const user = await storage.verifyUserPassword("admin", password);
-      if (!user) {
-        res.status(401).json({ error: "Invalid admin password" });
-        return;
-      }
-
       const deleted = await storage.deleteCustomer(req.params.id);
       if (!deleted) {
         res.status(404).json({ error: "Customer not found" });
@@ -722,18 +709,6 @@ export async function registerRoutes(
 
   app.delete("/api/agents/:id", async (req, res) => {
     try {
-      const { password } = req.body;
-      if (!password) {
-        res.status(400).json({ error: "Admin password is required" });
-        return;
-      }
-
-      const user = await storage.verifyUserPassword("admin", password);
-      if (!user) {
-        res.status(401).json({ error: "Invalid admin password" });
-        return;
-      }
-
       const deleted = await storage.deleteAgent(req.params.id);
       if (!deleted) {
         res.status(404).json({ error: "Agent not found" });
@@ -747,18 +722,6 @@ export async function registerRoutes(
 
   app.delete("/api/vendors/:id", async (req, res) => {
     try {
-      const { password } = req.body;
-      if (!password) {
-        res.status(400).json({ error: "Admin password is required" });
-        return;
-      }
-
-      const user = await storage.verifyUserPassword("admin", password);
-      if (!user) {
-        res.status(401).json({ error: "Invalid admin password" });
-        return;
-      }
-
       const deleted = await storage.deleteVendor(req.params.id);
       if (!deleted) {
         res.status(404).json({ error: "Vendor not found" });
