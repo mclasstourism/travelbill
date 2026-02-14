@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, ArrowLeft, Mail } from "lucide-react";
+import { Loader2, ArrowLeft, Mail, User, Lock, Plane } from "lucide-react";
 import companyLogo from "@assets/logo_optimized.png";
 
 type ViewState = "login" | "forgot" | "reset";
@@ -161,30 +161,38 @@ export default function LoginPage() {
   };
 
   const renderLogin = () => (
-    <form onSubmit={handleLogin} className="space-y-4">
+    <form onSubmit={handleLogin} className="space-y-5">
       <div className="space-y-2">
-        <Label htmlFor="username">Username</Label>
-        <Input
-          id="username"
-          type="text"
-          placeholder="Enter your username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          disabled={isLoading}
-          data-testid="input-username"
-        />
+        <Label htmlFor="username" className="text-sm font-medium">Username</Label>
+        <div className="relative">
+          <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            id="username"
+            type="text"
+            placeholder="Enter your username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            disabled={isLoading}
+            className="pl-10"
+            data-testid="input-username"
+          />
+        </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
-        <Input
-          id="password"
-          type="password"
-          placeholder="Enter your password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          disabled={isLoading}
-          data-testid="input-password"
-        />
+        <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+        <div className="relative">
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            id="password"
+            type="password"
+            placeholder="Enter your password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={isLoading}
+            className="pl-10"
+            data-testid="input-password"
+          />
+        </div>
       </div>
       <Button
         type="submit"
@@ -201,6 +209,17 @@ export default function LoginPage() {
           "Sign In"
         )}
       </Button>
+      <div className="text-center">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setView("forgot")}
+          data-testid="link-forgot-password"
+        >
+          Forgot your password?
+        </Button>
+      </div>
     </form>
   );
 
@@ -212,6 +231,7 @@ export default function LoginPage() {
         size="sm"
         className="mb-2 -ml-2"
         onClick={() => setView("login")}
+        data-testid="button-back-to-login"
       >
         <ArrowLeft className="w-4 h-4 mr-1" />
         Back to login
@@ -261,6 +281,7 @@ export default function LoginPage() {
         size="sm"
         className="mb-2 -ml-2"
         onClick={() => setView("forgot")}
+        data-testid="button-back-to-forgot"
       >
         <ArrowLeft className="w-4 h-4 mr-1" />
         Back
@@ -324,53 +345,108 @@ export default function LoginPage() {
     </form>
   );
 
-  const getTitle = () => {
+  const getViewTitle = () => {
     switch (view) {
       case "forgot": return "Reset Password";
       case "reset": return "Create New Password";
-      default: return "MCT - Tourism Organizers";
+      default: return "Welcome Back";
     }
   };
 
-  const getDescription = () => {
+  const getViewDescription = () => {
     switch (view) {
       case "forgot": return "Enter your email to receive a reset code";
       case "reset": return "Enter the code from your email and create a new password";
-      default: return "Sign in to your account";
+      default: return "Sign in to your staff account";
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center space-y-4">
-          <div className="mx-auto">
+    <div className="min-h-screen flex">
+      {/* Left Panel - Brand */}
+      <div className="hidden lg:flex lg:w-1/2 bg-[#1a5632] relative flex-col items-center justify-center p-12 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#1a5632] via-[#1e6b3c] to-[#0f3d20]" />
+        <div className="absolute inset-0 opacity-[0.04]" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+        }} />
+        <div className="relative z-10 text-center space-y-8">
+          <div className="bg-white/10 backdrop-blur-sm rounded-md p-6 inline-block">
+            <img src={companyLogo} alt="Middle Class Tourism" className="h-20 w-auto" data-testid="img-brand-logo" />
+          </div>
+          <div className="space-y-3">
+            <h1 className="text-3xl font-bold text-white tracking-wide">MCT - Tourism Organizers</h1>
+            <div className="h-[2px] w-24 bg-gradient-to-r from-transparent via-white/50 to-transparent mx-auto" />
+            <p className="text-green-100/80 text-sm max-w-sm mx-auto leading-relaxed">
+              Comprehensive billing and management system for travel agencies
+            </p>
+          </div>
+          <div className="flex items-center justify-center gap-6 text-green-100/60 text-xs pt-4">
+            <div className="flex items-center gap-2">
+              <Plane className="w-3.5 h-3.5" />
+              <span>Ticketing</span>
+            </div>
+            <div className="w-1 h-1 rounded-full bg-green-100/30" />
+            <div className="flex items-center gap-2">
+              <span>Invoicing</span>
+            </div>
+            <div className="w-1 h-1 rounded-full bg-green-100/30" />
+            <div className="flex items-center gap-2">
+              <span>Billing</span>
+            </div>
+          </div>
+        </div>
+        <div className="absolute bottom-6 text-center text-green-100/40 text-[10px] z-10">
+          <p>Shop 41, Al Dhannah Traditional Souq, Al Dhannah City</p>
+          <p>Abu Dhabi {"\u2013"} UAE</p>
+        </div>
+      </div>
+
+      {/* Right Panel - Login Form */}
+      <div className="flex-1 flex items-center justify-center bg-background p-6">
+        <div className="w-full max-w-sm space-y-8">
+          {/* Mobile logo */}
+          <div className="lg:hidden text-center space-y-4">
             <img 
               src={companyLogo} 
               alt="MCT - Tourism Organizers" 
-              className="h-16 w-auto object-contain"
+              className="h-14 w-auto mx-auto"
               data-testid="img-company-logo"
             />
+            <div className="h-[2px] w-16 bg-gradient-to-r from-transparent via-[#1a5632]/40 to-transparent mx-auto" />
           </div>
-          <div>
-            <CardTitle className="text-2xl">{getTitle()}</CardTitle>
-            <CardDescription className="mt-2">
-              {getDescription()}
-            </CardDescription>
+
+          {/* Heading */}
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold tracking-tight" data-testid="text-login-title">{getViewTitle()}</h2>
+            <p className="text-sm text-muted-foreground">{getViewDescription()}</p>
           </div>
-        </CardHeader>
-        <CardContent>
-          {view === "login" && renderLogin()}
-          {view === "forgot" && renderForgotPassword()}
-          {view === "reset" && renderResetPassword()}
-          
+
+          {/* Form Card */}
+          <Card>
+            <CardContent className="pt-6">
+              {view === "login" && renderLogin()}
+              {view === "forgot" && renderForgotPassword()}
+              {view === "reset" && renderResetPassword()}
+            </CardContent>
+          </Card>
+
           {view === "login" && (
-            <div className="mt-6 text-center text-sm text-muted-foreground">
-              <p>Contact your administrator if you need access</p>
-            </div>
+            <p className="text-center text-xs text-muted-foreground">
+              Contact your administrator if you need access
+            </p>
           )}
-        </CardContent>
-      </Card>
+
+          {/* Footer info */}
+          <div className="text-center space-y-1 pt-4">
+            <p className="text-[10px] text-muted-foreground/60">
+              www.middleclass.ae | sales@middleclass.ae
+            </p>
+            <p className="text-[10px] text-muted-foreground/60">
+              025 640 224 | 050 222 1042
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
