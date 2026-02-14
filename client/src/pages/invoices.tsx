@@ -2,8 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { usePin } from "@/lib/pin-context";
-import { PinModal } from "@/components/pin-modal";
+import { useAuth } from "@/lib/auth-context";
 import html2pdf from "html2pdf.js";
 import mcLogo from "@assets/image_1769840649122.png";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -54,7 +53,6 @@ import {
   Banknote,
   CreditCard,
   Wallet,
-  Lock,
   Download,
   Eye,
 } from "lucide-react";
@@ -123,11 +121,10 @@ type CreateInvoiceForm = z.infer<typeof createInvoiceFormSchema>;
 
 export default function InvoicesPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
   const { toast } = useToast();
-  const { isAuthenticated, session } = usePin();
+  const { user } = useAuth();
 
   const { data: invoices = [], isLoading } = useQuery<Invoice[]>({
     queryKey: ["/api/invoices"],
@@ -375,22 +372,10 @@ export default function InvoicesPage() {
   );
 
   const handleCreateClick = () => {
-    if (!isAuthenticated) {
-      setIsPinModalOpen(true);
-    } else {
-      setIsCreateOpen(true);
-    }
+    setIsCreateOpen(true);
   };
 
   const onSubmit = (data: CreateInvoiceForm) => {
-    if (!isAuthenticated || !session) {
-      toast({
-        title: "Authentication required",
-        description: "Please authenticate with PIN first",
-        variant: "destructive",
-      });
-      return;
-    }
 
     // Calculate values from submitted form data directly
     const subtotal = data.items.reduce((sum, item) => {
@@ -443,7 +428,7 @@ export default function InvoicesPage() {
       useVendorBalance: data.useVendorBalance,
       vendorBalanceDeducted,
       notes: data.notes || "",
-      issuedBy: session.billCreatorId,
+      issuedBy: user?.id || "",
     };
 
     createMutation.mutate(invoiceData);
@@ -460,7 +445,6 @@ export default function InvoicesPage() {
           </div>
         </div>
         <Button onClick={handleCreateClick} data-testid="button-create-invoice">
-          {!isAuthenticated && <Lock className="w-4 h-4 mr-2" />}
           <Plus className="w-4 h-4 mr-2" />
           Create Invoice
         </Button>
@@ -561,12 +545,6 @@ export default function InvoicesPage() {
           )}
         </CardContent>
       </Card>
-
-      <PinModal
-        open={isPinModalOpen}
-        onOpenChange={setIsPinModalOpen}
-        onSuccess={() => setIsCreateOpen(true)}
-      />
 
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">

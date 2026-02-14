@@ -2,10 +2,9 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { usePin } from "@/lib/pin-context";
+import { useAuth } from "@/lib/auth-context";
 import mcLogo from "@assets/image_1769840649122.png";
 import html2pdf from "html2pdf.js";
-import { PinModal } from "@/components/pin-modal";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
@@ -43,7 +42,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Ticket as TicketIcon, Search, Loader2, Lock, Calendar, Plane, Eye, Download } from "lucide-react";
+import { Plus, Ticket as TicketIcon, Search, Loader2, Calendar, Plane, Eye, Download } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
@@ -94,11 +93,10 @@ type CreateTicketForm = z.infer<typeof createTicketFormSchema>;
 
 export default function TicketsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewTicket, setViewTicket] = useState<Ticket | null>(null);
   const { toast } = useToast();
-  const { isAuthenticated, session } = usePin();
+  const { user } = useAuth();
 
   const { data: tickets = [], isLoading } = useQuery<Ticket[]>({
     queryKey: ["/api/tickets"],
@@ -206,22 +204,10 @@ export default function TicketsPage() {
   );
 
   const handleCreateClick = () => {
-    if (!isAuthenticated) {
-      setIsPinModalOpen(true);
-    } else {
-      setIsCreateOpen(true);
-    }
+    setIsCreateOpen(true);
   };
 
   const onSubmit = (data: CreateTicketForm) => {
-    if (!isAuthenticated || !session) {
-      toast({
-        title: "Authentication required",
-        description: "Please authenticate with PIN first",
-        variant: "destructive",
-      });
-      return;
-    }
 
     const vendorCost = Number(data.vendorCost) || 0;
     const mcAddition = Number(data.mcAddition) || 0;
@@ -248,7 +234,7 @@ export default function TicketsPage() {
       depositDeducted,
       useVendorBalance: data.useVendorBalance,
       vendorBalanceDeducted,
-      issuedBy: session.billCreatorId,
+      issuedBy: user?.id || "",
     };
 
     createMutation.mutate(ticketData);
@@ -340,7 +326,6 @@ export default function TicketsPage() {
           </div>
         </div>
         <Button onClick={handleCreateClick} data-testid="button-issue-ticket">
-          {!isAuthenticated && <Lock className="w-4 h-4 mr-2" />}
           <Plus className="w-4 h-4 mr-2" />
           Issue Ticket
         </Button>
@@ -440,12 +425,6 @@ export default function TicketsPage() {
           )}
         </CardContent>
       </Card>
-
-      <PinModal
-        open={isPinModalOpen}
-        onOpenChange={setIsPinModalOpen}
-        onSuccess={() => setIsCreateOpen(true)}
-      />
 
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
