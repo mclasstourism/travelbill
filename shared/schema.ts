@@ -11,7 +11,6 @@ export const usersTable = pgTable("users", {
   phone: varchar("phone", { length: 50 }),
   passwordHint: text("password_hint"),
   role: varchar("role", { length: 20 }).default("staff"),
-  pin: varchar("pin", { length: 8 }),
   active: boolean("active").default(true),
 });
 
@@ -21,13 +20,6 @@ export const passwordResetTokensTable = pgTable("password_reset_tokens", {
   token: varchar("token", { length: 10 }).notNull(),
   expiresAt: timestamp("expires_at").notNull(),
   used: boolean("used").default(false),
-});
-
-export const billCreatorsTable = pgTable("bill_creators", {
-  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
-  name: varchar("name", { length: 255 }).notNull(),
-  pin: varchar("pin", { length: 8 }).notNull(),
-  active: boolean("active").default(true),
 });
 
 export const customersTable = pgTable("customers", {
@@ -157,27 +149,6 @@ export const agentTransactionsTable = pgTable("agent_transactions", {
   balanceAfter: real("balance_after").default(0),
   createdAt: timestamp("created_at").defaultNow(),
 });
-
-// Bill Creators (staff who can create invoices with PIN auth)
-export const billCreators = {
-  id: "",
-  name: "",
-  pin: "", // 4-digit PIN stored as hashed
-  active: true,
-};
-
-export const insertBillCreatorSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  pin: z.string().length(8, "PIN must be 8 digits").regex(/^\d{8}$/, "PIN must be 8 numeric digits"),
-});
-
-export type InsertBillCreator = z.infer<typeof insertBillCreatorSchema>;
-export type BillCreator = {
-  id: string;
-  name: string;
-  pin: string;
-  active: boolean;
-};
 
 // Customers
 export const insertCustomerSchema = z.object({
@@ -431,21 +402,6 @@ export type DashboardMetrics = {
   recentTickets: Ticket[];
 };
 
-// PIN session for authentication
-export type PinSession = {
-  billCreatorId: string;
-  billCreatorName: string;
-  authenticated: boolean;
-  expiresAt: number;
-};
-
-// Keep existing user schema for compatibility
-export const users = {
-  id: "",
-  username: "",
-  password: "",
-};
-
 export const insertUserSchema = z.object({
   username: z.string().min(1),
   password: z.string().min(1),
@@ -453,7 +409,6 @@ export const insertUserSchema = z.object({
   phone: z.string().optional(),
   passwordHint: z.string().optional(),
   role: z.enum(["admin", "staff"]).default("staff"),
-  pin: z.string().length(8, "PIN must be 8 digits").regex(/^\d{8}$/, "PIN must be 8 numeric digits").optional(),
   active: z.boolean().default(true),
 });
 
@@ -466,7 +421,6 @@ export type User = {
   phone?: string;
   passwordHint?: string;
   role: "admin" | "staff";
-  pin?: string;
   active: boolean;
 };
 

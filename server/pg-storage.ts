@@ -10,8 +10,6 @@ import {
   type InsertAgent,
   type Vendor,
   type InsertVendor,
-  type BillCreator,
-  type InsertBillCreator,
   type Invoice,
   type InsertInvoice,
   type Ticket,
@@ -61,7 +59,6 @@ export class PgStorage implements IStorage {
     // Check if admin user exists
     const existingUsers = await db.select().from(schema.usersTable);
     if (existingUsers.length === 0) {
-      // Create default admin user (password: admin123, PIN: 12345678, role: admin)
       const hashedPassword = bcrypt.hashSync("admin123", 10);
       await db.insert(schema.usersTable).values({
         username: "admin",
@@ -69,18 +66,16 @@ export class PgStorage implements IStorage {
         email: "admin@example.com",
         passwordHint: "Default password is admin followed by 123",
         role: "admin",
-        pin: "12345678",
         active: true,
       });
-      console.log("Created default admin user (username: admin, password: admin123, PIN: 12345678)");
+      console.log("Created default admin user (username: admin, password: admin123)");
     } else {
-      // Ensure existing admin user has role and PIN set
       const adminUser = existingUsers.find(u => u.username === "admin");
-      if (adminUser && (!adminUser.role || !adminUser.pin)) {
+      if (adminUser && !adminUser.role) {
         await db.update(schema.usersTable)
-          .set({ role: "admin", pin: adminUser.pin || "12345678", active: true })
+          .set({ role: "admin", active: true })
           .where(eq(schema.usersTable.username, "admin"));
-        console.log("Updated admin user with role and PIN");
+        console.log("Updated admin user with role");
       }
     }
   }
@@ -119,7 +114,6 @@ export class PgStorage implements IStorage {
       phone: row.phone || undefined,
       passwordHint: row.passwordHint || undefined,
       role: (row.role as "admin" | "staff") || "staff",
-      pin: row.pin || undefined,
       active: row.active ?? true,
     };
   }
@@ -138,17 +132,15 @@ export class PgStorage implements IStorage {
       phone: insertUser.phone,
       passwordHint: insertUser.passwordHint,
       role: insertUser.role || "staff",
-      pin: insertUser.pin,
       active: insertUser.active ?? true,
     }).returning();
     return this.mapUser(result[0]);
   }
 
-  async updateUser(id: string, updates: Partial<{ username: string; password: string; pin: string | null; active: boolean }>): Promise<User | undefined> {
+  async updateUser(id: string, updates: Partial<{ username: string; password: string; active: boolean }>): Promise<User | undefined> {
     const dbUpdates: any = {};
     if (updates.username !== undefined) dbUpdates.username = updates.username;
     if (updates.password !== undefined) dbUpdates.password = bcrypt.hashSync(updates.password, 10);
-    if (updates.pin !== undefined) dbUpdates.pin = updates.pin;
     if (updates.active !== undefined) dbUpdates.active = updates.active;
     
     if (Object.keys(dbUpdates).length === 0) {
@@ -158,13 +150,6 @@ export class PgStorage implements IStorage {
     const result = await db.update(schema.usersTable).set(dbUpdates).where(eq(schema.usersTable.id, id)).returning();
     if (result.length === 0) return undefined;
     return this.mapUser(result[0]);
-  }
-
-  async verifyUserPin(userId: string, pin: string): Promise<User | undefined> {
-    const user = await this.getUser(userId);
-    if (!user || !user.pin || !user.active) return undefined;
-    if (user.pin !== pin) return undefined;
-    return user;
   }
 
   async deleteUser(id: string): Promise<void> {
@@ -226,45 +211,6 @@ export class PgStorage implements IStorage {
 
   async markTokenUsed(tokenId: string): Promise<void> {
     await db.update(schema.passwordResetTokensTable).set({ used: true }).where(eq(schema.passwordResetTokensTable.id, tokenId));
-  }
-
-  // Bill Creators
-  async getBillCreators(): Promise<BillCreator[]> {
-    const result = await db.select().from(schema.billCreatorsTable);
-    return result.map(row => ({
-      id: row.id,
-      name: row.name,
-      pin: row.pin,
-      active: row.active ?? true,
-    }));
-  }
-
-  async getBillCreator(id: string): Promise<BillCreator | undefined> {
-    const result = await db.select().from(schema.billCreatorsTable).where(eq(schema.billCreatorsTable.id, id));
-    if (result.length === 0) return undefined;
-    const row = result[0];
-    return { id: row.id, name: row.name, pin: row.pin, active: row.active ?? true };
-  }
-
-  async createBillCreator(creator: InsertBillCreator): Promise<BillCreator> {
-    const result = await db.insert(schema.billCreatorsTable).values({
-      name: creator.name,
-      pin: creator.pin,
-      active: true,
-    }).returning();
-    return { id: result[0].id, name: result[0].name, pin: result[0].pin, active: result[0].active ?? true };
-  }
-
-  async updateBillCreator(id: string, updates: Partial<BillCreator>): Promise<BillCreator | undefined> {
-    const result = await db.update(schema.billCreatorsTable).set(updates).where(eq(schema.billCreatorsTable.id, id)).returning();
-    if (result.length === 0) return undefined;
-    return { id: result[0].id, name: result[0].name, pin: result[0].pin, active: result[0].active ?? true };
-  }
-
-  async verifyPin(creatorId: string, pin: string): Promise<BillCreator | undefined> {
-    const creator = await this.getBillCreator(creatorId);
-    if (!creator || creator.pin !== pin || !creator.active) return undefined;
-    return creator;
   }
 
   // Customers

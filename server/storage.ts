@@ -7,8 +7,6 @@ import {
   type InsertAgent,
   type Vendor,
   type InsertVendor,
-  type BillCreator,
-  type InsertBillCreator,
   type Invoice,
   type InsertInvoice,
   type Ticket,
@@ -33,24 +31,16 @@ export interface IStorage {
   getUserByPhone(phone: string): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
-  updateUser(id: string, updates: Partial<{ username: string; password: string; pin: string | null; active: boolean }>): Promise<User | undefined>;
+  updateUser(id: string, updates: Partial<{ username: string; password: string; active: boolean }>): Promise<User | undefined>;
   deleteUser(id: string): Promise<void>;
   updateUserPassword(userId: string, newPassword: string): Promise<boolean>;
   verifyUserPassword(username: string, password: string): Promise<User | null>;
-  verifyUserPin(userId: string, pin: string): Promise<User | undefined>;
   getPasswordHint(username: string): Promise<string | null>;
   
   // Password Reset
   createPasswordResetToken(userId: string): Promise<PasswordResetToken>;
   getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined>;
   markTokenUsed(tokenId: string): Promise<void>;
-
-  // Bill Creators
-  getBillCreators(): Promise<BillCreator[]>;
-  getBillCreator(id: string): Promise<BillCreator | undefined>;
-  createBillCreator(creator: InsertBillCreator): Promise<BillCreator>;
-  updateBillCreator(id: string, updates: Partial<BillCreator>): Promise<BillCreator | undefined>;
-  verifyPin(creatorId: string, pin: string): Promise<BillCreator | undefined>;
 
   // Customers
   getCustomers(): Promise<Customer[]>;
@@ -115,7 +105,6 @@ export interface IStorage {
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
   private passwordResetTokens: Map<string, PasswordResetToken>;
-  private billCreators: Map<string, BillCreator>;
   private customers: Map<string, Customer>;
   private agents: Map<string, Agent>;
   private vendors: Map<string, Vendor>;
@@ -130,7 +119,6 @@ export class MemStorage implements IStorage {
   constructor() {
     this.users = new Map();
     this.passwordResetTokens = new Map();
-    this.billCreators = new Map();
     this.customers = new Map();
     this.agents = new Map();
     this.vendors = new Map();
@@ -142,15 +130,6 @@ export class MemStorage implements IStorage {
     this.invoiceCounter = 1000;
     this.ticketCounter = 1000;
 
-    // Seed with a default bill creator for testing
-    const defaultCreatorId = randomUUID();
-    this.billCreators.set(defaultCreatorId, {
-      id: defaultCreatorId,
-      name: "Admin",
-      pin: "12345678",
-      active: true,
-    });
-
     // Seed with a default staff user (password: admin123)
     const defaultUserId = randomUUID();
     const hashedPassword = bcrypt.hashSync("admin123", 10);
@@ -161,6 +140,7 @@ export class MemStorage implements IStorage {
       email: "admin@example.com",
       passwordHint: "Default password is admin followed by 123",
       role: "admin",
+      active: true,
     });
   }
 
@@ -199,19 +179,17 @@ export class MemStorage implements IStorage {
       password: hashedPassword, 
       id,
       role: insertUser.role || "staff",
-      pin: insertUser.pin,
       active: insertUser.active ?? true,
     };
     this.users.set(id, user);
     return user;
   }
 
-  async updateUser(id: string, updates: Partial<{ username: string; password: string; pin: string | null; active: boolean }>): Promise<User | undefined> {
+  async updateUser(id: string, updates: Partial<{ username: string; password: string; active: boolean }>): Promise<User | undefined> {
     const user = this.users.get(id);
     if (!user) return undefined;
     if (updates.username !== undefined) user.username = updates.username;
     if (updates.password !== undefined) user.password = bcrypt.hashSync(updates.password, 10);
-    if (updates.pin !== undefined) user.pin = updates.pin || undefined;
     if (updates.active !== undefined) user.active = updates.active;
     this.users.set(id, user);
     return user;
@@ -235,13 +213,6 @@ export class MemStorage implements IStorage {
     if (!user) return null;
     const isValid = bcrypt.compareSync(password, user.password);
     if (!isValid) return null;
-    return user;
-  }
-
-  async verifyUserPin(userId: string, pin: string): Promise<User | undefined> {
-    const user = this.users.get(userId);
-    if (!user || !user.pin || !user.active) return undefined;
-    if (user.pin !== pin) return undefined;
     return user;
   }
 
@@ -278,44 +249,6 @@ export class MemStorage implements IStorage {
       token.used = true;
       this.passwordResetTokens.set(tokenId, token);
     }
-  }
-
-  // Bill Creators
-  async getBillCreators(): Promise<BillCreator[]> {
-    return Array.from(this.billCreators.values());
-  }
-
-  async getBillCreator(id: string): Promise<BillCreator | undefined> {
-    return this.billCreators.get(id);
-  }
-
-  async createBillCreator(creator: InsertBillCreator): Promise<BillCreator> {
-    const id = randomUUID();
-    const billCreator: BillCreator = {
-      id,
-      name: creator.name,
-      pin: creator.pin,
-      active: true,
-    };
-    this.billCreators.set(id, billCreator);
-    return billCreator;
-  }
-
-  async updateBillCreator(id: string, updates: Partial<BillCreator>): Promise<BillCreator | undefined> {
-    const creator = this.billCreators.get(id);
-    if (!creator) return undefined;
-    const updated = { ...creator, ...updates };
-    this.billCreators.set(id, updated);
-    return updated;
-  }
-
-  async verifyPin(creatorId: string, pin: string): Promise<BillCreator | undefined> {
-    const creator = this.billCreators.get(creatorId);
-    if (!creator || !creator.active) return undefined;
-    if (creator.pin === pin) {
-      return creator;
-    }
-    return undefined;
   }
 
   // Customers

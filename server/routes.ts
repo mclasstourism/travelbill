@@ -84,39 +84,12 @@ export async function registerRoutes(
     }
   });
 
-  // Get current user's PIN status (for PIN modal)
-  app.get("/api/users/me/pin-status", async (req, res) => {
-    try {
-      const { userId } = req.query;
-      if (!userId || typeof userId !== "string") {
-        res.status(400).json({ error: "User ID required" });
-        return;
-      }
-      const user = await storage.getUser(userId);
-      if (!user) {
-        res.status(404).json({ error: "User not found" });
-        return;
-      }
-      res.json({ 
-        hasPin: !!user.pin, 
-        active: user.active,
-        username: user.username 
-      });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch PIN status" });
-    }
-  });
-
   // Create new user (admin only)
   app.post("/api/users", async (req, res) => {
     try {
-      const { username, password, email, role, pin } = req.body;
+      const { username, password, email, role } = req.body;
       if (!username || !password) {
         res.status(400).json({ error: "Username and password are required" });
-        return;
-      }
-      if (pin && (pin.length !== 8 || !/^\d{8}$/.test(pin))) {
-        res.status(400).json({ error: "PIN must be 8 numeric digits" });
         return;
       }
       const user = await storage.createUser({
@@ -124,7 +97,6 @@ export async function registerRoutes(
         password,
         email: email || undefined,
         role: role || "staff",
-        pin: pin || undefined,
         active: true,
       });
       const { password: _, ...safeUser } = user;
@@ -142,17 +114,11 @@ export async function registerRoutes(
   app.patch("/api/users/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const { username, password, pin, active } = req.body;
-      
-      if (pin !== undefined && pin !== "" && (pin.length !== 8 || !/^\d{8}$/.test(pin))) {
-        res.status(400).json({ error: "PIN must be 8 numeric digits" });
-        return;
-      }
+      const { username, password, active } = req.body;
       
       const updates: any = {};
       if (username !== undefined) updates.username = username;
       if (password !== undefined && password !== "") updates.password = password;
-      if (pin !== undefined) updates.pin = pin === "" ? null : pin;
       if (active !== undefined) updates.active = active;
       
       const user = await storage.updateUser(id, updates);
@@ -245,39 +211,6 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Password reset error:", error);
       res.status(500).json({ success: false, error: "Failed to reset password" });
-    }
-  });
-
-  // PIN Authentication (now uses user's PIN instead of separate bill creator)
-  app.post("/api/auth/verify-pin", async (req, res) => {
-    try {
-      const { creatorId, pin } = req.body;
-      if (!creatorId || !pin) {
-        res.status(400).json({ error: "User ID and PIN are required" });
-        return;
-      }
-      const verified = await storage.verifyUserPin(creatorId, pin);
-      if (verified) {
-        const { password: _, pin: __, ...sanitized } = verified;
-        res.json({ success: true, billCreator: { id: sanitized.id, name: sanitized.username, active: sanitized.active } });
-      } else {
-        res.status(401).json({ success: false, error: "Invalid PIN" });
-      }
-    } catch (error) {
-      res.status(500).json({ error: "Authentication failed" });
-    }
-  });
-
-  // Get users with PINs (for bill creator selection)
-  app.get("/api/bill-creators-from-users", async (req, res) => {
-    try {
-      const users = await storage.getAllUsers();
-      const billCreators = users
-        .filter(u => u.pin && u.active)
-        .map(u => ({ id: u.id, name: u.username, active: u.active }));
-      res.json(billCreators);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch bill creators" });
     }
   });
 
@@ -757,42 +690,6 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Change password error:", error);
       res.status(500).json({ error: "Failed to change password" });
-    }
-  });
-
-  // Change Bill Creator PIN
-  app.post("/api/admin/change-pin", async (req, res) => {
-    try {
-      const { billCreatorId, currentPin, newPin } = req.body;
-      
-      if (!billCreatorId || !currentPin || !newPin) {
-        res.status(400).json({ error: "Bill creator, current PIN, and new PIN are required" });
-        return;
-      }
-
-      if (!/^\d{8}$/.test(newPin)) {
-        res.status(400).json({ error: "New PIN must be exactly 8 digits" });
-        return;
-      }
-
-      // Verify current PIN
-      const billCreator = await storage.verifyPin(billCreatorId, currentPin);
-      if (!billCreator) {
-        res.status(401).json({ error: "Current PIN is incorrect" });
-        return;
-      }
-
-      // Update PIN
-      const updated = await storage.updateBillCreator(billCreatorId, { pin: newPin });
-      if (!updated) {
-        res.status(500).json({ error: "Failed to update PIN" });
-        return;
-      }
-
-      res.json({ success: true, message: "PIN changed successfully" });
-    } catch (error) {
-      console.error("Change PIN error:", error);
-      res.status(500).json({ error: "Failed to change PIN" });
     }
   });
 
