@@ -36,9 +36,18 @@ export class PgStorage implements IStorage {
   }
 
   private async initialize() {
+    await this.runOneTimeCleanup();
     await this.initializeCounters();
     await this.seedDefaultData();
     this.initialized = true;
+  }
+
+  private async runOneTimeCleanup() {
+    if (process.env.RUN_CLEANUP === "true") {
+      console.log("Running one-time data cleanup...");
+      await this.cleanupAllData();
+      console.log("Data cleanup complete.");
+    }
   }
 
   private async initializeCounters() {
