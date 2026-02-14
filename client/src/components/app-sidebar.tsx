@@ -190,7 +190,11 @@ export function AppSidebar() {
                 data-testid="button-theme-toggle"
                 title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
               >
-                <Smartphone className="w-4 h-4" />
+                {theme === "light" ? (
+                  <Moon className="w-4 h-4" />
+                ) : (
+                  <Sun className="w-4 h-4" />
+                )}
               </Button>
               <Button
                 variant="ghost"
