@@ -1070,8 +1070,8 @@ export class PgStorage implements IStorage {
     await db.delete(schema.depositTransactionsTable);
     await db.delete(schema.vendorTransactionsTable);
     await db.delete(schema.agentTransactionsTable);
-    await db.update(schema.customersTable).set({ depositBalance: 0 });
-    await db.update(schema.agentsTable).set({ creditBalance: 0, depositBalance: 0 });
-    await db.update(schema.vendorsTable).set({ creditBalance: 0, depositBalance: 0 });
+    await db.delete(schema.customersTable);
+    await db.delete(schema.agentsTable);
+    await db.delete(schema.vendorsTable);
   }
 }
