@@ -247,8 +247,7 @@ export default function AgentCreditsPage() {
           </style>
         </head>
         <body>
-          <h1>Middle Class Tourism</h1>
-          <p style="text-align: center; color: #666; font-style: italic; margin-top: 0;">become your trusted travel partner</p>
+          <h1>MCT - Tourism Organizers</h1>
           <h2 style="text-align: center;">Agent Transaction History</h2>
           <h3 style="text-align: center; margin-top: 5px;">${selectedAgent.name}${selectedAgent.company ? ` - ${selectedAgent.company}` : ""}</h3>
           <p class="date-range">${dateRangeText}</p>

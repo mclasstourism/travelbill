@@ -328,7 +328,7 @@ export default function LoginPage() {
     switch (view) {
       case "forgot": return "Reset Password";
       case "reset": return "Create New Password";
-      default: return "TravelBill";
+      default: return "MCT - Tourism Organizers";
     }
   };
 
@@ -336,7 +336,7 @@ export default function LoginPage() {
     switch (view) {
       case "forgot": return "Enter your email to receive a reset code";
       case "reset": return "Enter the code from your email and create a new password";
-      default: return "Sign in to your travel agency account";
+      default: return "Sign in to your account";
     }
   };
 
@@ -347,7 +347,7 @@ export default function LoginPage() {
           <div className="mx-auto">
             <img 
               src={companyLogo} 
-              alt="Middle Class Tourism" 
+              alt="MCT - Tourism Organizers" 
               className="h-16 w-auto object-contain"
               data-testid="img-company-logo"
             />

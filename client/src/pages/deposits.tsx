@@ -239,8 +239,7 @@ export default function DepositsPage() {
           </style>
         </head>
         <body>
-          <h1>Middle Class Tourism</h1>
-          <p style="text-align: center; color: #666; font-style: italic; margin-top: 0;">become your trusted travel partner</p>
+          <h1>MCT - Tourism Organizers</h1>
           <h2 style="text-align: center;">Customer Deposit History</h2>
           <h3 style="text-align: center; margin-top: 5px;">${selectedCustomer.name}</h3>
           <p style="text-align: center; color: #666;">Phone: ${selectedCustomer.phone || "N/A"}</p>

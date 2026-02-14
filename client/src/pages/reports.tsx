@@ -209,8 +209,7 @@ export default function ReportsPage() {
           </style>
         </head>
         <body>
-          <h1>Middle Class Tourism</h1>
-          <p style="text-align: center; color: #666; font-style: italic; margin-top: 0;">become your trusted travel partner</p>
+          <h1>MCT - Tourism Organizers</h1>
           <h2 style="text-align: center; border: none;">Transaction Report</h2>
           <p class="date-range">${dateRangeText}</p>
 

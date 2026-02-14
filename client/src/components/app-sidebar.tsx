@@ -122,7 +122,7 @@ export function AppSidebar() {
         <div className="flex items-center justify-center">
           <img 
             src={companyLogo} 
-            alt="Middle Class Tourism" 
+            alt="MCT - Tourism Organizers" 
             className="h-10 w-auto object-contain"
             data-testid="img-sidebar-logo"
           />

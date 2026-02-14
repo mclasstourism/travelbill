@@ -1,4 +1,4 @@
-# TravelBill - Travel Agency Billing Application
+# MCT - Tourism Organizers - Billing Application
 
 ## Overview
 A comprehensive billing application for travel agencies featuring invoice management, payment tracking, customer deposits, vendor credits, ticket issuance, and PIN-based authentication for bill creators. Supports three party types: Vendors, Agents (bulk buyers), and Individual Customers.

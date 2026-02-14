@@ -162,8 +162,7 @@ export default function InvoicesPage() {
     container.innerHTML = `
       <div style="max-width: 700px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
         <div style="text-align: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 16px; margin-bottom: 16px;">
-          <img src="${mcLogo}" alt="Middle Class Tourism" style="height: 64px; margin: 0 auto; display: block;" />
-          <p style="font-size: 0.875rem; color: #6b7280; margin: 8px 0 0 0; font-style: italic;">become your trusted travel partner</p>
+          <img src="${mcLogo}" alt="MCT - Tourism Organizers" style="height: 64px; margin: 0 auto; display: block;" />
         </div>
         <div style="text-align: center; margin-bottom: 16px;">
           <span style="font-size: 0.75rem; color: #6b7280;">INVOICE NUMBER</span>

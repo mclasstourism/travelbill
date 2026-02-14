@@ -83,7 +83,7 @@ export const PrintableInvoice = forwardRef<HTMLDivElement, PrintableInvoiceProps
       <div ref={ref} className="printable-invoice bg-white text-black p-8 max-w-[210mm] mx-auto" style={{ fontFamily: "Arial, sans-serif" }}>
         <div className="flex justify-between items-start mb-8 border-b-2 border-gray-800 pb-4">
           <div>
-            <img src={companyLogo} alt="Middle Class Tourism" className="h-16 mb-2" />
+            <img src={companyLogo} alt="MCT - Tourism Organizers" className="h-16 mb-2" />
             <p className="text-sm text-gray-600">Travel & Tourism Services</p>
           </div>
           <div className="text-right">
@@ -220,7 +220,7 @@ export const PrintableInvoice = forwardRef<HTMLDivElement, PrintableInvoiceProps
 
         <div className="mt-8 text-center text-xs text-gray-500">
           <p>Thank you for your business!</p>
-          <p>Middle Class Tourism - Your Travel Partner</p>
+          <p>MCT - Tourism Organizers</p>
         </div>
       </div>
     );
