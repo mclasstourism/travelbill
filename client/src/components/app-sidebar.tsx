@@ -177,7 +177,7 @@ export function AppSidebar() {
             <div className="flex items-center gap-2 min-w-0 flex-1">
               <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
               <div className="flex items-center gap-2 min-w-0 flex-1">
-                <span className="text-sm font-medium truncate">{user.username}</span>
+                <span className="text-sm font-medium truncate uppercase">{user.username}</span>
               </div>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
