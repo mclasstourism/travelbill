@@ -12,8 +12,6 @@ import {
   Clock,
   Wallet,
   CreditCard,
-  ArrowUpRight,
-  ArrowDownRight,
 } from "lucide-react";
 import type { DashboardMetrics, Invoice, Ticket as TicketType } from "@shared/schema";
 import { format } from "date-fns";
@@ -32,41 +30,33 @@ function MetricCard({
   value,
   description,
   icon: Icon,
-  trend,
-  trendUp,
+  isCurrency,
 }: {
   title: string;
   value: string | number;
   description?: string;
   icon: typeof Users;
-  trend?: string;
-  trendUp?: boolean;
+  isCurrency?: boolean;
 }) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-4 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          {title}
-        </CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-semibold font-mono">{value}</div>
-        {description && (
-          <p className="text-xs text-muted-foreground mt-1">{description}</p>
-        )}
-        {trend && (
-          <div className="flex items-center gap-1 mt-2">
-            {trendUp ? (
-              <ArrowUpRight className="h-3 w-3 text-green-500" />
-            ) : (
-              <ArrowDownRight className="h-3 w-3 text-red-500" />
+    <Card className="overflow-visible">
+      <CardContent className="pt-5 pb-4 px-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">
+              {title}
+            </p>
+            <div className={`text-xl font-bold font-mono truncate ${isCurrency ? "text-[hsl(var(--primary))]" : ""}`}>
+              {value}
+            </div>
+            {description && (
+              <p className="text-[11px] text-muted-foreground mt-1 truncate">{description}</p>
             )}
-            <span className={`text-xs ${trendUp ? "text-green-500" : "text-red-500"}`}>
-              {trend}
-            </span>
           </div>
-        )}
+          <div className="flex-shrink-0 w-9 h-9 rounded-full bg-[hsl(var(--primary)/0.1)] flex items-center justify-center">
+            <Icon className="h-4 w-4 text-[hsl(var(--primary))]" />
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
@@ -74,14 +64,16 @@ function MetricCard({
 
 function MetricCardSkeleton() {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-4 pb-2">
-        <Skeleton className="h-4 w-24" />
-        <Skeleton className="h-4 w-4" />
-      </CardHeader>
-      <CardContent>
-        <Skeleton className="h-8 w-20" />
-        <Skeleton className="h-3 w-32 mt-2" />
+    <Card className="overflow-visible">
+      <CardContent className="pt-5 pb-4 px-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <Skeleton className="h-3 w-20 mb-3" />
+            <Skeleton className="h-6 w-28" />
+            <Skeleton className="h-3 w-24 mt-2" />
+          </div>
+          <Skeleton className="flex-shrink-0 w-9 h-9 rounded-full" />
+        </div>
       </CardContent>
     </Card>
   );
@@ -140,23 +132,27 @@ export default function Dashboard() {
           title="Total Revenue"
           value={formatCurrency(metrics?.totalRevenue || 0)}
           icon={DollarSign}
+          isCurrency
         />
         <MetricCard
           title="Pending Payments"
           value={formatCurrency(metrics?.pendingPayments || 0)}
           icon={Clock}
+          isCurrency
         />
         <MetricCard
           title="Customer Deposits"
           value={formatCurrency(metrics?.customerDepositsTotal || 0)}
           description="Total deposit balance"
           icon={Wallet}
+          isCurrency
         />
         <MetricCard
           title="Vendor Credits"
           value={formatCurrency(metrics?.vendorCreditsTotal || 0)}
           description="Total credit available"
           icon={CreditCard}
+          isCurrency
         />
         <MetricCard
           title="Total Customers"

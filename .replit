@@ -45,4 +45,3 @@ integrations = ["resend:1.0.0"]
 [userenv]
 
 [userenv.production]
-RUN_CLEANUP = "true"

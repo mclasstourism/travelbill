@@ -394,37 +394,49 @@ export default function AgentCreditsPage() {
         </Card>
 
         <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Credit Balance</CardTitle>
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold font-mono text-green-700 dark:text-green-400">
-                {formatCurrency(selectedAgent.creditBalance)}
+          <Card className="overflow-visible">
+            <CardContent className="pt-5 pb-4 px-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">Credit Balance</p>
+                  <div className="text-xl font-bold font-mono text-[hsl(var(--primary))]">
+                    {formatCurrency(selectedAgent.creditBalance)}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">Middle class money to agent</p>
+                </div>
+                <div className="flex-shrink-0 w-9 h-9 rounded-full bg-[hsl(var(--primary)/0.1)] flex items-center justify-center">
+                  <CreditCard className="h-4 w-4 text-[hsl(var(--primary))]" />
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground">Middle class money to agent</p>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Deposit Balance</CardTitle>
-              <Banknote className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold font-mono text-green-600 dark:text-green-400">
-                {formatCurrency(selectedAgent.depositBalance)}
+          <Card className="overflow-visible">
+            <CardContent className="pt-5 pb-4 px-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">Deposit Balance</p>
+                  <div className="text-xl font-bold font-mono text-[hsl(var(--primary))]">
+                    {formatCurrency(selectedAgent.depositBalance)}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">Advance received from agent</p>
+                </div>
+                <div className="flex-shrink-0 w-9 h-9 rounded-full bg-[hsl(var(--primary)/0.1)] flex items-center justify-center">
+                  <Banknote className="h-4 w-4 text-[hsl(var(--primary))]" />
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground">Advance received from agent</p>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
-              <ArrowUpCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{agentTransactions.length}</div>
+          <Card className="overflow-visible">
+            <CardContent className="pt-5 pb-4 px-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">Total Transactions</p>
+                  <div className="text-xl font-bold font-mono">{agentTransactions.length}</div>
+                </div>
+                <div className="flex-shrink-0 w-9 h-9 rounded-full bg-[hsl(var(--primary)/0.1)] flex items-center justify-center">
+                  <ArrowUpCircle className="h-4 w-4 text-[hsl(var(--primary))]" />
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -520,37 +532,49 @@ export default function AgentCreditsPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Credit Given</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-700 dark:text-green-400 font-mono">
-              {formatCurrency(totalCredits)}
+        <Card className="overflow-visible">
+          <CardContent className="pt-5 pb-4 px-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">Total Credit Given</p>
+                <div className="text-xl font-bold font-mono text-[hsl(var(--primary))]">
+                  {formatCurrency(totalCredits)}
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">Credit given to agents</p>
+              </div>
+              <div className="flex-shrink-0 w-9 h-9 rounded-full bg-[hsl(var(--primary)/0.1)] flex items-center justify-center">
+                <CreditCard className="h-4 w-4 text-[hsl(var(--primary))]" />
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">Credit given to agents</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Agent Deposits</CardTitle>
-            <Banknote className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400 font-mono">
-              {formatCurrency(totalDeposits)}
+        <Card className="overflow-visible">
+          <CardContent className="pt-5 pb-4 px-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">Total Agent Deposits</p>
+                <div className="text-xl font-bold font-mono text-[hsl(var(--primary))]">
+                  {formatCurrency(totalDeposits)}
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">Advances received from agents</p>
+              </div>
+              <div className="flex-shrink-0 w-9 h-9 rounded-full bg-[hsl(var(--primary)/0.1)] flex items-center justify-center">
+                <Banknote className="h-4 w-4 text-[hsl(var(--primary))]" />
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">Advances received from agents</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Agents</CardTitle>
-            <Briefcase className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{agents.length}</div>
+        <Card className="overflow-visible">
+          <CardContent className="pt-5 pb-4 px-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">Active Agents</p>
+                <div className="text-xl font-bold font-mono">{agents.length}</div>
+              </div>
+              <div className="flex-shrink-0 w-9 h-9 rounded-full bg-[hsl(var(--primary)/0.1)] flex items-center justify-center">
+                <Briefcase className="h-4 w-4 text-[hsl(var(--primary))]" />
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
