@@ -354,7 +354,7 @@ export default function LoginPage() {
             </div>
             <div className="space-y-2">
               <h2 className="text-3xl font-bold text-white leading-snug">
-                Your Travel Partner,<br />Our Priority
+                Tourism Organizers
               </h2>
               <p className="text-white/60 text-sm max-w-sm mx-auto">
                 Comprehensive billing and management system for travel agencies. Manage your operations in one place.
