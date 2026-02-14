@@ -1050,9 +1050,19 @@ export class PgStorage implements IStorage {
   }
 
   async deleteVendor(id: string): Promise<boolean> {
-    // Delete associated vendor transactions first
     await db.delete(schema.vendorTransactionsTable).where(eq(schema.vendorTransactionsTable.vendorId, id));
     const result = await db.delete(schema.vendorsTable).where(eq(schema.vendorsTable.id, id)).returning();
     return result.length > 0;
+  }
+
+  async cleanupAllData(): Promise<void> {
+    await db.delete(schema.ticketsTable);
+    await db.delete(schema.invoicesTable);
+    await db.delete(schema.depositTransactionsTable);
+    await db.delete(schema.vendorTransactionsTable);
+    await db.delete(schema.agentTransactionsTable);
+    await db.update(schema.customersTable).set({ depositBalance: 0 });
+    await db.update(schema.agentsTable).set({ creditBalance: 0, depositBalance: 0 });
+    await db.update(schema.vendorsTable).set({ creditBalance: 0, depositBalance: 0 });
   }
 }

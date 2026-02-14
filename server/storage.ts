@@ -100,6 +100,7 @@ export interface IStorage {
   deleteCustomer(id: string): Promise<boolean>;
   deleteAgent(id: string): Promise<boolean>;
   deleteVendor(id: string): Promise<boolean>;
+  cleanupAllData(): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -737,6 +738,25 @@ export class MemStorage implements IStorage {
       if (tx.vendorId === id) this.vendorTransactions.delete(txId);
     }
     return this.vendors.delete(id);
+  }
+
+  async cleanupAllData(): Promise<void> {
+    this.invoices.clear();
+    this.tickets.clear();
+    this.depositTransactions.clear();
+    this.vendorTransactions.clear();
+    this.agentTransactions.clear();
+    for (const [id, c] of this.customers) {
+      c.depositBalance = 0;
+    }
+    for (const [id, a] of this.agents) {
+      a.creditBalance = 0;
+      a.depositBalance = 0;
+    }
+    for (const [id, v] of this.vendors) {
+      v.creditBalance = 0;
+      v.depositBalance = 0;
+    }
   }
 }
 

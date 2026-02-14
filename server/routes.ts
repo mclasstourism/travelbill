@@ -733,5 +733,15 @@ export async function registerRoutes(
     }
   });
 
+  // Admin cleanup endpoint - clears all billing data
+  app.post("/api/admin/cleanup", async (req, res) => {
+    try {
+      await storage.cleanupAllData();
+      res.json({ success: true, message: "All billing data cleaned successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to cleanup data" });
+    }
+  });
+
   return httpServer;
 }
