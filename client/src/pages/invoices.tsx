@@ -326,8 +326,8 @@ export default function InvoicesPage() {
         </div>
 
         <!-- Footer -->
-        <div style="margin-top: 40px;">
-          <div style="background: #1a5632; color: white; text-align: center; padding: 8px 16px 14px 16px; border-radius: 6px; font-size: 15px; font-weight: 700; font-style: italic; letter-spacing: 1px;">Thank you for choosing Middle Class Tourism</div>
+        <div style="margin-top: 40px; padding-top: 16px; border-top: 2px solid #e2e8f0;">
+          <p style="margin: 0; text-align: center; font-size: 13px; color: #1a5632; font-weight: 600;">Thank you for choosing Middle Class Tourism</p>
         </div>
       </div>
     `;
