@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
+import html2pdf from "html2pdf.js";
 import mcLogo from "@assets/final-logo_1771172687891.png";
 import stampImg from "@assets/Middle_Class_Tourism_Stamp_1771173890616.png";
 import { Card, CardContent } from "@/components/ui/card";
@@ -400,24 +401,21 @@ export default function CashReceiptsPage() {
 
   const handleDownload = async (receipt: CashReceipt) => {
     const [logoDataUrl, stampDataUrl] = await Promise.all([toBase64(mcLogo), toBase64(stampImg)]);
-    const htmlContent = `
-      <html>
-        <head>
-          <title>Cash Receipt - ${receipt.receiptNumber}</title>
-          <style>${receiptStyles}</style>
-        </head>
-        <body>${getReceiptHtml(receipt, logoDataUrl, stampDataUrl)}</body>
-      </html>
-    `;
-    const blob = new Blob([htmlContent], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `Receipt-${receipt.receiptNumber}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const container = document.createElement("div");
+    container.innerHTML = `<style>${receiptStyles}</style>${getReceiptHtml(receipt, logoDataUrl, stampDataUrl)}`;
+    document.body.appendChild(container);
+
+    const options = {
+      margin: 10,
+      filename: `Receipt-${receipt.receiptNumber}.pdf`,
+      image: { type: 'jpeg' as const, quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
+    };
+
+    html2pdf().set(options).from(container).save().then(() => {
+      document.body.removeChild(container);
+    });
   };
 
   return (
