@@ -285,11 +285,11 @@ export default function CashReceiptsPage() {
                 <p className="font-medium" data-testid="text-receipt-date">{format(parseISO(selectedReceipt.createdAt), "dd MMM yyyy, hh:mm a")}</p>
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Party Type</p>
-                <Badge variant="outline" data-testid="text-receipt-party-type">{selectedReceipt.partyType}</Badge>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Received From</p>
+                <Badge variant="outline" data-testid="text-receipt-party-type">{selectedReceipt.partyType === "customer" ? "Customer" : selectedReceipt.partyType === "agent" ? "Agent" : "Vendor"}</Badge>
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Party Name</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Name</p>
                 <p className="font-medium" data-testid="text-receipt-party-name">{getPartyName(selectedReceipt)}</p>
               </div>
               <div>
@@ -495,7 +495,7 @@ export default function CashReceiptsPage() {
                   <TableRow>
                     <TableHead>Receipt #</TableHead>
                     <TableHead>Date</TableHead>
-                    <TableHead>Party</TableHead>
+                    <TableHead>Received From</TableHead>
                     <TableHead>Source</TableHead>
                     <TableHead>Payment</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
@@ -510,7 +510,7 @@ export default function CashReceiptsPage() {
                       <TableCell>
                         <div className="flex flex-col">
                           <span>{getPartyName(receipt)}</span>
-                          <Badge variant="outline" className="w-fit mt-1">{receipt.partyType}</Badge>
+                          <Badge variant="outline" className="w-fit mt-1">{receipt.partyType === "customer" ? "Customer" : receipt.partyType === "agent" ? "Agent" : "Vendor"}</Badge>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -557,7 +557,7 @@ export default function CashReceiptsPage() {
                 name="partyType"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Party Type</FormLabel>
+                    <FormLabel>Received From</FormLabel>
                     <Select
                       onValueChange={(v) => {
                         field.onChange(v);
