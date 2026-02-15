@@ -226,12 +226,9 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center gap-3">
-        <Shield className="w-8 h-8 text-primary" />
-        <div>
-          <h1 className="text-2xl font-semibold" data-testid="text-admin-settings-title">Admin Settings</h1>
-          <p className="text-sm text-muted-foreground">Manage admin accounts</p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-semibold" data-testid="text-admin-settings-title">Admin Settings</h1>
+        <p className="text-sm text-muted-foreground">Manage admin accounts</p>
       </div>
 
       {/* Admin Users Management Section */}
