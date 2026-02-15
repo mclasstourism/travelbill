@@ -47,7 +47,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval, parseISO } from "date-fns";
 import { z } from "zod";
 import type { Customer, Agent, Vendor, CashReceipt } from "@shared/schema";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 
 type DateRange = "all" | "today" | "this_month" | "this_year" | "custom";
 
@@ -424,7 +423,6 @@ export default function CashReceiptsPage() {
   return (
     <div className="p-4 md:p-6 space-y-4">
       <div className="flex items-center gap-2 flex-wrap">
-        <SidebarTrigger data-testid="button-sidebar-toggle" />
         <h1 className="text-xl font-bold" data-testid="text-page-title">Cash Receipts</h1>
         <div className="ml-auto">
           <Button onClick={() => setIsCreateOpen(true)} data-testid="button-create-receipt">
