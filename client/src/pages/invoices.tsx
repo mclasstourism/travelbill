@@ -266,7 +266,7 @@ export default function InvoicesPage() {
                 <td style="text-align: center; padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">${item.airlinesFlightNo || '-'}</td>
                 <td style="text-align: center; padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">${item.pnr || '-'}</td>
                 <td style="text-align: center; padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">${item.tktNo || '-'}</td>
-                <td style="text-align: right; padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace; font-weight: 600;">${(item.amount || 0).toLocaleString("en-AE", { minimumFractionDigits: 2 })} <span style="font-size: 10px; color: #64748b;">\u062F.\u0625</span></td>
+                <td style="text-align: right; padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace; font-weight: 600;">${(item.amount || 0).toLocaleString("en-AE", { minimumFractionDigits: 2 })} <span style="font-size: 10px; color: #64748b;">AED</span></td>
               </tr>
             `).join('')}
           </tbody>
@@ -279,30 +279,30 @@ export default function InvoicesPage() {
             <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
               <tr>
                 <td style="padding: 8px 10px; font-weight: 600;">Sub Total:</td>
-                <td style="padding: 8px 10px; text-align: right; font-family: 'Courier New', monospace; font-weight: 600;">${invoice.subtotal.toLocaleString("en-AE", { minimumFractionDigits: 2 })} <span style="font-size: 10px; color: #64748b;">\u062F.\u0625</span></td>
+                <td style="padding: 8px 10px; text-align: right; font-family: 'Courier New', monospace; font-weight: 600;">${invoice.subtotal.toLocaleString("en-AE", { minimumFractionDigits: 2 })} <span style="font-size: 10px; color: #64748b;">AED</span></td>
               </tr>
               ${invoice.discountAmount > 0 ? `
               <tr>
                 <td style="padding: 8px 10px; color: #16a34a; font-weight: 500;">Discount (${invoice.discountPercent}%):</td>
-                <td style="padding: 8px 10px; text-align: right; font-family: 'Courier New', monospace; color: #16a34a;">-${invoice.discountAmount.toLocaleString("en-AE", { minimumFractionDigits: 2 })} <span style="font-size: 10px;">\u062F.\u0625</span></td>
+                <td style="padding: 8px 10px; text-align: right; font-family: 'Courier New', monospace; color: #16a34a;">-${invoice.discountAmount.toLocaleString("en-AE", { minimumFractionDigits: 2 })} <span style="font-size: 10px;">AED</span></td>
               </tr>
               ` : ''}
               ${invoice.depositUsed > 0 ? `
               <tr>
                 <td style="padding: 8px 10px; color: #2563eb; font-weight: 500;">Deposit Applied:</td>
-                <td style="padding: 8px 10px; text-align: right; font-family: 'Courier New', monospace; color: #2563eb;">-${invoice.depositUsed.toLocaleString("en-AE", { minimumFractionDigits: 2 })} <span style="font-size: 10px;">\u062F.\u0625</span></td>
+                <td style="padding: 8px 10px; text-align: right; font-family: 'Courier New', monospace; color: #2563eb;">-${invoice.depositUsed.toLocaleString("en-AE", { minimumFractionDigits: 2 })} <span style="font-size: 10px;">AED</span></td>
               </tr>
               ` : ''}
               ${invoice.agentCreditUsed > 0 ? `
               <tr>
                 <td style="padding: 8px 10px; color: #7c3aed; font-weight: 500;">Agent Credit Applied:</td>
-                <td style="padding: 8px 10px; text-align: right; font-family: 'Courier New', monospace; color: #7c3aed;">-${invoice.agentCreditUsed.toLocaleString("en-AE", { minimumFractionDigits: 2 })} <span style="font-size: 10px;">\u062F.\u0625</span></td>
+                <td style="padding: 8px 10px; text-align: right; font-family: 'Courier New', monospace; color: #7c3aed;">-${invoice.agentCreditUsed.toLocaleString("en-AE", { minimumFractionDigits: 2 })} <span style="font-size: 10px;">AED</span></td>
               </tr>
               ` : ''}
               ${invoice.vendorBalanceDeducted > 0 ? `
               <tr>
                 <td style="padding: 8px 10px; color: #ea580c; font-weight: 500;">Vendor ${invoice.useVendorBalance === "credit" ? "Credit" : "Deposit"} Applied:</td>
-                <td style="padding: 8px 10px; text-align: right; font-family: 'Courier New', monospace; color: #ea580c;">-${invoice.vendorBalanceDeducted.toLocaleString("en-AE", { minimumFractionDigits: 2 })} <span style="font-size: 10px;">\u062F.\u0625</span></td>
+                <td style="padding: 8px 10px; text-align: right; font-family: 'Courier New', monospace; color: #ea580c;">-${invoice.vendorBalanceDeducted.toLocaleString("en-AE", { minimumFractionDigits: 2 })} <span style="font-size: 10px;">AED</span></td>
               </tr>
               ` : ''}
               <tr>
@@ -310,7 +310,7 @@ export default function InvoicesPage() {
               </tr>
               <tr>
                 <td style="padding: 8px 10px; font-weight: 700; font-size: 15px;">Total:</td>
-                <td style="padding: 8px 10px; text-align: right; font-family: 'Courier New', monospace; font-size: 16px; font-weight: 800;">${invoice.total.toLocaleString("en-AE", { minimumFractionDigits: 2 })} <span style="font-size: 11px; color: #64748b;">\u062F.\u0625</span></td>
+                <td style="padding: 8px 10px; text-align: right; font-family: 'Courier New', monospace; font-size: 16px; font-weight: 800;">${invoice.total.toLocaleString("en-AE", { minimumFractionDigits: 2 })} <span style="font-size: 11px; color: #64748b;">AED</span></td>
               </tr>
             </table>
             <p style="text-align: right; font-size: 11px; color: #1a5632; margin: 4px 0 0 0; font-style: italic;">${numberToWords(invoice.total)}</p>
