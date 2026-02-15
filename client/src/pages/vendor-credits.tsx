@@ -60,7 +60,7 @@ const addTransactionFormSchema = z.object({
   vendorId: z.string().min(1, "Vendor is required"),
   transactionType: z.enum(["credit", "deposit"]),
   amount: z.coerce.number().min(0.01, "Amount must be positive"),
-  description: z.string().min(1, "Description is required"),
+  description: z.string().optional(),
   paymentMethod: z.enum(["cash", "cheque", "bank_transfer"]),
 });
 
@@ -754,7 +754,7 @@ export default function VendorCreditsPage() {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description *</FormLabel>
+                    <FormLabel>Notes (Optional)</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="e.g., Credit line increase"
