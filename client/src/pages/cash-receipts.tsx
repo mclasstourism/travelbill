@@ -4,6 +4,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
 import mcLogo from "@assets/final-logo_1771172687891.png";
+import stampImg from "@assets/WhatsApp_Image_2026-02-01_at_5.13.08_001_1771173089853.jpeg";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -244,9 +245,9 @@ export default function CashReceiptsPage() {
     return filteredReceipts.reduce((sum, r) => sum + r.amount, 0);
   }, [filteredReceipts]);
 
-  const getLogoBase64 = async (): Promise<string> => {
+  const toBase64 = async (src: string): Promise<string> => {
     try {
-      const response = await fetch(mcLogo);
+      const response = await fetch(src);
       const blob = await response.blob();
       return new Promise((resolve) => {
         const reader = new FileReader();
@@ -254,11 +255,11 @@ export default function CashReceiptsPage() {
         reader.readAsDataURL(blob);
       });
     } catch {
-      return mcLogo;
+      return src;
     }
   };
 
-  const getReceiptHtml = (receipt: CashReceipt, logoDataUrl: string) => {
+  const getReceiptHtml = (receipt: CashReceipt, logoDataUrl: string, stampDataUrl: string) => {
     return `
       <div style="max-width: 700px; margin: 0 auto; padding: 30px 36px; font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b;">
         <!-- Header: Logo left, Contact right -->
@@ -356,10 +357,11 @@ export default function CashReceiptsPage() {
           </div>
         </div>
 
-        <!-- Signature -->
-        <div style="margin-top: 80px; text-align: right;">
+        <!-- Stamp & Signature -->
+        <div style="margin-top: 60px; text-align: right;">
           <div style="display: inline-block; text-align: center;">
-            <div style="width: 180px; border-top: 1px solid #333; margin-bottom: 4px;"></div>
+            <img src="${stampDataUrl}" alt="Company Stamp" style="height: 150px; margin-bottom: 8px;" />
+            <div style="width: 200px; border-top: 1px solid #333; margin: 0 auto 4px auto;"></div>
             <p style="margin: 0; font-size: 12px; color: #666; font-style: italic;">Authorized Signature / Stamp</p>
           </div>
         </div>
@@ -381,7 +383,7 @@ export default function CashReceiptsPage() {
   `;
 
   const handlePrint = async (receipt: CashReceipt) => {
-    const logoDataUrl = await getLogoBase64();
+    const [logoDataUrl, stampDataUrl] = await Promise.all([toBase64(mcLogo), toBase64(stampImg)]);
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
     printWindow.document.write(`
@@ -390,7 +392,7 @@ export default function CashReceiptsPage() {
           <title>Cash Receipt - ${receipt.receiptNumber}</title>
           <style>${receiptStyles}</style>
         </head>
-        <body>${getReceiptHtml(receipt, logoDataUrl)}</body>
+        <body>${getReceiptHtml(receipt, logoDataUrl, stampDataUrl)}</body>
       </html>
     `);
     printWindow.document.close();
@@ -399,14 +401,14 @@ export default function CashReceiptsPage() {
   };
 
   const handleDownload = async (receipt: CashReceipt) => {
-    const logoDataUrl = await getLogoBase64();
+    const [logoDataUrl, stampDataUrl] = await Promise.all([toBase64(mcLogo), toBase64(stampImg)]);
     const htmlContent = `
       <html>
         <head>
           <title>Cash Receipt - ${receipt.receiptNumber}</title>
           <style>${receiptStyles}</style>
         </head>
-        <body>${getReceiptHtml(receipt, logoDataUrl)}</body>
+        <body>${getReceiptHtml(receipt, logoDataUrl, stampDataUrl)}</body>
       </html>
     `;
     const blob = new Blob([htmlContent], { type: "text/html" });
@@ -667,10 +669,11 @@ export default function CashReceiptsPage() {
                 </div>
               </div>
 
-              {/* Signature */}
-              <div className="mt-16 flex justify-end">
+              {/* Stamp & Signature */}
+              <div className="mt-12 flex justify-end">
                 <div className="text-center">
-                  <div className="w-44 border-t border-foreground mb-1" />
+                  <img src={stampImg} alt="Company Stamp" className="h-36 mx-auto mb-2" />
+                  <div className="w-48 border-t border-foreground mb-1 mx-auto" />
                   <p className="text-xs text-muted-foreground italic">Authorized Signature / Stamp</p>
                 </div>
               </div>
