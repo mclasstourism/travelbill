@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -30,12 +30,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Briefcase, Search, Loader2, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { Plus, Briefcase, Search, Loader2, Pencil, Trash2, AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { DialogFooter } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertAgentSchema, type Agent, type InsertAgent } from "@shared/schema";
+import { insertAgentSchema, type Agent, type InsertAgent, type AgentTransaction } from "@shared/schema";
 
 function formatCurrency(amount: number | null | undefined): string {
   return new Intl.NumberFormat("en-AE", {
@@ -45,6 +46,86 @@ function formatCurrency(amount: number | null | undefined): string {
   }).format(amount ?? 0);
 }
 
+function AgentTransactionHistory({ agentId }: { agentId: string }) {
+  const { data: transactions = [], isLoading } = useQuery<AgentTransaction[]>({
+    queryKey: [`/api/agents/${agentId}/transactions`],
+  });
+
+  if (isLoading) {
+    return (
+      <TableRow>
+        <TableCell colSpan={8} className="bg-muted/30 p-4">
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            Loading transactions...
+          </div>
+        </TableCell>
+      </TableRow>
+    );
+  }
+
+  if (transactions.length === 0) {
+    return (
+      <TableRow>
+        <TableCell colSpan={8} className="bg-muted/30 p-4 text-center text-muted-foreground">
+          No transactions found
+        </TableCell>
+      </TableRow>
+    );
+  }
+
+  return (
+    <TableRow>
+      <TableCell colSpan={8} className="bg-muted/30 p-0">
+        <div className="px-6 py-3">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Account Type</TableHead>
+                <TableHead>Transaction</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="text-right">Credit Owed</TableHead>
+                <TableHead className="text-right">Deposit Available</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {transactions.map((tx) => (
+                <TableRow key={tx.id} data-testid={`row-agent-tx-${tx.id}`}>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {tx.createdAt ? new Date(tx.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }) + " " + new Date(tx.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "-"}
+                  </TableCell>
+                  <TableCell>{tx.description || "-"}</TableCell>
+                  <TableCell className="capitalize">{tx.transactionType}</TableCell>
+                  <TableCell>
+                    {tx.type === "credit" ? (
+                      <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 no-default-hover-elevate no-default-active-elevate" data-testid={`badge-tx-added-${tx.id}`}>Added</Badge>
+                    ) : (
+                      <Badge className="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 no-default-hover-elevate no-default-active-elevate" data-testid={`badge-tx-used-${tx.id}`}>Used</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right font-mono">
+                    <span className={tx.type === "credit" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+                      {tx.type === "credit" ? "+" : "-"}AED {Math.abs(tx.amount).toFixed(2)}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right font-mono">
+                    {tx.transactionType === "credit" ? formatCurrency(tx.balanceAfter) : "-"}
+                  </TableCell>
+                  <TableCell className="text-right font-mono">
+                    {tx.transactionType === "deposit" ? formatCurrency(tx.balanceAfter) : "-"}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+}
+
 export default function AgentsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -52,6 +133,7 @@ export default function AgentsPage() {
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [deletingAgent, setDeletingAgent] = useState<Agent | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [expandedAgent, setExpandedAgent] = useState<string | null>(null);
   const { toast } = useToast();
 
   const { data: agents = [], isLoading } = useQuery<Agent[]>({
@@ -260,45 +342,63 @@ export default function AgentsPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredAgents.map((agent) => (
-                    <TableRow key={agent.id} data-testid={`row-agent-${agent.id}`}>
-                      <TableCell className="font-medium">{agent.name}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {agent.company || "-"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {agent.phone || "-"}
-                      </TableCell>
-                      <TableCell className="text-right font-mono font-semibold">
-                        <span className="text-green-700 dark:text-green-400">
-                          {formatCurrency(agent.creditBalance)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right font-mono font-semibold">
-                        <span className="text-green-600 dark:text-green-400">
-                          {formatCurrency(agent.depositBalance)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => handleEditClick(agent)}
-                            data-testid={`button-edit-agent-${agent.id}`}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => handleDeleteClick(agent)}
-                            data-testid={`button-delete-agent-${agent.id}`}
-                          >
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                    <Fragment key={agent.id}>
+                      <TableRow
+                        data-testid={`row-agent-${agent.id}`}
+                        className="cursor-pointer"
+                        onClick={() => setExpandedAgent(expandedAgent === agent.id ? null : agent.id)}
+                      >
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            {expandedAgent === agent.id ? (
+                              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                            )}
+                            {agent.name}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {agent.company || "-"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {agent.phone || "-"}
+                        </TableCell>
+                        <TableCell className="text-right font-mono font-semibold">
+                          <span className="text-green-700 dark:text-green-400">
+                            {formatCurrency(agent.creditBalance)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right font-mono font-semibold">
+                          <span className="text-green-600 dark:text-green-400">
+                            {formatCurrency(agent.depositBalance)}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={(e) => { e.stopPropagation(); handleEditClick(agent); }}
+                              data-testid={`button-edit-agent-${agent.id}`}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={(e) => { e.stopPropagation(); handleDeleteClick(agent); }}
+                              data-testid={`button-delete-agent-${agent.id}`}
+                            >
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                      {expandedAgent === agent.id && (
+                        <AgentTransactionHistory agentId={agent.id} />
+                      )}
+                    </Fragment>
                   ))}
                 </TableBody>
               </Table>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -30,12 +30,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Users, Search, Loader2, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { Plus, Users, Search, Loader2, Pencil, Trash2, AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { DialogFooter } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertCustomerSchema, type Customer, type InsertCustomer } from "@shared/schema";
+import { insertCustomerSchema, type Customer, type InsertCustomer, type DepositTransaction } from "@shared/schema";
 
 function formatCurrency(amount: number | null | undefined): string {
   return new Intl.NumberFormat("en-AE", {
@@ -45,6 +46,82 @@ function formatCurrency(amount: number | null | undefined): string {
   }).format(amount ?? 0);
 }
 
+function CustomerTransactionHistory({ customerId }: { customerId: string }) {
+  const { data: transactions = [], isLoading } = useQuery<DepositTransaction[]>({
+    queryKey: [`/api/customers/${customerId}/deposits`],
+  });
+
+  if (isLoading) {
+    return (
+      <TableRow>
+        <TableCell colSpan={7} className="bg-muted/30 p-4">
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            Loading transactions...
+          </div>
+        </TableCell>
+      </TableRow>
+    );
+  }
+
+  if (transactions.length === 0) {
+    return (
+      <TableRow>
+        <TableCell colSpan={7} className="bg-muted/30 p-4 text-center text-muted-foreground">
+          No transactions found
+        </TableCell>
+      </TableRow>
+    );
+  }
+
+  return (
+    <TableRow>
+      <TableCell colSpan={7} className="bg-muted/30 p-0">
+        <div className="px-6 py-3">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Account Type</TableHead>
+                <TableHead>Transaction</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="text-right">Deposit Available</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {transactions.map((tx) => (
+                <TableRow key={tx.id} data-testid={`row-customer-tx-${tx.id}`}>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {tx.createdAt ? new Date(tx.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }) + " " + new Date(tx.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "-"}
+                  </TableCell>
+                  <TableCell>{tx.description || "-"}</TableCell>
+                  <TableCell>Deposit</TableCell>
+                  <TableCell>
+                    {tx.type === "credit" ? (
+                      <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 no-default-hover-elevate no-default-active-elevate" data-testid={`badge-tx-added-${tx.id}`}>Added</Badge>
+                    ) : (
+                      <Badge className="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 no-default-hover-elevate no-default-active-elevate" data-testid={`badge-tx-used-${tx.id}`}>Used</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right font-mono">
+                    <span className={tx.type === "credit" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+                      {tx.type === "credit" ? "+" : "-"}AED {Math.abs(tx.amount).toFixed(2)}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right font-mono">
+                    {formatCurrency(tx.balanceAfter)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+}
+
 export default function CustomersPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -52,6 +129,7 @@ export default function CustomersPage() {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [expandedCustomer, setExpandedCustomer] = useState<string | null>(null);
   const { toast } = useToast();
 
   const { data: customers = [], isLoading } = useQuery<Customer[]>({
@@ -256,40 +334,58 @@ export default function CustomersPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredCustomers.map((customer) => (
-                    <TableRow key={customer.id} data-testid={`row-customer-${customer.id}`}>
-                      <TableCell className="font-medium">{customer.name}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {customer.phone || "-"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {customer.company || "-"}
-                      </TableCell>
-                      <TableCell className="text-right font-mono font-semibold">
-                        <span className={customer.depositBalance >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
-                          {formatCurrency(customer.depositBalance)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => handleEditClick(customer)}
-                            data-testid={`button-edit-customer-${customer.id}`}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => handleDeleteClick(customer)}
-                            data-testid={`button-delete-customer-${customer.id}`}
-                          >
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                    <Fragment key={customer.id}>
+                      <TableRow
+                        data-testid={`row-customer-${customer.id}`}
+                        className="cursor-pointer"
+                        onClick={() => setExpandedCustomer(expandedCustomer === customer.id ? null : customer.id)}
+                      >
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            {expandedCustomer === customer.id ? (
+                              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                            )}
+                            {customer.name}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {customer.phone || "-"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {customer.company || "-"}
+                        </TableCell>
+                        <TableCell className="text-right font-mono font-semibold">
+                          <span className={customer.depositBalance >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+                            {formatCurrency(customer.depositBalance)}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={(e) => { e.stopPropagation(); handleEditClick(customer); }}
+                              data-testid={`button-edit-customer-${customer.id}`}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={(e) => { e.stopPropagation(); handleDeleteClick(customer); }}
+                              data-testid={`button-delete-customer-${customer.id}`}
+                            >
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                      {expandedCustomer === customer.id && (
+                        <CustomerTransactionHistory customerId={customer.id} />
+                      )}
+                    </Fragment>
                   ))}
                 </TableBody>
               </Table>

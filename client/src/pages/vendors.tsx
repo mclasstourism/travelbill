@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -30,12 +30,12 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Building2, Search, Loader2, Trash2, Plane, Pencil, AlertTriangle } from "lucide-react";
+import { Plus, Building2, Search, Loader2, Trash2, Plane, Pencil, AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { DialogFooter } from "@/components/ui/dialog";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertVendorSchema, type Vendor, type InsertVendor } from "@shared/schema";
+import { insertVendorSchema, type Vendor, type InsertVendor, type VendorTransaction } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 
 function formatCurrency(amount: number | null | undefined): string {
@@ -44,6 +44,86 @@ function formatCurrency(amount: number | null | undefined): string {
     currency: "AED",
     minimumFractionDigits: 2,
   }).format(amount ?? 0);
+}
+
+function VendorTransactionHistory({ vendorId }: { vendorId: string }) {
+  const { data: transactions = [], isLoading } = useQuery<VendorTransaction[]>({
+    queryKey: [`/api/vendors/${vendorId}/transactions`],
+  });
+
+  if (isLoading) {
+    return (
+      <TableRow>
+        <TableCell colSpan={8} className="bg-muted/30 p-4">
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            Loading transactions...
+          </div>
+        </TableCell>
+      </TableRow>
+    );
+  }
+
+  if (transactions.length === 0) {
+    return (
+      <TableRow>
+        <TableCell colSpan={8} className="bg-muted/30 p-4 text-center text-muted-foreground">
+          No transactions found
+        </TableCell>
+      </TableRow>
+    );
+  }
+
+  return (
+    <TableRow>
+      <TableCell colSpan={8} className="bg-muted/30 p-0">
+        <div className="px-6 py-3">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Account Type</TableHead>
+                <TableHead>Transaction</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="text-right">Credit Owed</TableHead>
+                <TableHead className="text-right">Deposit Available</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {transactions.map((tx) => (
+                <TableRow key={tx.id} data-testid={`row-vendor-tx-${tx.id}`}>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {tx.createdAt ? new Date(tx.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }) + " " + new Date(tx.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "-"}
+                  </TableCell>
+                  <TableCell>{tx.description || "-"}</TableCell>
+                  <TableCell className="capitalize">{tx.transactionType}</TableCell>
+                  <TableCell>
+                    {tx.type === "credit" ? (
+                      <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 no-default-hover-elevate no-default-active-elevate" data-testid={`badge-tx-added-${tx.id}`}>Added</Badge>
+                    ) : (
+                      <Badge className="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 no-default-hover-elevate no-default-active-elevate" data-testid={`badge-tx-used-${tx.id}`}>Used</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right font-mono">
+                    <span className={tx.type === "credit" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+                      {tx.type === "credit" ? "+" : "-"}AED {Math.abs(tx.amount).toFixed(2)}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right font-mono">
+                    {tx.transactionType === "credit" ? formatCurrency(tx.balanceAfter) : "-"}
+                  </TableCell>
+                  <TableCell className="text-right font-mono">
+                    {tx.transactionType === "deposit" ? formatCurrency(tx.balanceAfter) : "-"}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
 }
 
 export default function VendorsPage() {
@@ -55,6 +135,7 @@ export default function VendorsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [emails, setEmails] = useState<string[]>([""]);
   const [editEmails, setEditEmails] = useState<string[]>([""]);
+  const [expandedVendor, setExpandedVendor] = useState<string | null>(null);
   const { toast } = useToast();
 
   const { data: vendors = [], isLoading } = useQuery<Vendor[]>({
@@ -281,56 +362,74 @@ export default function VendorsPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredVendors.map((vendor) => (
-                    <TableRow key={vendor.id} data-testid={`row-vendor-${vendor.id}`}>
-                      <TableCell className="font-medium">{vendor.name}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {vendor.phone || "-"}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {vendor.airlines && vendor.airlines.length > 0 ? (
-                            vendor.airlines.map((airline, idx) => (
-                              <Badge key={idx} variant="secondary">
-                                <Plane className="w-3 h-3 mr-1" />
-                                {airline.code ? `${airline.name} (${airline.code})` : airline.name}
-                              </Badge>
-                            ))
-                          ) : (
-                            <span className="text-muted-foreground text-sm">-</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right font-mono font-semibold">
-                        <span className="text-green-700 dark:text-green-400">
-                          {formatCurrency(vendor.creditBalance)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right font-mono font-semibold">
-                        <span className="text-green-600 dark:text-green-400">
-                          {formatCurrency(vendor.depositBalance)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(vendor)}
-                            data-testid={`button-edit-vendor-${vendor.id}`}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteClick(vendor)}
-                            data-testid={`button-delete-vendor-${vendor.id}`}
-                          >
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                    <Fragment key={vendor.id}>
+                      <TableRow
+                        data-testid={`row-vendor-${vendor.id}`}
+                        className="cursor-pointer"
+                        onClick={() => setExpandedVendor(expandedVendor === vendor.id ? null : vendor.id)}
+                      >
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            {expandedVendor === vendor.id ? (
+                              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                            )}
+                            {vendor.name}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {vendor.phone || "-"}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {vendor.airlines && vendor.airlines.length > 0 ? (
+                              vendor.airlines.map((airline, idx) => (
+                                <Badge key={idx} variant="secondary">
+                                  <Plane className="w-3 h-3 mr-1" />
+                                  {airline.code ? `${airline.name} (${airline.code})` : airline.name}
+                                </Badge>
+                              ))
+                            ) : (
+                              <span className="text-muted-foreground text-sm">-</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-mono font-semibold">
+                          <span className="text-green-700 dark:text-green-400">
+                            {formatCurrency(vendor.creditBalance)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right font-mono font-semibold">
+                          <span className="text-green-600 dark:text-green-400">
+                            {formatCurrency(vendor.depositBalance)}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => { e.stopPropagation(); handleEdit(vendor); }}
+                              data-testid={`button-edit-vendor-${vendor.id}`}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => { e.stopPropagation(); handleDeleteClick(vendor); }}
+                              data-testid={`button-delete-vendor-${vendor.id}`}
+                            >
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                      {expandedVendor === vendor.id && (
+                        <VendorTransactionHistory vendorId={vendor.id} />
+                      )}
+                    </Fragment>
                   ))}
                 </TableBody>
               </Table>
