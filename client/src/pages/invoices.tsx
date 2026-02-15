@@ -313,12 +313,12 @@ export default function InvoicesPage() {
                 <td style="padding: 8px 10px; text-align: right; font-family: 'Courier New', monospace; font-size: 16px; font-weight: 800;">${invoice.total.toLocaleString("en-AE", { minimumFractionDigits: 2 })} <span style="font-size: 11px; color: #64748b;">\u062F.\u0625</span></td>
               </tr>
             </table>
-            <p style="text-align: center; font-size: 11px; color: #1a5632; margin: 4px 0 0 0; font-style: italic;">${numberToWords(invoice.total)}</p>
+            <p style="text-align: right; font-size: 11px; color: #1a5632; margin: 4px 0 0 0; font-style: italic;">${numberToWords(invoice.total)}</p>
           </div>
         </div>
 
         <!-- Authorised Sign -->
-        <div style="text-align: right; margin-top: 40px;">
+        <div style="text-align: right; margin-top: 80px;">
           <div style="display: inline-block; text-align: center;">
             <div style="width: 180px; border-bottom: 1px solid #374151; margin-bottom: 6px;"></div>
             <p style="margin: 0; font-size: 12px; color: #64748b; font-style: italic;">Authorised Sign</p>
@@ -327,7 +327,7 @@ export default function InvoicesPage() {
 
         <!-- Footer -->
         <div style="margin-top: 40px;">
-          <div style="background: #1a5632; color: white; text-align: center; padding: 8px 16px 14px 16px; border-radius: 6px; font-size: 18px; font-weight: 700; font-style: italic; letter-spacing: 1px;">Thank You!</div>
+          <div style="background: #1a5632; color: white; text-align: center; padding: 8px 16px 14px 16px; border-radius: 6px; font-size: 15px; font-weight: 700; font-style: italic; letter-spacing: 1px;">Thank you for choosing Middle Class Tourism</div>
         </div>
       </div>
     `;
