@@ -206,7 +206,7 @@ export default function InvoicesPage() {
             <img src="${mcLogo}" alt="Middle Class Tourism" style="height: 65px;" />
           </div>
           <div style="text-align: right;">
-            <div style="display: inline-block; background: #1a5632; color: white; font-size: 22px; font-weight: 700; letter-spacing: 3px; padding: 8px 24px; border-radius: 6px; line-height: 1; text-align: center;">INVOICE</div>
+            <div style="display: inline-flex; align-items: center; justify-content: center; background: #1a5632; color: white; font-size: 22px; font-weight: 700; letter-spacing: 3px; padding: 0 24px; height: 42px; border-radius: 6px;">INVOICE</div>
           </div>
         </div>
         <div style="height: 3px; background: linear-gradient(to right, #1a5632, #22c55e, #1a5632); margin: 14px 0 20px 0; border-radius: 2px;"></div>
@@ -275,7 +275,7 @@ export default function InvoicesPage() {
         <!-- Totals Section -->
         <div style="display: flex; justify-content: center; margin-top: 10px;">
           <div style="width: 380px;">
-            <div style="background: #1a5632; color: white; text-align: center; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 700; letter-spacing: 1px; line-height: 1; margin-bottom: 12px;">Invoice Summary</div>
+            <div style="display: flex; align-items: center; justify-content: center; background: #1a5632; color: white; height: 36px; border-radius: 6px; font-size: 14px; font-weight: 700; letter-spacing: 1px; margin-bottom: 12px;">Invoice Summary</div>
             <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
               <tr>
                 <td style="padding: 8px 10px; font-weight: 600;">Sub Total:</td>
@@ -327,7 +327,7 @@ export default function InvoicesPage() {
 
         <!-- Footer -->
         <div style="margin-top: 40px;">
-          <div style="background: #1a5632; color: white; text-align: center; padding: 10px 16px; border-radius: 6px; font-size: 15px; font-weight: 700; font-style: italic; letter-spacing: 1px; line-height: 1;">Thank You!</div>
+          <div style="display: flex; align-items: center; justify-content: center; background: #1a5632; color: white; height: 44px; border-radius: 6px; font-size: 18px; font-weight: 700; font-style: italic; letter-spacing: 1px;">Thank You!</div>
         </div>
       </div>
     `;
