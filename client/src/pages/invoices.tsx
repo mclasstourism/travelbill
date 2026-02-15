@@ -474,6 +474,19 @@ export default function InvoicesPage() {
   );
 
   const handleCreateClick = () => {
+    form.reset({
+      customerType: "customer",
+      customerId: "",
+      vendorId: "",
+      items: [{ sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", amount: 0, basicFare: 0, tax: 0 }],
+      discountPercent: 0,
+      vendorCost: 0,
+      paymentMethod: "cash",
+      useCustomerDeposit: false,
+      useAgentCredit: false,
+      useVendorBalance: "none",
+      notes: "",
+    });
     setIsCreateOpen(true);
   };
 
