@@ -206,7 +206,8 @@ export default function InvoicesPage() {
             <img src="${mcLogo}" alt="Middle Class Tourism" style="height: 65px;" />
           </div>
           <div style="text-align: right;">
-            <span style="display: inline-block; background: #1a5632; color: white; font-size: 22px; font-weight: 700; letter-spacing: 3px; padding: 6px 24px 10px 24px; border-radius: 6px;">INVOICE</span>
+            <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #1a5632; letter-spacing: 2px;">INVOICE</h1>
+            <p style="margin: 4px 0 0 0; font-size: 13px; color: #1a5632;">${invoice.invoiceNumber}</p>
           </div>
         </div>
         <div style="height: 3px; background: linear-gradient(to right, #1a5632, #22c55e, #1a5632); margin: 14px 0 20px 0; border-radius: 2px;"></div>
