@@ -206,7 +206,7 @@ export default function InvoicesPage() {
             <img src="${mcLogo}" alt="Middle Class Tourism" style="height: 65px;" />
           </div>
           <div style="text-align: right;">
-            <table style="display: inline-table; border-collapse: collapse;"><tr><td style="background: #1a5632; color: white; font-size: 22px; font-weight: 700; letter-spacing: 3px; padding: 10px 24px; border-radius: 6px; vertical-align: middle; line-height: 1.2;">INVOICE</td></tr></table>
+            <span style="display: inline-block; background: #1a5632; color: white; font-size: 22px; font-weight: 700; letter-spacing: 3px; padding: 6px 24px 10px 24px; border-radius: 6px;">INVOICE</span>
           </div>
         </div>
         <div style="height: 3px; background: linear-gradient(to right, #1a5632, #22c55e, #1a5632); margin: 14px 0 20px 0; border-radius: 2px;"></div>
@@ -275,7 +275,7 @@ export default function InvoicesPage() {
         <!-- Totals Section -->
         <div style="display: flex; justify-content: center; margin-top: 10px;">
           <div style="width: 380px;">
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px;"><tr><td style="background: #1a5632; color: white; text-align: center; padding: 10px 16px; border-radius: 6px; font-size: 14px; font-weight: 700; letter-spacing: 1px; vertical-align: middle; line-height: 1.2;">Invoice Summary</td></tr></table>
+            <div style="background: #1a5632; color: white; text-align: center; padding: 6px 16px 10px 16px; border-radius: 6px; font-size: 14px; font-weight: 700; letter-spacing: 1px; margin-bottom: 12px;">Invoice Summary</div>
             <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
               <tr>
                 <td style="padding: 8px 10px; font-weight: 600;">Sub Total:</td>
@@ -327,7 +327,7 @@ export default function InvoicesPage() {
 
         <!-- Footer -->
         <div style="margin-top: 40px;">
-          <table style="width: 100%; border-collapse: collapse;"><tr><td style="background: #1a5632; color: white; text-align: center; padding: 12px 16px; border-radius: 6px; font-size: 18px; font-weight: 700; font-style: italic; letter-spacing: 1px; vertical-align: middle; line-height: 1.2;">Thank You!</td></tr></table>
+          <div style="background: #1a5632; color: white; text-align: center; padding: 8px 16px 14px 16px; border-radius: 6px; font-size: 18px; font-weight: 700; font-style: italic; letter-spacing: 1px;">Thank You!</div>
         </div>
       </div>
     `;
