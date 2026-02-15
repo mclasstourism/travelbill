@@ -318,15 +318,9 @@ export default function CashReceiptsPage() {
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Payment Method</p>
                 <Badge data-testid="text-receipt-payment-method">{getPaymentMethodLabel(selectedReceipt.paymentMethod)}</Badge>
               </div>
-              {selectedReceipt.referenceNumber && (
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Reference Number</p>
-                  <p className="font-mono" data-testid="text-receipt-reference">{selectedReceipt.referenceNumber}</p>
-                </div>
-              )}
               {selectedReceipt.description && (
                 <div className="md:col-span-2">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Description</p>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Note</p>
                   <p className="text-muted-foreground" data-testid="text-receipt-description">{selectedReceipt.description}</p>
                 </div>
               )}
@@ -371,15 +365,9 @@ export default function CashReceiptsPage() {
                   <span className="label">Payment Method</span>
                   <span className="value">{getPaymentMethodLabel(selectedReceipt.paymentMethod)}</span>
                 </div>
-                {selectedReceipt.referenceNumber && (
-                  <div className="receipt-row">
-                    <span className="label">Reference No.</span>
-                    <span className="value">{selectedReceipt.referenceNumber}</span>
-                  </div>
-                )}
                 {selectedReceipt.description && (
                   <div className="receipt-row">
-                    <span className="label">Description</span>
+                    <span className="label">Note</span>
                     <span className="value">{selectedReceipt.description}</span>
                   </div>
                 )}
@@ -710,26 +698,12 @@ export default function CashReceiptsPage() {
 
               <FormField
                 control={form.control}
-                name="referenceNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Reference Number (Optional)</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Cheque/Transaction reference" data-testid="input-reference" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description (Optional)</FormLabel>
+                    <FormLabel>Note (Optional)</FormLabel>
                     <FormControl>
-                      <Textarea {...field} placeholder="Payment details..." className="resize-none" data-testid="input-description" />
+                      <Textarea {...field} placeholder="Add a note..." className="resize-none" data-testid="input-description" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
