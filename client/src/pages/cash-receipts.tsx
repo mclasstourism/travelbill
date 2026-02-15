@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
-import mcLogo from "@assets/image_1769840649122.png";
+import mcLogo from "@assets/final-logo_1771172687891.png";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -219,13 +219,27 @@ export default function CashReceiptsPage() {
     return filteredReceipts.reduce((sum, r) => sum + r.amount, 0);
   }, [filteredReceipts]);
 
-  const getReceiptHtml = (receipt: CashReceipt) => {
+  const getLogoBase64 = async (): Promise<string> => {
+    try {
+      const response = await fetch(mcLogo);
+      const blob = await response.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return mcLogo;
+    }
+  };
+
+  const getReceiptHtml = (receipt: CashReceipt, logoDataUrl: string) => {
     return `
       <div style="max-width: 700px; margin: 0 auto; padding: 30px 36px; font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b;">
         <!-- Header: Logo left, Contact right -->
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0;">
           <div style="flex-shrink: 0;">
-            <img src="${mcLogo}" alt="Middle Class Tourism" style="height: 65px;" />
+            <img src="${logoDataUrl}" alt="Middle Class Tourism" style="height: 65px;" />
           </div>
           <div style="text-align: right;">
             <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #1a5632; letter-spacing: 2px;">CASH RECEIPT</h1>
@@ -340,7 +354,8 @@ export default function CashReceiptsPage() {
     body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; color: #1e293b; }
   `;
 
-  const handlePrint = (receipt: CashReceipt) => {
+  const handlePrint = async (receipt: CashReceipt) => {
+    const logoDataUrl = await getLogoBase64();
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
     printWindow.document.write(`
@@ -349,7 +364,7 @@ export default function CashReceiptsPage() {
           <title>Cash Receipt - ${receipt.receiptNumber}</title>
           <style>${receiptStyles}</style>
         </head>
-        <body>${getReceiptHtml(receipt)}</body>
+        <body>${getReceiptHtml(receipt, logoDataUrl)}</body>
       </html>
     `);
     printWindow.document.close();
@@ -357,14 +372,15 @@ export default function CashReceiptsPage() {
     setTimeout(() => { printWindow.print(); printWindow.close(); }, 250);
   };
 
-  const handleDownload = (receipt: CashReceipt) => {
+  const handleDownload = async (receipt: CashReceipt) => {
+    const logoDataUrl = await getLogoBase64();
     const htmlContent = `
       <html>
         <head>
           <title>Cash Receipt - ${receipt.receiptNumber}</title>
           <style>${receiptStyles}</style>
         </head>
-        <body>${getReceiptHtml(receipt)}</body>
+        <body>${getReceiptHtml(receipt, logoDataUrl)}</body>
       </html>
     `;
     const blob = new Blob([htmlContent], { type: "text/html" });
