@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -39,7 +39,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Receipt, Search, Loader2, Eye, ArrowLeft, Printer, Calendar } from "lucide-react";
+import { Plus, Receipt, Search, Loader2, Eye, Printer, Calendar, Download } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval, parseISO } from "date-fns";
@@ -80,7 +80,6 @@ export default function CashReceiptsPage() {
   const [customEndDate, setCustomEndDate] = useState("");
   const { toast } = useToast();
   const { user } = useAuth();
-  const printRef = useRef<HTMLDivElement>(null);
 
   const { data: receipts = [], isLoading: isLoadingReceipts } = useQuery<CashReceipt[]>({
     queryKey: ["/api/cash-receipts"],
@@ -142,7 +141,6 @@ export default function CashReceiptsPage() {
       toast({ title: "Receipt Created", description: `Receipt ${receipt.receiptNumber} has been created.` });
       setIsCreateOpen(false);
       form.reset();
-      setSelectedReceipt(receipt);
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to create receipt.", variant: "destructive" });
@@ -220,35 +218,99 @@ export default function CashReceiptsPage() {
     return filteredReceipts.reduce((sum, r) => sum + r.amount, 0);
   }, [filteredReceipts]);
 
-  const handlePrint = () => {
-    if (!printRef.current) return;
-    const printContent = printRef.current.innerHTML;
+  const getReceiptHtml = (receipt: CashReceipt) => {
+    return `
+      <div class="receipt-container">
+        <div class="receipt-header">
+          <h1>MCT - Tourism Organizers</h1>
+          <h2>CASH RECEIPT</h2>
+          <div class="receipt-number">${receipt.receiptNumber}</div>
+        </div>
+        <div class="receipt-body">
+          <div class="receipt-row">
+            <span class="label">Date</span>
+            <span class="value">${format(parseISO(receipt.createdAt), "dd MMM yyyy, hh:mm a")}</span>
+          </div>
+          <div class="receipt-row">
+            <span class="label">Received From (${receipt.partyType})</span>
+            <span class="value">${getPartyName(receipt)}</span>
+          </div>
+          <div class="receipt-row">
+            <span class="label">Source</span>
+            <span class="value">${receipt.sourceType === "flight" ? "Flight Details" : "Other Service"}</span>
+          </div>
+          ${receipt.sourceType === "flight" && receipt.pnr ? `
+            <div class="receipt-row">
+              <span class="label">PNR</span>
+              <span class="value">${receipt.pnr}</span>
+            </div>
+          ` : ""}
+          ${receipt.sourceType === "other" && receipt.serviceName ? `
+            <div class="receipt-row">
+              <span class="label">Service</span>
+              <span class="value">${receipt.serviceName}</span>
+            </div>
+          ` : ""}
+          <div class="receipt-row">
+            <span class="label">Payment Method</span>
+            <span class="value">${getPaymentMethodLabel(receipt.paymentMethod)}</span>
+          </div>
+          ${receipt.description ? `
+            <div class="receipt-row">
+              <span class="label">Note</span>
+              <span class="value">${receipt.description}</span>
+            </div>
+          ` : ""}
+          ${receipt.referenceNumber ? `
+            <div class="receipt-row">
+              <span class="label">Reference</span>
+              <span class="value">${receipt.referenceNumber}</span>
+            </div>
+          ` : ""}
+          <div class="receipt-row amount-row">
+            <span class="label">Amount Received</span>
+            <span class="value">${formatCurrency(receipt.amount)}</span>
+          </div>
+        </div>
+        <div class="stamp-line"></div>
+        <div class="stamp-label">Authorized Signature / Stamp</div>
+        <div class="receipt-footer">
+          <p>This is a computer-generated receipt.</p>
+          <p>Thank you for your payment.</p>
+        </div>
+      </div>
+    `;
+  };
+
+  const receiptStyles = `
+    @page { size: A5; margin: 10mm; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
+    .receipt-container { max-width: 400px; margin: 0 auto; }
+    .receipt-header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #1a5632; padding-bottom: 15px; }
+    .receipt-header h1 { font-size: 18px; color: #1a5632; margin: 0 0 5px 0; }
+    .receipt-header h2 { font-size: 14px; margin: 0; color: #666; }
+    .receipt-number { font-size: 16px; font-weight: bold; color: #1a5632; margin-top: 10px; }
+    .receipt-body { margin: 20px 0; }
+    .receipt-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+    .receipt-row .label { color: #666; font-size: 13px; }
+    .receipt-row .value { font-weight: 500; font-size: 13px; text-align: right; }
+    .amount-row { font-size: 18px; font-weight: bold; border-top: 2px solid #1a5632; border-bottom: 2px solid #1a5632; padding: 12px 0; margin: 15px 0; }
+    .amount-row .value { color: #1a5632; }
+    .receipt-footer { text-align: center; margin-top: 30px; font-size: 11px; color: #999; border-top: 1px dashed #ccc; padding-top: 15px; }
+    .stamp-line { margin-top: 40px; border-top: 1px solid #333; width: 200px; margin-left: auto; margin-right: auto; }
+    .stamp-label { text-align: center; font-size: 11px; color: #666; margin-top: 5px; }
+  `;
+
+  const handlePrint = (receipt: CashReceipt) => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
     printWindow.document.write(`
       <html>
         <head>
-          <title>Cash Receipt - ${selectedReceipt?.receiptNumber}</title>
-          <style>
-            @page { size: A5; margin: 10mm; }
-            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
-            .receipt-container { max-width: 400px; margin: 0 auto; }
-            .receipt-header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #1a5632; padding-bottom: 15px; }
-            .receipt-header h1 { font-size: 18px; color: #1a5632; margin: 0 0 5px 0; }
-            .receipt-header h2 { font-size: 14px; margin: 0; color: #666; }
-            .receipt-number { font-size: 16px; font-weight: bold; color: #1a5632; margin-top: 10px; }
-            .receipt-body { margin: 20px 0; }
-            .receipt-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
-            .receipt-row .label { color: #666; font-size: 13px; }
-            .receipt-row .value { font-weight: 500; font-size: 13px; text-align: right; }
-            .amount-row { font-size: 18px; font-weight: bold; border-top: 2px solid #1a5632; border-bottom: 2px solid #1a5632; padding: 12px 0; margin: 15px 0; }
-            .amount-row .value { color: #1a5632; }
-            .receipt-footer { text-align: center; margin-top: 30px; font-size: 11px; color: #999; border-top: 1px dashed #ccc; padding-top: 15px; }
-            .stamp-line { margin-top: 40px; border-top: 1px solid #333; width: 200px; margin-left: auto; margin-right: auto; }
-            .stamp-label { text-align: center; font-size: 11px; color: #666; margin-top: 5px; }
-          </style>
+          <title>Cash Receipt - ${receipt.receiptNumber}</title>
+          <style>${receiptStyles}</style>
         </head>
-        <body>${printContent}</body>
+        <body>${getReceiptHtml(receipt)}</body>
       </html>
     `);
     printWindow.document.close();
@@ -256,138 +318,26 @@ export default function CashReceiptsPage() {
     setTimeout(() => { printWindow.print(); printWindow.close(); }, 250);
   };
 
-  if (selectedReceipt) {
-    return (
-      <div className="p-4 md:p-6 space-y-4">
-        <div className="flex items-center gap-2 flex-wrap">
-          <SidebarTrigger data-testid="button-sidebar-toggle" />
-          <Button variant="ghost" size="icon" onClick={() => setSelectedReceipt(null)} data-testid="button-back-receipts">
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <h1 className="text-xl font-bold" data-testid="text-receipt-detail-title">Receipt Details</h1>
-          <div className="ml-auto">
-            <Button onClick={handlePrint} data-testid="button-print-receipt">
-              <Printer className="w-4 h-4 mr-2" />
-              Print Receipt
-            </Button>
-          </div>
-        </div>
-
-        <Card>
-          <CardContent className="pt-5 pb-4 px-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Receipt Number</p>
-                <p className="font-mono font-bold text-lg" data-testid="text-receipt-number">{selectedReceipt.receiptNumber}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Date</p>
-                <p className="font-medium" data-testid="text-receipt-date">{format(parseISO(selectedReceipt.createdAt), "dd MMM yyyy, hh:mm a")}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Received From</p>
-                <Badge variant="outline" data-testid="text-receipt-party-type">{selectedReceipt.partyType === "customer" ? "Customer" : selectedReceipt.partyType === "agent" ? "Agent" : "Vendor"}</Badge>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Name</p>
-                <p className="font-medium" data-testid="text-receipt-party-name">{getPartyName(selectedReceipt)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Source Type</p>
-                <Badge variant="outline" data-testid="text-receipt-source-type">
-                  {selectedReceipt.sourceType === "flight" ? "Flight Details" : "Other Service"}
-                </Badge>
-              </div>
-              {selectedReceipt.sourceType === "flight" && selectedReceipt.pnr && (
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">PNR</p>
-                  <p className="font-mono font-medium" data-testid="text-receipt-pnr">{selectedReceipt.pnr}</p>
-                </div>
-              )}
-              {selectedReceipt.sourceType === "other" && selectedReceipt.serviceName && (
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Service Name</p>
-                  <p className="font-medium" data-testid="text-receipt-service-name">{selectedReceipt.serviceName}</p>
-                </div>
-              )}
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Amount</p>
-                <p className="font-mono font-bold text-lg text-[hsl(var(--primary))]" data-testid="text-receipt-amount">{formatCurrency(selectedReceipt.amount)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Payment Method</p>
-                <Badge data-testid="text-receipt-payment-method">{getPaymentMethodLabel(selectedReceipt.paymentMethod)}</Badge>
-              </div>
-              {selectedReceipt.description && (
-                <div className="md:col-span-2">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Note</p>
-                  <p className="text-muted-foreground" data-testid="text-receipt-description">{selectedReceipt.description}</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="hidden">
-          <div ref={printRef}>
-            <div className="receipt-container">
-              <div className="receipt-header">
-                <h1>MCT - Tourism Organizers</h1>
-                <h2>CASH RECEIPT</h2>
-                <div className="receipt-number">{selectedReceipt.receiptNumber}</div>
-              </div>
-              <div className="receipt-body">
-                <div className="receipt-row">
-                  <span className="label">Date</span>
-                  <span className="value">{format(parseISO(selectedReceipt.createdAt), "dd MMM yyyy, hh:mm a")}</span>
-                </div>
-                <div className="receipt-row">
-                  <span className="label">Received From ({selectedReceipt.partyType})</span>
-                  <span className="value">{getPartyName(selectedReceipt)}</span>
-                </div>
-                <div className="receipt-row">
-                  <span className="label">Source</span>
-                  <span className="value">{selectedReceipt.sourceType === "flight" ? "Flight Details" : "Other Service"}</span>
-                </div>
-                {selectedReceipt.sourceType === "flight" && selectedReceipt.pnr && (
-                  <div className="receipt-row">
-                    <span className="label">PNR</span>
-                    <span className="value">{selectedReceipt.pnr}</span>
-                  </div>
-                )}
-                {selectedReceipt.sourceType === "other" && selectedReceipt.serviceName && (
-                  <div className="receipt-row">
-                    <span className="label">Service</span>
-                    <span className="value">{selectedReceipt.serviceName}</span>
-                  </div>
-                )}
-                <div className="receipt-row">
-                  <span className="label">Payment Method</span>
-                  <span className="value">{getPaymentMethodLabel(selectedReceipt.paymentMethod)}</span>
-                </div>
-                {selectedReceipt.description && (
-                  <div className="receipt-row">
-                    <span className="label">Note</span>
-                    <span className="value">{selectedReceipt.description}</span>
-                  </div>
-                )}
-                <div className="receipt-row amount-row">
-                  <span className="label">Amount Received</span>
-                  <span className="value">{formatCurrency(selectedReceipt.amount)}</span>
-                </div>
-              </div>
-              <div className="stamp-line"></div>
-              <div className="stamp-label">Authorized Signature / Stamp</div>
-              <div className="receipt-footer">
-                <p>This is a computer-generated receipt.</p>
-                <p>Thank you for your payment.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const handleDownload = (receipt: CashReceipt) => {
+    const htmlContent = `
+      <html>
+        <head>
+          <title>Cash Receipt - ${receipt.receiptNumber}</title>
+          <style>${receiptStyles}</style>
+        </head>
+        <body>${getReceiptHtml(receipt)}</body>
+      </html>
+    `;
+    const blob = new Blob([htmlContent], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Receipt-${receipt.receiptNumber}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="p-4 md:p-6 space-y-4">
@@ -519,9 +469,14 @@ export default function CashReceiptsPage() {
                         {formatCurrency(receipt.amount)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => setSelectedReceipt(receipt)} data-testid={`button-view-receipt-${receipt.id}`}>
-                          <Eye className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => setSelectedReceipt(receipt)} data-testid={`button-view-receipt-${receipt.id}`}>
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDownload(receipt)} data-testid={`button-download-receipt-${receipt.id}`}>
+                            <Download className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -531,6 +486,80 @@ export default function CashReceiptsPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!selectedReceipt} onOpenChange={(open) => { if (!open) setSelectedReceipt(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Receipt Details</DialogTitle>
+            <DialogDescription>
+              {selectedReceipt?.receiptNumber}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedReceipt && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Receipt Number</p>
+                  <p className="font-mono font-bold text-lg" data-testid="text-receipt-number">{selectedReceipt.receiptNumber}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Date</p>
+                  <p className="font-medium" data-testid="text-receipt-date">{format(parseISO(selectedReceipt.createdAt), "dd MMM yyyy, hh:mm a")}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Received From</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium" data-testid="text-receipt-party-name">{getPartyName(selectedReceipt)}</p>
+                    <Badge variant="outline" data-testid="text-receipt-party-type">{selectedReceipt.partyType === "customer" ? "Customer" : selectedReceipt.partyType === "agent" ? "Agent" : "Vendor"}</Badge>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Source</p>
+                  <p className="font-medium" data-testid="text-receipt-source-type">
+                    {selectedReceipt.sourceType === "flight" ? "Flight" : "Other Service"}
+                    {selectedReceipt.sourceType === "flight" && selectedReceipt.pnr && (
+                      <span className="ml-2 font-mono text-muted-foreground text-sm">({selectedReceipt.pnr})</span>
+                    )}
+                    {selectedReceipt.sourceType === "other" && selectedReceipt.serviceName && (
+                      <span className="ml-2 text-muted-foreground text-sm">({selectedReceipt.serviceName})</span>
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Payment Method</p>
+                  <Badge data-testid="text-receipt-payment-method">{getPaymentMethodLabel(selectedReceipt.paymentMethod)}</Badge>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Amount</p>
+                  <p className="font-mono font-bold text-lg text-[hsl(var(--primary))]" data-testid="text-receipt-amount">{formatCurrency(selectedReceipt.amount)}</p>
+                </div>
+                {selectedReceipt.referenceNumber && (
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Reference</p>
+                    <p className="font-mono font-medium">{selectedReceipt.referenceNumber}</p>
+                  </div>
+                )}
+                {selectedReceipt.description && (
+                  <div className="col-span-2">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Note</p>
+                    <p className="text-muted-foreground" data-testid="text-receipt-description">{selectedReceipt.description}</p>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-2 pt-2 border-t">
+                <Button onClick={() => handlePrint(selectedReceipt)} data-testid="button-print-receipt">
+                  <Printer className="w-4 h-4 mr-2" />
+                  Print
+                </Button>
+                <Button variant="outline" onClick={() => handleDownload(selectedReceipt)} data-testid="button-download-receipt">
+                  <Download className="w-4 h-4 mr-2" />
+                  Download
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="max-w-md">
