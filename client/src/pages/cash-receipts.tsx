@@ -267,7 +267,7 @@ export default function CashReceiptsPage() {
               <span class="value">${receipt.referenceNumber}</span>
             </div>
           ` : ""}
-          <div class="receipt-row amount-row">
+          <div class="amount-row">
             <span class="label">Amount Received</span>
             <span class="value">${formatCurrency(receipt.amount)}</span>
           </div>
@@ -283,22 +283,23 @@ export default function CashReceiptsPage() {
   };
 
   const receiptStyles = `
-    @page { size: A5; margin: 10mm; }
-    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
-    .receipt-container { max-width: 400px; margin: 0 auto; }
-    .receipt-header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #1a5632; padding-bottom: 15px; }
-    .receipt-header h1 { font-size: 18px; color: #1a5632; margin: 0 0 5px 0; }
-    .receipt-header h2 { font-size: 14px; margin: 0; color: #666; }
-    .receipt-number { font-size: 16px; font-weight: bold; color: #1a5632; margin-top: 10px; }
-    .receipt-body { margin: 20px 0; }
-    .receipt-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+    @page { size: A5; margin: 15mm; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 30px; color: #333; }
+    .receipt-container { max-width: 480px; margin: 0 auto; }
+    .receipt-header { text-align: center; margin-bottom: 24px; border-bottom: 2px solid #1a5632; padding-bottom: 16px; }
+    .receipt-header h1 { font-size: 20px; color: #1a5632; margin: 0 0 4px 0; font-style: italic; font-weight: 700; }
+    .receipt-header h2 { font-size: 13px; margin: 0; color: #666; letter-spacing: 3px; text-transform: uppercase; }
+    .receipt-number { font-size: 15px; font-weight: bold; color: #333; margin-top: 10px; text-decoration: underline; }
+    .receipt-body { margin: 24px 0; }
+    .receipt-row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #e5e7eb; }
     .receipt-row .label { color: #666; font-size: 13px; }
     .receipt-row .value { font-weight: 500; font-size: 13px; text-align: right; }
-    .amount-row { font-size: 18px; font-weight: bold; border-top: 2px solid #1a5632; border-bottom: 2px solid #1a5632; padding: 12px 0; margin: 15px 0; }
+    .amount-row { display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; border-top: 2px solid #1a5632; border-bottom: 2px solid #1a5632; padding: 12px 0; margin: 20px 0 0 0; }
     .amount-row .value { color: #1a5632; }
-    .receipt-footer { text-align: center; margin-top: 30px; font-size: 11px; color: #999; border-top: 1px dashed #ccc; padding-top: 15px; }
-    .stamp-line { margin-top: 40px; border-top: 1px solid #333; width: 200px; margin-left: auto; margin-right: auto; }
-    .stamp-label { text-align: center; font-size: 11px; color: #666; margin-top: 5px; }
+    .receipt-footer { text-align: center; margin-top: 40px; font-size: 11px; color: #999; font-style: italic; }
+    .receipt-footer p { margin: 2px 0; }
+    .stamp-line { margin-top: 50px; border-top: 1px solid #333; width: 200px; margin-left: auto; margin-right: auto; }
+    .stamp-label { text-align: center; font-size: 11px; color: #666; margin-top: 5px; font-style: italic; }
   `;
 
   const handlePrint = (receipt: CashReceipt) => {
@@ -488,65 +489,80 @@ export default function CashReceiptsPage() {
       </Card>
 
       <Dialog open={!!selectedReceipt} onOpenChange={(open) => { if (!open) setSelectedReceipt(null); }}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Receipt Details</DialogTitle>
-            <DialogDescription>
-              {selectedReceipt?.receiptNumber}
-            </DialogDescription>
+        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto p-0">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Receipt {selectedReceipt?.receiptNumber}</DialogTitle>
+            <DialogDescription>View receipt details</DialogDescription>
           </DialogHeader>
           {selectedReceipt && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Receipt Number</p>
-                  <p className="font-mono font-bold text-lg" data-testid="text-receipt-number">{selectedReceipt.receiptNumber}</p>
+            <div className="p-8">
+              <div className="text-center mb-6 pb-4 border-b-2 border-[#1a5632]">
+                <h2 className="text-xl font-bold text-[#1a5632] italic" data-testid="text-receipt-company">MCT - Tourism Organizers</h2>
+                <p className="text-sm text-muted-foreground tracking-widest mt-1">CASH RECEIPT</p>
+                <p className="font-mono font-bold text-base mt-2 underline" data-testid="text-receipt-number">{selectedReceipt.receiptNumber}</p>
+              </div>
+
+              <div className="space-y-0">
+                <div className="flex justify-between py-2 border-b border-muted">
+                  <span className="text-muted-foreground text-sm">Date</span>
+                  <span className="font-medium text-sm" data-testid="text-receipt-date">{format(parseISO(selectedReceipt.createdAt), "dd MMM yyyy, hh:mm a")}</span>
                 </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Date</p>
-                  <p className="font-medium" data-testid="text-receipt-date">{format(parseISO(selectedReceipt.createdAt), "dd MMM yyyy, hh:mm a")}</p>
+                <div className="flex justify-between py-2 border-b border-muted">
+                  <span className="text-muted-foreground text-sm">Received From ({selectedReceipt.partyType})</span>
+                  <span className="font-medium text-sm" data-testid="text-receipt-party-name">{getPartyName(selectedReceipt)}</span>
                 </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Received From</p>
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium" data-testid="text-receipt-party-name">{getPartyName(selectedReceipt)}</p>
-                    <Badge variant="outline" data-testid="text-receipt-party-type">{selectedReceipt.partyType === "customer" ? "Customer" : selectedReceipt.partyType === "agent" ? "Agent" : "Vendor"}</Badge>
+                <div className="flex justify-between py-2 border-b border-muted">
+                  <span className="text-muted-foreground text-sm">Source</span>
+                  <span className="font-medium text-sm" data-testid="text-receipt-source-type">{selectedReceipt.sourceType === "flight" ? "Flight Details" : "Other Service"}</span>
+                </div>
+                {selectedReceipt.sourceType === "flight" && selectedReceipt.pnr && (
+                  <div className="flex justify-between py-2 border-b border-muted">
+                    <span className="text-muted-foreground text-sm">PNR</span>
+                    <span className="font-mono font-medium text-sm" data-testid="text-receipt-pnr">{selectedReceipt.pnr}</span>
                   </div>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Source</p>
-                  <p className="font-medium" data-testid="text-receipt-source-type">
-                    {selectedReceipt.sourceType === "flight" ? "Flight" : "Other Service"}
-                    {selectedReceipt.sourceType === "flight" && selectedReceipt.pnr && (
-                      <span className="ml-2 font-mono text-muted-foreground text-sm">({selectedReceipt.pnr})</span>
-                    )}
-                    {selectedReceipt.sourceType === "other" && selectedReceipt.serviceName && (
-                      <span className="ml-2 text-muted-foreground text-sm">({selectedReceipt.serviceName})</span>
-                    )}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Payment Method</p>
-                  <Badge data-testid="text-receipt-payment-method">{getPaymentMethodLabel(selectedReceipt.paymentMethod)}</Badge>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Amount</p>
-                  <p className="font-mono font-bold text-lg text-[hsl(var(--primary))]" data-testid="text-receipt-amount">{formatCurrency(selectedReceipt.amount)}</p>
+                )}
+                {selectedReceipt.sourceType === "other" && selectedReceipt.serviceName && (
+                  <div className="flex justify-between py-2 border-b border-muted">
+                    <span className="text-muted-foreground text-sm">Service</span>
+                    <span className="font-medium text-sm" data-testid="text-receipt-service-name">{selectedReceipt.serviceName}</span>
+                  </div>
+                )}
+                <div className="flex justify-between py-2 border-b border-muted">
+                  <span className="text-muted-foreground text-sm">Payment Method</span>
+                  <span className="font-medium text-sm" data-testid="text-receipt-payment-method">{getPaymentMethodLabel(selectedReceipt.paymentMethod)}</span>
                 </div>
                 {selectedReceipt.referenceNumber && (
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Reference</p>
-                    <p className="font-mono font-medium">{selectedReceipt.referenceNumber}</p>
+                  <div className="flex justify-between py-2 border-b border-muted">
+                    <span className="text-muted-foreground text-sm">Reference</span>
+                    <span className="font-mono font-medium text-sm">{selectedReceipt.referenceNumber}</span>
                   </div>
                 )}
                 {selectedReceipt.description && (
-                  <div className="col-span-2">
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Note</p>
-                    <p className="text-muted-foreground" data-testid="text-receipt-description">{selectedReceipt.description}</p>
+                  <div className="flex justify-between py-2 border-b border-muted">
+                    <span className="text-muted-foreground text-sm">Note</span>
+                    <span className="text-sm" data-testid="text-receipt-description">{selectedReceipt.description}</span>
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-2 pt-2 border-t">
+
+              <div className="flex justify-between py-3 mt-4 border-t-2 border-b-2 border-[#1a5632]">
+                <span className="font-bold text-base">Amount Received</span>
+                <span className="font-mono font-bold text-base text-[#1a5632]" data-testid="text-receipt-amount">{formatCurrency(selectedReceipt.amount)}</span>
+              </div>
+
+              <div className="mt-10 flex justify-center">
+                <div>
+                  <div className="w-48 border-t border-foreground" />
+                  <p className="text-center text-xs text-muted-foreground italic mt-1">Authorized Signature / Stamp</p>
+                </div>
+              </div>
+
+              <div className="mt-8 text-center text-xs text-muted-foreground italic">
+                <p>This is a computer-generated receipt.</p>
+                <p>Thank you for your payment.</p>
+              </div>
+
+              <div className="flex items-center gap-2 pt-4 mt-6 border-t">
                 <Button onClick={() => handlePrint(selectedReceipt)} data-testid="button-print-receipt">
                   <Printer className="w-4 h-4 mr-2" />
                   Print
