@@ -206,135 +206,128 @@ export default function InvoicesPage() {
             <img src="${mcLogo}" alt="Middle Class Tourism" style="height: 65px;" />
           </div>
           <div style="text-align: right;">
-            <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #1a5632; letter-spacing: 2px;">INVOICE</h1>
-            <p style="margin: 6px 0 0 0; font-size: 13px; color: #64748b;">${invoice.invoiceNumber}</p>
+            <div style="display: inline-block; background: #1a5632; color: white; font-size: 22px; font-weight: 700; letter-spacing: 3px; padding: 8px 24px; border-radius: 6px; line-height: 1; text-align: center;">INVOICE</div>
           </div>
         </div>
         <div style="height: 3px; background: linear-gradient(to right, #1a5632, #22c55e, #1a5632); margin: 14px 0 20px 0; border-radius: 2px;"></div>
 
         <!-- Company & Invoice Info Row -->
         <div style="display: flex; justify-content: space-between; margin-bottom: 24px;">
-          <div style="font-size: 11px; color: #64748b; line-height: 1.7;">
-            <p style="margin: 0;">Phone: 025 640 224 | 050 222 1042</p>
-            <p style="margin: 0;">www.middleclass.ae | sales@middleclass.ae</p>
-            <p style="margin: 0;">Shop 41, Al Dhannah Traditional Souq, Al Dhannah City, Abu Dhabi \u2013 UAE</p>
+          <div style="font-size: 12px; color: #374151; line-height: 1.9;">
+            <p style="margin: 0;"><strong style="color: #64748b; min-width: 60px; display: inline-block;">Address</strong> : Shop 41, Al Dhannah Traditional</p>
+            <p style="margin: 0; padding-left: 72px;">Souq, Al Dhannah City, Abu Dhabi - UAE</p>
+            <p style="margin: 0;"><strong style="color: #64748b; min-width: 60px; display: inline-block;">Email</strong> : sales@middleclass.ae</p>
+            <p style="margin: 0;"><strong style="color: #64748b; min-width: 60px; display: inline-block;">Phone</strong> : 025 640 224, 050 222 1042</p>
+            <p style="margin: 0;"><strong style="color: #64748b; min-width: 60px; display: inline-block;">Website</strong> : www.middleclass.ae</p>
           </div>
-          <div style="text-align: right; font-size: 12px;">
+          <div style="text-align: right; font-size: 13px;">
             <table style="border-collapse: collapse; margin-left: auto;">
               <tr>
-                <td style="padding: 3px 12px 3px 0; color: #64748b; font-weight: 500;">Date:</td>
-                <td style="padding: 3px 0; font-weight: 600;">${format(new Date(invoice.createdAt), "MMM d, yyyy")}</td>
+                <td style="padding: 4px 12px 4px 0; color: #64748b; font-weight: 600;">Invoice No</td>
+                <td style="padding: 4px 0; font-weight: 700;">: ${invoice.invoiceNumber}</td>
               </tr>
               <tr>
-                <td style="padding: 3px 12px 3px 0; color: #64748b; font-weight: 500;">Status:</td>
-                <td style="padding: 3px 0;"><span style="display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; background-color: ${invoice.status === 'paid' ? '#dcfce7' : invoice.status === 'cancelled' ? '#fce4e4' : '#fef9c3'}; color: ${invoice.status === 'paid' ? '#166534' : invoice.status === 'cancelled' ? '#991b1b' : '#854d0e'}; text-transform: uppercase;">${invoice.status}</span></td>
-              </tr>
-              <tr>
-                <td style="padding: 3px 12px 3px 0; color: #64748b; font-weight: 500;">Payment:</td>
-                <td style="padding: 3px 0; font-weight: 600; text-transform: capitalize;">${invoice.paymentMethod}</td>
+                <td style="padding: 4px 12px 4px 0; color: #64748b; font-weight: 600;">Date</td>
+                <td style="padding: 4px 0; font-weight: 700;">: ${format(new Date(invoice.createdAt), "dd/MM/yyyy")}</td>
               </tr>
             </table>
           </div>
         </div>
 
         <!-- Bill To / Vendor -->
-        <div style="display: flex; gap: 16px; margin-bottom: 24px;">
-          <div style="flex: 1; background: #f0fdf4; border-left: 4px solid #1a5632; padding: 14px 16px; border-radius: 0 6px 6px 0;">
-            <p style="margin: 0 0 4px 0; font-size: 10px; font-weight: 700; color: #1a5632; text-transform: uppercase; letter-spacing: 1px;">${invoice.customerType === 'agent' ? 'Bill To (Agent)' : 'Bill To'}</p>
-            <p style="margin: 0; font-size: 15px; font-weight: 600; color: #1e293b;">${partyName}</p>
+        <div style="display: flex; gap: 0; margin-bottom: 24px;">
+          <div style="flex: 1; background: #f0fdf4; border-left: 4px solid #1a5632; padding: 14px 16px;">
+            <p style="margin: 0 0 4px 0; font-size: 10px; font-weight: 700; color: #1a5632; text-transform: uppercase; letter-spacing: 1px;">${invoice.customerType === 'agent' ? 'BILL TO (Agent)' : 'BILL TO'}</p>
+            <p style="margin: 0; font-size: 15px; font-weight: 700; color: #1e293b;">${partyName}</p>
           </div>
-          <div style="flex: 1; background: #f8fafc; border-left: 4px solid #94a3b8; padding: 14px 16px; border-radius: 0 6px 6px 0;">
-            <p style="margin: 0 0 4px 0; font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px;">Vendor / Supplier</p>
-            <p style="margin: 0; font-size: 15px; font-weight: 600; color: #1e293b;">${vendorName}</p>
+          <div style="flex: 1; border-left: 1px solid #e2e8f0; padding: 14px 16px;">
+            <p style="margin: 0 0 4px 0; font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px;">VENDOR / SUPPLIER</p>
+            <p style="margin: 0; font-size: 15px; font-weight: 700; color: #1e293b;">${vendorName}</p>
           </div>
         </div>
 
         <!-- Items Table -->
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px;">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; border: 1px solid #e2e8f0;">
           <thead>
             <tr>
-              <th style="text-align: left; padding: 8px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 4px 0 0 0;">#</th>
-              <th style="text-align: left; padding: 8px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Sector</th>
-              <th style="text-align: left; padding: 8px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Date</th>
-              <th style="text-align: left; padding: 8px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Flight</th>
-              <th style="text-align: left; padding: 8px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">PNR</th>
-              <th style="text-align: left; padding: 8px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">TKT No</th>
-              <th style="text-align: right; padding: 8px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Basic Fare</th>
-              <th style="text-align: right; padding: 8px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Tax</th>
-              <th style="text-align: right; padding: 8px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 0 4px 0 0;">Amount</th>
+              <th style="text-align: left; padding: 10px 8px; background: #1a5632; color: white; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">ITEM</th>
+              <th style="text-align: center; padding: 10px 8px; background: #1a5632; color: white; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">DATE</th>
+              <th style="text-align: center; padding: 10px 8px; background: #1a5632; color: white; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">FLIGHT</th>
+              <th style="text-align: center; padding: 10px 8px; background: #1a5632; color: white; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">PNR</th>
+              <th style="text-align: center; padding: 10px 8px; background: #1a5632; color: white; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">TKT NO</th>
+              <th style="text-align: right; padding: 10px 8px; background: #1a5632; color: white; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">SUB TOTAL</th>
             </tr>
           </thead>
           <tbody>
             ${items.map((item: any, i: number) => `
               <tr style="background: ${i % 2 === 0 ? '#ffffff' : '#f8fafc'};">
-                <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; color: #64748b;">${i + 1}</td>
-                <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; font-weight: 500;">${item.sector || ''}</td>
-                <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0;">${item.travelDate || '-'}</td>
-                <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0;">${item.airlinesFlightNo || '-'}</td>
-                <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">${item.pnr || '-'}</td>
-                <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">${item.tktNo || '-'}</td>
-                <td style="text-align: right; padding: 8px 6px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">AED ${(item.basicFare || 0).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
-                <td style="text-align: right; padding: 8px 6px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">AED ${(item.tax || 0).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
-                <td style="text-align: right; padding: 8px 6px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace; font-weight: 600;">AED ${(item.amount || 0).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+                <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-weight: 500;">Flight Ticket (${item.sector || '-'})</td>
+                <td style="text-align: center; padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">${item.travelDate || '-'}</td>
+                <td style="text-align: center; padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">${item.airlinesFlightNo || '-'}</td>
+                <td style="text-align: center; padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">${item.pnr || '-'}</td>
+                <td style="text-align: center; padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">${item.tktNo || '-'}</td>
+                <td style="text-align: right; padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace; font-weight: 600;">${(item.amount || 0).toLocaleString("en-AE", { minimumFractionDigits: 2 })} <span style="font-size: 10px; color: #64748b;">\u062F.\u0625</span></td>
               </tr>
             `).join('')}
           </tbody>
         </table>
 
         <!-- Totals Section -->
-        <div style="display: flex; justify-content: flex-end;">
-          <div style="width: 320px;">
+        <div style="display: flex; justify-content: center; margin-top: 10px;">
+          <div style="width: 380px;">
+            <div style="background: #1a5632; color: white; text-align: center; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 700; letter-spacing: 1px; line-height: 1; margin-bottom: 12px;">Invoice Summary</div>
             <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
               <tr>
-                <td style="padding: 6px 0; color: #64748b;">Subtotal</td>
-                <td style="padding: 6px 0; text-align: right; font-family: 'Courier New', monospace; font-weight: 500;">AED ${invoice.subtotal.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+                <td style="padding: 8px 10px; font-weight: 600;">Sub Total:</td>
+                <td style="padding: 8px 10px; text-align: right; font-family: 'Courier New', monospace; font-weight: 600;">${invoice.subtotal.toLocaleString("en-AE", { minimumFractionDigits: 2 })} <span style="font-size: 10px; color: #64748b;">\u062F.\u0625</span></td>
               </tr>
               ${invoice.discountAmount > 0 ? `
               <tr>
-                <td style="padding: 6px 0; color: #16a34a;">Discount (${invoice.discountPercent}%)</td>
-                <td style="padding: 6px 0; text-align: right; font-family: 'Courier New', monospace; color: #16a34a;">-AED ${invoice.discountAmount.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+                <td style="padding: 8px 10px; color: #16a34a; font-weight: 500;">Discount (${invoice.discountPercent}%):</td>
+                <td style="padding: 8px 10px; text-align: right; font-family: 'Courier New', monospace; color: #16a34a;">-${invoice.discountAmount.toLocaleString("en-AE", { minimumFractionDigits: 2 })} <span style="font-size: 10px;">\u062F.\u0625</span></td>
               </tr>
               ` : ''}
               ${invoice.depositUsed > 0 ? `
               <tr>
-                <td style="padding: 6px 0; color: #2563eb;">Deposit Applied</td>
-                <td style="padding: 6px 0; text-align: right; font-family: 'Courier New', monospace; color: #2563eb;">-AED ${invoice.depositUsed.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+                <td style="padding: 8px 10px; color: #2563eb; font-weight: 500;">Deposit Applied:</td>
+                <td style="padding: 8px 10px; text-align: right; font-family: 'Courier New', monospace; color: #2563eb;">-${invoice.depositUsed.toLocaleString("en-AE", { minimumFractionDigits: 2 })} <span style="font-size: 10px;">\u062F.\u0625</span></td>
               </tr>
               ` : ''}
               ${invoice.agentCreditUsed > 0 ? `
               <tr>
-                <td style="padding: 6px 0; color: #7c3aed;">Agent Credit Applied</td>
-                <td style="padding: 6px 0; text-align: right; font-family: 'Courier New', monospace; color: #7c3aed;">-AED ${invoice.agentCreditUsed.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+                <td style="padding: 8px 10px; color: #7c3aed; font-weight: 500;">Agent Credit Applied:</td>
+                <td style="padding: 8px 10px; text-align: right; font-family: 'Courier New', monospace; color: #7c3aed;">-${invoice.agentCreditUsed.toLocaleString("en-AE", { minimumFractionDigits: 2 })} <span style="font-size: 10px;">\u062F.\u0625</span></td>
               </tr>
               ` : ''}
               ${invoice.vendorBalanceDeducted > 0 ? `
               <tr>
-                <td style="padding: 6px 0; color: #ea580c;">Vendor ${invoice.useVendorBalance === "credit" ? "Credit" : "Deposit"} Applied</td>
-                <td style="padding: 6px 0; text-align: right; font-family: 'Courier New', monospace; color: #ea580c;">-AED ${invoice.vendorBalanceDeducted.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+                <td style="padding: 8px 10px; color: #ea580c; font-weight: 500;">Vendor ${invoice.useVendorBalance === "credit" ? "Credit" : "Deposit"} Applied:</td>
+                <td style="padding: 8px 10px; text-align: right; font-family: 'Courier New', monospace; color: #ea580c;">-${invoice.vendorBalanceDeducted.toLocaleString("en-AE", { minimumFractionDigits: 2 })} <span style="font-size: 10px;">\u062F.\u0625</span></td>
               </tr>
               ` : ''}
               <tr>
-                <td colspan="2" style="padding: 0;"><div style="height: 2px; background: linear-gradient(to right, #1a5632, #22c55e); margin: 8px 0; border-radius: 1px;"></div></td>
+                <td colspan="2" style="padding: 0;"><div style="height: 2px; background: #1a5632; margin: 6px 10px;"></div></td>
               </tr>
               <tr>
-                <td style="padding: 6px 0; font-size: 11px; color: #64748b; font-weight: 500;">Grand Total</td>
-                <td style="padding: 6px 0; text-align: right; font-family: 'Courier New', monospace; font-size: 14px; font-weight: 700; color: #1e293b;">AED ${grandTotal.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; font-weight: 700; font-size: 16px; color: #1a5632;">Total Due</td>
-                <td style="padding: 8px 0; text-align: right; font-family: 'Courier New', monospace; font-size: 18px; font-weight: 800; color: #1a5632;">AED ${invoice.total.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+                <td style="padding: 8px 10px; font-weight: 700; font-size: 15px;">Total:</td>
+                <td style="padding: 8px 10px; text-align: right; font-family: 'Courier New', monospace; font-size: 16px; font-weight: 800;">${invoice.total.toLocaleString("en-AE", { minimumFractionDigits: 2 })} <span style="font-size: 11px; color: #64748b;">\u062F.\u0625</span></td>
               </tr>
             </table>
-            <p style="text-align: right; font-size: 11px; color: #94a3b8; margin: 2px 0 0 0; font-style: italic;">${numberToWords(invoice.total)}</p>
+            <p style="text-align: center; font-size: 11px; color: #1a5632; margin: 4px 0 0 0; font-style: italic;">${numberToWords(invoice.total)}</p>
+          </div>
+        </div>
+
+        <!-- Authorised Sign -->
+        <div style="text-align: right; margin-top: 40px;">
+          <div style="display: inline-block; text-align: center;">
+            <div style="width: 180px; border-bottom: 1px solid #374151; margin-bottom: 6px;"></div>
+            <p style="margin: 0; font-size: 12px; color: #64748b; font-style: italic;">Authorised Sign</p>
           </div>
         </div>
 
         <!-- Footer -->
-        <div style="margin-top: 32px; padding-top: 16px; border-top: 2px solid #e2e8f0;">
-          <div style="text-align: center;">
-            <p style="margin: 0; font-size: 13px; color: #1a5632; font-weight: 600;">Thank you for choosing Middle Class Tourism</p>
-            <p style="margin: 6px 0 0 0; font-size: 10px; color: #94a3b8;">This is a computer-generated invoice.</p>
-          </div>
+        <div style="margin-top: 40px;">
+          <div style="background: #1a5632; color: white; text-align: center; padding: 10px 16px; border-radius: 6px; font-size: 15px; font-weight: 700; font-style: italic; letter-spacing: 1px; line-height: 1;">Thank You!</div>
         </div>
       </div>
     `;
