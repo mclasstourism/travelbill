@@ -72,6 +72,31 @@ const createReceiptSchema = z.object({
 
 type CreateReceiptForm = z.infer<typeof createReceiptSchema>;
 
+const numberToWords = (num: number): string => {
+  const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+    'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+  if (num === 0) return 'Zero AED';
+  const wholeNum = Math.floor(num);
+  const decimal = Math.round((num - wholeNum) * 100);
+  const convertChunk = (n: number): string => {
+    if (n === 0) return '';
+    if (n < 20) return ones[n];
+    if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
+    return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + convertChunk(n % 100) : '');
+  };
+  const parts: string[] = [];
+  const million = Math.floor(wholeNum / 1000000);
+  const thousand = Math.floor((wholeNum % 1000000) / 1000);
+  const remainder = wholeNum % 1000;
+  if (million > 0) parts.push(convertChunk(million) + ' Million');
+  if (thousand > 0) parts.push(convertChunk(thousand) + ' Thousand');
+  if (remainder > 0) parts.push(convertChunk(remainder));
+  let result = parts.join(' ') + ' AED';
+  if (decimal > 0) result += ' and ' + decimal + ' Fils';
+  return result;
+};
+
 export default function CashReceiptsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -317,7 +342,7 @@ export default function CashReceiptsPage() {
 
         <!-- Amount Section -->
         <div style="display: flex; justify-content: flex-end;">
-          <div style="width: 320px;">
+          <div style="width: 360px;">
             <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
               <tr>
                 <td colspan="2" style="padding: 0;"><div style="height: 2px; background: linear-gradient(to right, #1a5632, #22c55e); margin: 0 0 8px 0; border-radius: 1px;"></div></td>
@@ -327,11 +352,12 @@ export default function CashReceiptsPage() {
                 <td style="padding: 8px 0; text-align: right; font-family: 'Courier New', monospace; font-size: 18px; font-weight: 800; color: #1a5632;">AED ${receipt.amount.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
               </tr>
             </table>
+            <p style="text-align: right; font-size: 11px; color: #94a3b8; margin: 2px 0 0 0; font-style: italic;">${numberToWords(receipt.amount)}</p>
           </div>
         </div>
 
         <!-- Signature -->
-        <div style="margin-top: 50px; text-align: right;">
+        <div style="margin-top: 80px; text-align: right;">
           <div style="display: inline-block; text-align: center;">
             <div style="width: 180px; border-top: 1px solid #333; margin-bottom: 4px;"></div>
             <p style="margin: 0; font-size: 12px; color: #666; font-style: italic;">Authorized Signature / Stamp</p>
@@ -339,7 +365,7 @@ export default function CashReceiptsPage() {
         </div>
 
         <!-- Footer -->
-        <div style="margin-top: 40px; padding-top: 16px; border-top: 2px solid #e2e8f0;">
+        <div style="margin-top: 50px; padding-top: 16px; border-top: 2px solid #e2e8f0;">
           <div style="text-align: center;">
             <p style="margin: 0; font-size: 13px; color: #1a5632; font-weight: 600;">Thank you for choosing Middle Class Tourism</p>
             <p style="margin: 6px 0 0 0; font-size: 10px; color: #94a3b8;">This is a computer-generated receipt.</p>
@@ -637,11 +663,12 @@ export default function CashReceiptsPage() {
                     <span className="font-bold text-base text-[#1a5632]">Amount Received</span>
                     <span className="font-mono font-extrabold text-lg text-[#1a5632]" data-testid="text-receipt-amount">{formatCurrency(selectedReceipt.amount)}</span>
                   </div>
+                  <p className="text-right text-[11px] text-muted-foreground italic">{numberToWords(selectedReceipt.amount)}</p>
                 </div>
               </div>
 
               {/* Signature */}
-              <div className="mt-10 flex justify-end">
+              <div className="mt-16 flex justify-end">
                 <div className="text-center">
                   <div className="w-44 border-t border-foreground mb-1" />
                   <p className="text-xs text-muted-foreground italic">Authorized Signature / Stamp</p>
@@ -649,7 +676,7 @@ export default function CashReceiptsPage() {
               </div>
 
               {/* Footer */}
-              <div className="mt-8 pt-4 border-t-2 text-center">
+              <div className="mt-10 pt-4 border-t-2 text-center">
                 <p className="text-sm text-[#1a5632] font-semibold">Thank you for choosing Middle Class Tourism</p>
                 <p className="text-[10px] text-muted-foreground mt-1">This is a computer-generated receipt.</p>
               </div>
