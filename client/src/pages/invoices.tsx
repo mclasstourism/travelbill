@@ -984,30 +984,6 @@ export default function InvoicesPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="discountPercent"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Discount (%)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min={0}
-                          max={100}
-                          value={field.value || ""}
-                          onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
-                          onBlur={field.onBlur}
-                          name={field.name}
-                          ref={field.ref}
-                          data-testid="input-discount-percent"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
                   name="paymentMethod"
                   render={({ field }) => (
                     <FormItem>
@@ -1043,32 +1019,32 @@ export default function InvoicesPage() {
                     </FormItem>
                   )}
                 />
-              </div>
 
-              <FormField
-                control={form.control}
-                name="vendorCost"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Vendor Cost (Actual Cost) *</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        placeholder="Enter actual cost from vendor"
-                        value={field.value || ""}
-                        onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
-                        onBlur={field.onBlur}
-                        name={field.name}
-                        ref={field.ref}
-                        data-testid="input-vendor-cost"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="vendorCost"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Vendor Cost (Actual Cost) *</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          placeholder="Enter actual cost from vendor"
+                          value={field.value || ""}
+                          onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                          data-testid="input-vendor-cost"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               {selectedCustomer && selectedCustomer.depositBalance > 0 && (
                 <FormField
