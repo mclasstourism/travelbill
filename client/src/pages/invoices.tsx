@@ -213,12 +213,10 @@ export default function InvoicesPage() {
 
         <!-- Company & Invoice Info Row -->
         <div style="display: flex; justify-content: space-between; margin-bottom: 24px;">
-          <div style="font-size: 12px; color: #374151; line-height: 1.9;">
-            <p style="margin: 0;"><strong style="color: #64748b; min-width: 60px; display: inline-block;">Address</strong> : Shop 41, Al Dhannah Traditional</p>
-            <p style="margin: 0; padding-left: 72px;">Souq, Al Dhannah City, Abu Dhabi - UAE</p>
-            <p style="margin: 0;"><strong style="color: #64748b; min-width: 60px; display: inline-block;">Email</strong> : sales@middleclass.ae</p>
-            <p style="margin: 0;"><strong style="color: #64748b; min-width: 60px; display: inline-block;">Phone</strong> : 025 640 224, 050 222 1042</p>
-            <p style="margin: 0;"><strong style="color: #64748b; min-width: 60px; display: inline-block;">Website</strong> : www.middleclass.ae</p>
+          <div style="font-size: 11px; color: #64748b; line-height: 1.7;">
+            <p style="margin: 0;">Phone: 025 640 224 | 050 222 1042</p>
+            <p style="margin: 0;">www.middleclass.ae | sales@middleclass.ae</p>
+            <p style="margin: 0;">Shop 41, Al Dhannah Traditional Souq, Al Dhannah City, Abu Dhabi \u2013 UAE</p>
           </div>
           <div style="text-align: right; font-size: 13px;">
             <table style="border-collapse: collapse; margin-left: auto;">
