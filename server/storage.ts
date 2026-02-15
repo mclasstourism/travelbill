@@ -691,6 +691,9 @@ export class MemStorage implements IStorage {
       ...receipt,
       id,
       receiptNumber,
+      sourceType: receipt.sourceType || "flight",
+      pnr: receipt.pnr || "",
+      serviceName: receipt.serviceName || "",
       status: "issued",
       createdAt: new Date().toISOString(),
     };

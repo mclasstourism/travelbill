@@ -60,6 +60,9 @@ function formatCurrency(amount: number): string {
 const createReceiptSchema = z.object({
   partyType: z.enum(["customer", "agent", "vendor"]),
   partyId: z.string().min(1, "Party is required"),
+  sourceType: z.enum(["flight", "other"]),
+  pnr: z.string().optional().or(z.literal("")),
+  serviceName: z.string().optional().or(z.literal("")),
   amount: z.coerce.number().min(0.01, "Amount must be positive"),
   paymentMethod: z.enum(["cash", "card", "cheque", "bank_transfer"]),
   description: z.string().optional().or(z.literal("")),
@@ -100,6 +103,9 @@ export default function CashReceiptsPage() {
     defaultValues: {
       partyType: "customer",
       partyId: "",
+      sourceType: "flight",
+      pnr: "",
+      serviceName: "",
       amount: 0,
       paymentMethod: "cash",
       description: "",
@@ -108,6 +114,7 @@ export default function CashReceiptsPage() {
   });
 
   const selectedPartyType = form.watch("partyType");
+  const selectedSourceType = form.watch("sourceType");
 
   const partyOptions = useMemo(() => {
     switch (selectedPartyType) {
@@ -286,6 +293,24 @@ export default function CashReceiptsPage() {
                 <p className="font-medium" data-testid="text-receipt-party-name">{getPartyName(selectedReceipt)}</p>
               </div>
               <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Source Type</p>
+                <Badge variant="outline" data-testid="text-receipt-source-type">
+                  {selectedReceipt.sourceType === "flight" ? "Flight Details" : "Other Service"}
+                </Badge>
+              </div>
+              {selectedReceipt.sourceType === "flight" && selectedReceipt.pnr && (
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">PNR</p>
+                  <p className="font-mono font-medium" data-testid="text-receipt-pnr">{selectedReceipt.pnr}</p>
+                </div>
+              )}
+              {selectedReceipt.sourceType === "other" && selectedReceipt.serviceName && (
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Service Name</p>
+                  <p className="font-medium" data-testid="text-receipt-service-name">{selectedReceipt.serviceName}</p>
+                </div>
+              )}
+              <div>
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Amount</p>
                 <p className="font-mono font-bold text-lg text-[hsl(var(--primary))]" data-testid="text-receipt-amount">{formatCurrency(selectedReceipt.amount)}</p>
               </div>
@@ -326,6 +351,22 @@ export default function CashReceiptsPage() {
                   <span className="label">Received From ({selectedReceipt.partyType})</span>
                   <span className="value">{getPartyName(selectedReceipt)}</span>
                 </div>
+                <div className="receipt-row">
+                  <span className="label">Source</span>
+                  <span className="value">{selectedReceipt.sourceType === "flight" ? "Flight Details" : "Other Service"}</span>
+                </div>
+                {selectedReceipt.sourceType === "flight" && selectedReceipt.pnr && (
+                  <div className="receipt-row">
+                    <span className="label">PNR</span>
+                    <span className="value">{selectedReceipt.pnr}</span>
+                  </div>
+                )}
+                {selectedReceipt.sourceType === "other" && selectedReceipt.serviceName && (
+                  <div className="receipt-row">
+                    <span className="label">Service</span>
+                    <span className="value">{selectedReceipt.serviceName}</span>
+                  </div>
+                )}
                 <div className="receipt-row">
                   <span className="label">Payment Method</span>
                   <span className="value">{getPaymentMethodLabel(selectedReceipt.paymentMethod)}</span>
@@ -455,6 +496,7 @@ export default function CashReceiptsPage() {
                     <TableHead>Receipt #</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Party</TableHead>
+                    <TableHead>Source</TableHead>
                     <TableHead>Payment</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -469,6 +511,17 @@ export default function CashReceiptsPage() {
                         <div className="flex flex-col">
                           <span>{getPartyName(receipt)}</span>
                           <Badge variant="outline" className="w-fit mt-1">{receipt.partyType}</Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="text-sm">{receipt.sourceType === "flight" ? "Flight" : "Other"}</span>
+                          {receipt.sourceType === "flight" && receipt.pnr && (
+                            <span className="text-xs font-mono text-muted-foreground">{receipt.pnr}</span>
+                          )}
+                          {receipt.sourceType === "other" && receipt.serviceName && (
+                            <span className="text-xs text-muted-foreground">{receipt.serviceName}</span>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -552,6 +605,70 @@ export default function CashReceiptsPage() {
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={form.control}
+                name="sourceType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Type of Source</FormLabel>
+                    <Select
+                      onValueChange={(v) => {
+                        field.onChange(v);
+                        if (v === "flight") {
+                          form.setValue("serviceName", "");
+                        } else {
+                          form.setValue("pnr", "");
+                        }
+                      }}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger data-testid="select-source-type">
+                          <SelectValue placeholder="Select source type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="flight">Flight Details</SelectItem>
+                        <SelectItem value="other">Any Other Service</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {selectedSourceType === "flight" && (
+                <FormField
+                  control={form.control}
+                  name="pnr"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>PNR</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Enter PNR number" data-testid="input-pnr" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {selectedSourceType === "other" && (
+                <FormField
+                  control={form.control}
+                  name="serviceName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Service Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Enter service name" data-testid="input-service-name" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <FormField
                 control={form.control}

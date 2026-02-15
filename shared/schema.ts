@@ -394,6 +394,9 @@ export const cashReceiptsTable = pgTable("cash_receipts", {
   receiptNumber: varchar("receipt_number", { length: 50 }).notNull().unique(),
   partyType: varchar("party_type", { length: 20 }).notNull(),
   partyId: varchar("party_id", { length: 36 }).notNull(),
+  sourceType: varchar("source_type", { length: 20 }).notNull().default("flight"),
+  pnr: varchar("pnr", { length: 50 }).default(""),
+  serviceName: varchar("service_name", { length: 200 }).default(""),
   amount: real("amount").notNull(),
   paymentMethod: varchar("payment_method", { length: 20 }).notNull(),
   description: text("description").default(""),
@@ -409,9 +412,15 @@ export type ReceiptPartyType = typeof receiptPartyTypes[number];
 export const receiptPaymentMethods = ["cash", "card", "cheque", "bank_transfer"] as const;
 export type ReceiptPaymentMethod = typeof receiptPaymentMethods[number];
 
+export const receiptSourceTypes = ["flight", "other"] as const;
+export type ReceiptSourceType = typeof receiptSourceTypes[number];
+
 export const insertCashReceiptSchema = z.object({
   partyType: z.enum(receiptPartyTypes),
   partyId: z.string().min(1, "Party is required"),
+  sourceType: z.enum(receiptSourceTypes),
+  pnr: z.string().optional().or(z.literal("")),
+  serviceName: z.string().optional().or(z.literal("")),
   amount: z.coerce.number().min(0.01, "Amount must be positive"),
   paymentMethod: z.enum(receiptPaymentMethods),
   description: z.string().optional().or(z.literal("")),

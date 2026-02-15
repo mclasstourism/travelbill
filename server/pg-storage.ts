@@ -1030,6 +1030,9 @@ export class PgStorage implements IStorage {
     const results = await db.select().from(schema.cashReceiptsTable).orderBy(desc(schema.cashReceiptsTable.createdAt));
     return results.map(r => ({
       ...r,
+      sourceType: r.sourceType || "flight",
+      pnr: r.pnr || "",
+      serviceName: r.serviceName || "",
       description: r.description || "",
       referenceNumber: r.referenceNumber || "",
       status: r.status || "issued",
@@ -1042,6 +1045,9 @@ export class PgStorage implements IStorage {
     if (!result) return undefined;
     return {
       ...result,
+      sourceType: result.sourceType || "flight",
+      pnr: result.pnr || "",
+      serviceName: result.serviceName || "",
       description: result.description || "",
       referenceNumber: result.referenceNumber || "",
       status: result.status || "issued",
@@ -1058,6 +1064,9 @@ export class PgStorage implements IStorage {
       receiptNumber,
       partyType: receipt.partyType,
       partyId: receipt.partyId,
+      sourceType: receipt.sourceType || "flight",
+      pnr: receipt.pnr || "",
+      serviceName: receipt.serviceName || "",
       amount: receipt.amount,
       paymentMethod: receipt.paymentMethod,
       description: receipt.description || "",
@@ -1068,6 +1077,9 @@ export class PgStorage implements IStorage {
 
     return {
       ...result,
+      sourceType: result.sourceType || "flight",
+      pnr: result.pnr || "",
+      serviceName: result.serviceName || "",
       description: result.description || "",
       referenceNumber: result.referenceNumber || "",
       status: result.status || "issued",
