@@ -273,7 +273,7 @@ export default function InvoicesPage() {
         </table>
 
         <!-- Totals Section -->
-        <div style="display: flex; justify-content: center; margin-top: 10px;">
+        <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
           <div style="width: 380px;">
             <div style="background: #1a5632; color: white; text-align: center; padding: 6px 16px 10px 16px; border-radius: 6px; font-size: 14px; font-weight: 700; letter-spacing: 1px; margin-bottom: 12px;">Invoice Summary</div>
             <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
