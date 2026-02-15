@@ -59,7 +59,7 @@ function formatCurrency(amount: number): string {
 const addDepositFormSchema = z.object({
   customerId: z.string().min(1, "Customer is required"),
   amount: z.coerce.number().min(0.01, "Amount must be positive"),
-  description: z.string().min(1, "Description is required"),
+  description: z.string().optional(),
 });
 
 type AddDepositForm = z.infer<typeof addDepositFormSchema>;
@@ -649,7 +649,7 @@ export default function DepositsPage() {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description *</FormLabel>
+                    <FormLabel>Notes (Optional)</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="e.g., Cash deposit"
