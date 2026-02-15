@@ -362,7 +362,7 @@ export default function CashReceiptsPage() {
           <div style="display: inline-block; text-align: center;">
             <img src="${stampDataUrl}" alt="Company Stamp" style="height: 150px; margin-bottom: 8px;" />
             <div style="width: 200px; border-top: 1px solid #333; margin: 0 auto 4px auto;"></div>
-            <p style="margin: 0; font-size: 12px; color: #666; font-style: italic;">Authorized Signature / Stamp</p>
+            <p style="margin: 0; font-size: 12px; color: #666; font-style: italic;">Authorized Sign</p>
           </div>
         </div>
 
@@ -370,7 +370,6 @@ export default function CashReceiptsPage() {
         <div style="margin-top: 50px; padding-top: 16px; border-top: 2px solid #e2e8f0;">
           <div style="text-align: center;">
             <p style="margin: 0; font-size: 13px; color: #1a5632; font-weight: 600;">Thank you for choosing Middle Class Tourism</p>
-            <p style="margin: 6px 0 0 0; font-size: 10px; color: #94a3b8;">This is a computer-generated receipt.</p>
           </div>
         </div>
       </div>
@@ -674,14 +673,13 @@ export default function CashReceiptsPage() {
                 <div className="text-center">
                   <img src={stampImg} alt="Company Stamp" className="h-36 mx-auto mb-2" />
                   <div className="w-48 border-t border-foreground mb-1 mx-auto" />
-                  <p className="text-xs text-muted-foreground italic">Authorized Signature / Stamp</p>
+                  <p className="text-xs text-muted-foreground italic">Authorized Sign</p>
                 </div>
               </div>
 
               {/* Footer */}
               <div className="mt-10 pt-4 border-t-2 text-center">
                 <p className="text-sm text-[#1a5632] font-semibold">Thank you for choosing Middle Class Tourism</p>
-                <p className="text-[10px] text-muted-foreground mt-1">This is a computer-generated receipt.</p>
               </div>
 
               <div className="flex items-center gap-2 pt-4 mt-4 border-t">
