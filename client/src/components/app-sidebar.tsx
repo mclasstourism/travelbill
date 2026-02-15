@@ -5,7 +5,6 @@ import {
   FileText,
   Users,
   Building2,
-  Ticket,
   Wallet,
   CreditCard,
   LogOut,
@@ -50,7 +49,6 @@ import { useTheme } from "@/lib/theme-provider";
 const mainNavItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Invoices", url: "/invoices", icon: FileText },
-  { title: "Tickets", url: "/tickets", icon: Ticket },
   { title: "Cash Receipts", url: "/cash-receipts", icon: Receipt },
 ];
 
