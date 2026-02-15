@@ -205,42 +205,33 @@ export default function InvoicesPage() {
           <div style="flex-shrink: 0;">
             <img src="${mcLogo}" alt="Middle Class Tourism" style="height: 65px;" />
           </div>
-          <div>
-            <div style="display: inline-block; background: #1a5632; color: white; padding: 8px 24px; font-size: 18px; font-weight: 700; letter-spacing: 2px;">INVOICE</div>
+          <div style="text-align: right;">
+            <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #1a5632; letter-spacing: 2px;">INVOICE</h1>
+            <p style="margin: 6px 0 0 0; font-size: 13px; color: #64748b;">${invoice.invoiceNumber}</p>
           </div>
         </div>
+        <div style="height: 3px; background: linear-gradient(to right, #1a5632, #22c55e, #1a5632); margin: 14px 0 20px 0; border-radius: 2px;"></div>
 
-        <!-- Company Info & Invoice Meta -->
-        <div style="display: flex; justify-content: space-between; margin: 20px 0 24px 0;">
-          <div style="font-size: 11px; color: #333; line-height: 2;">
-            <table style="border-collapse: collapse;">
-              <tr>
-                <td style="font-weight: 600; padding-right: 8px; vertical-align: top;">Address</td>
-                <td style="vertical-align: top;">: Shop 41, Al Dhannah Traditional<br>&nbsp;&nbsp;Souq, Al Dhannah City, Abu Dhabi - UAE</td>
-              </tr>
-              <tr>
-                <td style="font-weight: 600; padding-right: 8px;">Email</td>
-                <td>: sales@middleclass.ae</td>
-              </tr>
-              <tr>
-                <td style="font-weight: 600; padding-right: 8px;">Phone</td>
-                <td>: 025 640 224, 050 222 1042</td>
-              </tr>
-              <tr>
-                <td style="font-weight: 600; padding-right: 8px;">Website</td>
-                <td>: www.middleclass.ae</td>
-              </tr>
-            </table>
+        <!-- Company & Invoice Info Row -->
+        <div style="display: flex; justify-content: space-between; margin-bottom: 24px;">
+          <div style="font-size: 11px; color: #64748b; line-height: 1.7;">
+            <p style="margin: 0;">Phone: 025 640 224 | 050 222 1042</p>
+            <p style="margin: 0;">www.middleclass.ae | sales@middleclass.ae</p>
+            <p style="margin: 0;">Shop 41, Al Dhannah Traditional Souq, Al Dhannah City, Abu Dhabi \u2013 UAE</p>
           </div>
-          <div style="text-align: right; font-size: 13px;">
+          <div style="text-align: right; font-size: 12px;">
             <table style="border-collapse: collapse; margin-left: auto;">
               <tr>
-                <td style="padding: 4px 12px 4px 0; font-weight: 600;">Invoice No</td>
-                <td style="padding: 4px 0; font-weight: 600;">: ${invoice.invoiceNumber}</td>
+                <td style="padding: 3px 12px 3px 0; color: #64748b; font-weight: 500;">Date:</td>
+                <td style="padding: 3px 0; font-weight: 600;">${format(new Date(invoice.createdAt), "MMM d, yyyy")}</td>
               </tr>
               <tr>
-                <td style="padding: 4px 12px 4px 0; font-weight: 600;">Date</td>
-                <td style="padding: 4px 0;">: ${format(new Date(invoice.createdAt), "dd/MM/yyyy")}</td>
+                <td style="padding: 3px 12px 3px 0; color: #64748b; font-weight: 500;">Status:</td>
+                <td style="padding: 3px 0;"><span style="display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; background-color: ${invoice.status === 'paid' ? '#dcfce7' : invoice.status === 'cancelled' ? '#fce4e4' : '#fef9c3'}; color: ${invoice.status === 'paid' ? '#166534' : invoice.status === 'cancelled' ? '#991b1b' : '#854d0e'}; text-transform: uppercase;">${invoice.status}</span></td>
+              </tr>
+              <tr>
+                <td style="padding: 3px 12px 3px 0; color: #64748b; font-weight: 500;">Payment:</td>
+                <td style="padding: 3px 0; font-weight: 600; text-transform: capitalize;">${invoice.paymentMethod}</td>
               </tr>
             </table>
           </div>
@@ -262,94 +253,88 @@ export default function InvoicesPage() {
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px;">
           <thead>
             <tr>
-              <th style="text-align: left; padding: 10px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Item</th>
-              <th style="text-align: center; padding: 10px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase;">Date</th>
-              <th style="text-align: center; padding: 10px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase;">Flight</th>
-              <th style="text-align: center; padding: 10px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase;">PNR</th>
-              <th style="text-align: center; padding: 10px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase;">TKT No</th>
-              <th style="text-align: right; padding: 10px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase;">Sub Total</th>
+              <th style="text-align: left; padding: 8px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 4px 0 0 0;">#</th>
+              <th style="text-align: left; padding: 8px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Sector</th>
+              <th style="text-align: left; padding: 8px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Date</th>
+              <th style="text-align: left; padding: 8px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Flight</th>
+              <th style="text-align: left; padding: 8px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">PNR</th>
+              <th style="text-align: left; padding: 8px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">TKT No</th>
+              <th style="text-align: right; padding: 8px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Basic Fare</th>
+              <th style="text-align: right; padding: 8px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Tax</th>
+              <th style="text-align: right; padding: 8px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 0 4px 0 0;">Amount</th>
             </tr>
           </thead>
           <tbody>
             ${items.map((item: any, i: number) => `
               <tr style="background: ${i % 2 === 0 ? '#ffffff' : '#f8fafc'};">
-                <td style="padding: 10px 6px; border-bottom: 1px solid #e2e8f0; font-weight: 500;">Flight Ticket (${item.sector || '-'})${item.travelDate ? ' - ' + item.travelDate : ''}</td>
-                <td style="text-align: center; padding: 10px 6px; border-bottom: 1px solid #e2e8f0;">${item.travelDate || '-'}</td>
-                <td style="text-align: center; padding: 10px 6px; border-bottom: 1px solid #e2e8f0;">${item.airlinesFlightNo || '-'}</td>
-                <td style="text-align: center; padding: 10px 6px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">${item.pnr || '-'}</td>
-                <td style="text-align: center; padding: 10px 6px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">${item.tktNo || '-'}</td>
-                <td style="text-align: right; padding: 10px 6px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace; font-weight: 600;">${(item.amount || 0).toLocaleString("en-AE", { minimumFractionDigits: 2 })} د.إ</td>
+                <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; color: #64748b;">${i + 1}</td>
+                <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; font-weight: 500;">${item.sector || ''}</td>
+                <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0;">${item.travelDate || '-'}</td>
+                <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0;">${item.airlinesFlightNo || '-'}</td>
+                <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">${item.pnr || '-'}</td>
+                <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">${item.tktNo || '-'}</td>
+                <td style="text-align: right; padding: 8px 6px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">AED ${(item.basicFare || 0).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+                <td style="text-align: right; padding: 8px 6px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">AED ${(item.tax || 0).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+                <td style="text-align: right; padding: 8px 6px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace; font-weight: 600;">AED ${(item.amount || 0).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
               </tr>
             `).join('')}
           </tbody>
         </table>
 
-        <!-- Invoice Summary -->
-        <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
-          <div style="width: 320px; border: 1px solid #e2e8f0;">
-            <div style="background: #1a5632; color: white; padding: 8px 16px; text-align: center; font-weight: 600; font-size: 13px;">Invoice Summary</div>
-            <div style="padding: 12px 16px;">
-              <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                <tr>
-                  <td style="padding: 6px 0; color: #64748b;">Sub Total:</td>
-                  <td style="padding: 6px 0; text-align: right; font-family: 'Courier New', monospace;">${invoice.subtotal.toLocaleString("en-AE", { minimumFractionDigits: 2 })} د.إ</td>
-                </tr>
-                ${invoice.discountAmount > 0 ? `
-                <tr>
-                  <td style="padding: 6px 0; color: #16a34a;">Discount (${invoice.discountPercent}%):</td>
-                  <td style="padding: 6px 0; text-align: right; font-family: 'Courier New', monospace; color: #16a34a;">-${invoice.discountAmount.toLocaleString("en-AE", { minimumFractionDigits: 2 })} د.إ</td>
-                </tr>
-                ` : ''}
-                ${invoice.depositUsed > 0 ? `
-                <tr>
-                  <td style="padding: 6px 0; color: #2563eb;">Deposit Applied:</td>
-                  <td style="padding: 6px 0; text-align: right; font-family: 'Courier New', monospace; color: #2563eb;">-${invoice.depositUsed.toLocaleString("en-AE", { minimumFractionDigits: 2 })} د.إ</td>
-                </tr>
-                ` : ''}
-                ${invoice.agentCreditUsed > 0 ? `
-                <tr>
-                  <td style="padding: 6px 0; color: #7c3aed;">Agent Credit Applied:</td>
-                  <td style="padding: 6px 0; text-align: right; font-family: 'Courier New', monospace; color: #7c3aed;">-${invoice.agentCreditUsed.toLocaleString("en-AE", { minimumFractionDigits: 2 })} د.إ</td>
-                </tr>
-                ` : ''}
-                ${invoice.vendorBalanceDeducted > 0 ? `
-                <tr>
-                  <td style="padding: 6px 0; color: #ea580c;">Vendor ${invoice.useVendorBalance === "credit" ? "Credit" : "Deposit"} Applied:</td>
-                  <td style="padding: 6px 0; text-align: right; font-family: 'Courier New', monospace; color: #ea580c;">-${invoice.vendorBalanceDeducted.toLocaleString("en-AE", { minimumFractionDigits: 2 })} د.إ</td>
-                </tr>
-                ` : ''}
-              </table>
-              <div style="border-top: 2px solid #1a5632; margin-top: 8px; padding-top: 8px;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                  <tr>
-                    <td style="padding: 4px 0; font-weight: 700;">Total:</td>
-                    <td style="padding: 4px 0; text-align: right; font-family: 'Courier New', monospace; font-weight: 700;">${invoice.total.toLocaleString("en-AE", { minimumFractionDigits: 2 })} د.إ</td>
-                  </tr>
-                </table>
-                <p style="font-size: 11px; color: #64748b; margin: 6px 0 0 0; font-style: italic;">${numberToWords(invoice.total)}</p>
-              </div>
-            </div>
+        <!-- Totals Section -->
+        <div style="display: flex; justify-content: flex-end;">
+          <div style="width: 320px;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+              <tr>
+                <td style="padding: 6px 0; color: #64748b;">Subtotal</td>
+                <td style="padding: 6px 0; text-align: right; font-family: 'Courier New', monospace; font-weight: 500;">AED ${invoice.subtotal.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+              </tr>
+              ${invoice.discountAmount > 0 ? `
+              <tr>
+                <td style="padding: 6px 0; color: #16a34a;">Discount (${invoice.discountPercent}%)</td>
+                <td style="padding: 6px 0; text-align: right; font-family: 'Courier New', monospace; color: #16a34a;">-AED ${invoice.discountAmount.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+              </tr>
+              ` : ''}
+              ${invoice.depositUsed > 0 ? `
+              <tr>
+                <td style="padding: 6px 0; color: #2563eb;">Deposit Applied</td>
+                <td style="padding: 6px 0; text-align: right; font-family: 'Courier New', monospace; color: #2563eb;">-AED ${invoice.depositUsed.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+              </tr>
+              ` : ''}
+              ${invoice.agentCreditUsed > 0 ? `
+              <tr>
+                <td style="padding: 6px 0; color: #7c3aed;">Agent Credit Applied</td>
+                <td style="padding: 6px 0; text-align: right; font-family: 'Courier New', monospace; color: #7c3aed;">-AED ${invoice.agentCreditUsed.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+              </tr>
+              ` : ''}
+              ${invoice.vendorBalanceDeducted > 0 ? `
+              <tr>
+                <td style="padding: 6px 0; color: #ea580c;">Vendor ${invoice.useVendorBalance === "credit" ? "Credit" : "Deposit"} Applied</td>
+                <td style="padding: 6px 0; text-align: right; font-family: 'Courier New', monospace; color: #ea580c;">-AED ${invoice.vendorBalanceDeducted.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+              </tr>
+              ` : ''}
+              <tr>
+                <td colspan="2" style="padding: 0;"><div style="height: 2px; background: linear-gradient(to right, #1a5632, #22c55e); margin: 8px 0; border-radius: 1px;"></div></td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-size: 11px; color: #64748b; font-weight: 500;">Grand Total</td>
+                <td style="padding: 6px 0; text-align: right; font-family: 'Courier New', monospace; font-size: 14px; font-weight: 700; color: #1e293b;">AED ${grandTotal.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; font-weight: 700; font-size: 16px; color: #1a5632;">Total Due</td>
+                <td style="padding: 8px 0; text-align: right; font-family: 'Courier New', monospace; font-size: 18px; font-weight: 800; color: #1a5632;">AED ${invoice.total.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+              </tr>
+            </table>
+            <p style="text-align: right; font-size: 11px; color: #94a3b8; margin: 2px 0 0 0; font-style: italic;">${numberToWords(invoice.total)}</p>
           </div>
         </div>
 
-        <!-- Status & Signature -->
-        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 40px;">
+        <!-- Footer -->
+        <div style="margin-top: 32px; padding-top: 16px; border-top: 2px solid #e2e8f0;">
           <div style="text-align: center;">
-            ${invoice.status === 'paid' ? `
-              <div style="color: #dc2626; font-size: 48px; font-weight: 900; border: 4px solid #dc2626; border-radius: 12px; padding: 4px 20px; transform: rotate(-12deg); opacity: 0.7;">PAID</div>
-            ` : invoice.status === 'cancelled' ? `
-              <div style="color: #dc2626; font-size: 36px; font-weight: 900; border: 4px solid #dc2626; border-radius: 12px; padding: 4px 20px; transform: rotate(-12deg); opacity: 0.7;">CANCELLED</div>
-            ` : ''}
+            <p style="margin: 0; font-size: 13px; color: #1a5632; font-weight: 600;">Thank you for choosing Middle Class Tourism</p>
+            <p style="margin: 6px 0 0 0; font-size: 10px; color: #94a3b8;">This is a computer-generated invoice.</p>
           </div>
-          <div style="text-align: center;">
-            <div style="width: 180px; border-top: 1px solid #333; margin-bottom: 6px;"></div>
-            <p style="margin: 0; font-size: 12px; color: #1a5632; font-style: italic; font-weight: 600;">Authorised Sign</p>
-          </div>
-        </div>
-
-        <!-- Thank You Footer -->
-        <div style="margin-top: 40px; background: #1a5632; color: white; text-align: center; padding: 16px; border-radius: 4px;">
-          <p style="margin: 0; font-size: 20px; font-weight: 700;">Thank You!</p>
         </div>
       </div>
     `;
@@ -1446,51 +1431,32 @@ export default function InvoicesPage() {
                 <div className="flex-shrink-0">
                   <img src={mcLogo} alt="Middle Class Tourism" className="h-14" />
                 </div>
-                <div>
-                  <div className="bg-[#1a5632] text-white px-6 py-2 text-lg font-bold tracking-widest">INVOICE</div>
+                <div className="text-right">
+                  <h2 className="text-2xl font-bold tracking-widest text-[#1a5632]">INVOICE</h2>
+                  <p className="text-sm text-muted-foreground mt-1">{viewInvoice.invoiceNumber}</p>
                 </div>
               </div>
+              <div className="h-[3px] bg-gradient-to-r from-[#1a5632] via-green-500 to-[#1a5632] rounded-full mt-3 mb-5" />
 
               {/* Company Info & Invoice Meta */}
-              <div className="flex justify-between mt-5 mb-6 gap-4">
-                <div className="text-xs text-muted-foreground leading-loose">
-                  <table>
-                    <tbody>
-                      <tr>
-                        <td className="font-semibold pr-2 align-top text-foreground">Address</td>
-                        <td className="align-top">: Shop 41, Al Dhannah Traditional<br />&nbsp;&nbsp;Souq, Al Dhannah City, Abu Dhabi - UAE</td>
-                      </tr>
-                      <tr>
-                        <td className="font-semibold pr-2 text-foreground">Email</td>
-                        <td>: sales@middleclass.ae</td>
-                      </tr>
-                      <tr>
-                        <td className="font-semibold pr-2 text-foreground">Phone</td>
-                        <td>: 025 640 224, 050 222 1042</td>
-                      </tr>
-                      <tr>
-                        <td className="font-semibold pr-2 text-foreground">Website</td>
-                        <td>: www.middleclass.ae</td>
-                      </tr>
-                    </tbody>
-                  </table>
+              <div className="flex justify-between mb-6 gap-4">
+                <div className="text-xs text-muted-foreground leading-relaxed">
+                  <p>Phone: 025 640 224 | 050 222 1042</p>
+                  <p>www.middleclass.ae | sales@middleclass.ae</p>
+                  <p>Shop 41, Al Dhannah Traditional Souq, Al Dhannah City, Abu Dhabi {"\u2013"} UAE</p>
                 </div>
                 <div className="text-right text-sm space-y-1">
-                  <div className="flex items-center justify-end gap-2">
-                    <span className="font-semibold text-xs">Invoice No</span>
-                    <span className="font-semibold text-xs">: {viewInvoice.invoiceNumber}</span>
+                  <div className="flex items-center justify-end gap-3">
+                    <span className="text-muted-foreground text-xs font-medium">Date:</span>
+                    <span className="font-semibold text-xs">{format(new Date(viewInvoice.createdAt), "MMM d, yyyy")}</span>
                   </div>
-                  <div className="flex items-center justify-end gap-2">
-                    <span className="font-semibold text-xs">Date</span>
-                    <span className="text-xs">: {format(new Date(viewInvoice.createdAt), "dd/MM/yyyy")}</span>
-                  </div>
-                  <div className="flex items-center justify-end gap-2 mt-2">
+                  <div className="flex items-center justify-end gap-3">
                     <span className="text-muted-foreground text-xs font-medium">Status:</span>
                     <Badge variant={getStatusBadgeVariant(viewInvoice.status)} className="capitalize text-[10px]">
                       {viewInvoice.status}
                     </Badge>
                   </div>
-                  <div className="flex items-center justify-end gap-2">
+                  <div className="flex items-center justify-end gap-3">
                     <span className="text-muted-foreground text-xs font-medium">Payment:</span>
                     <span className="font-semibold text-xs capitalize">{viewInvoice.paymentMethod}</span>
                   </div>
@@ -1545,69 +1511,58 @@ export default function InvoicesPage() {
                 </Table>
               </div>
 
-              {/* Invoice Summary */}
+              {/* Totals */}
               <div className="flex justify-end mb-6">
-                <div className="w-80 border rounded-md overflow-hidden">
-                  <div className="bg-[#1a5632] text-white px-4 py-2 text-center font-semibold text-sm">Invoice Summary</div>
-                  <div className="p-4 space-y-1 text-sm">
+                <div className="w-80">
+                  <div className="space-y-1 text-sm">
                     <div className="flex justify-between py-1">
-                      <span className="text-muted-foreground">Sub Total:</span>
+                      <span className="text-muted-foreground">Subtotal</span>
                       <span className="font-mono font-medium">{formatCurrency(viewInvoice.subtotal)}</span>
                     </div>
                     {viewInvoice.discountAmount > 0 && (
                       <div className="flex justify-between py-1 text-green-600 dark:text-green-400">
-                        <span>Discount ({viewInvoice.discountPercent}%):</span>
+                        <span>Discount ({viewInvoice.discountPercent}%)</span>
                         <span className="font-mono">-{formatCurrency(viewInvoice.discountAmount)}</span>
                       </div>
                     )}
                     {viewInvoice.depositUsed > 0 && (
                       <div className="flex justify-between py-1 text-green-700 dark:text-green-400">
-                        <span>Deposit Applied:</span>
+                        <span>Deposit Applied</span>
                         <span className="font-mono">-{formatCurrency(viewInvoice.depositUsed)}</span>
                       </div>
                     )}
                     {viewInvoice.agentCreditUsed > 0 && (
                       <div className="flex justify-between py-1 text-purple-600 dark:text-purple-400">
-                        <span>Agent Credit:</span>
+                        <span>Agent Credit Applied</span>
                         <span className="font-mono">-{formatCurrency(viewInvoice.agentCreditUsed)}</span>
                       </div>
                     )}
                     {viewInvoice.vendorBalanceDeducted > 0 && (
                       <div className="flex justify-between py-1 text-orange-600 dark:text-orange-400">
-                        <span>Vendor {viewInvoice.useVendorBalance === "credit" ? "Credit" : "Deposit"}:</span>
+                        <span>Vendor {viewInvoice.useVendorBalance === "credit" ? "Credit" : "Deposit"} Applied</span>
                         <span className="font-mono">-{formatCurrency(viewInvoice.vendorBalanceDeducted)}</span>
                       </div>
                     )}
-                    <div className="border-t-2 border-[#1a5632] mt-2 pt-2">
-                      <div className="flex justify-between py-1">
-                        <span className="font-bold">Total:</span>
-                        <span className="font-mono font-bold">{formatCurrency(viewInvoice.total)}</span>
-                      </div>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground italic pt-1">{numberToWords(viewInvoice.total)}</p>
                   </div>
+                  <div className="h-[2px] bg-gradient-to-r from-[#1a5632] to-green-400 rounded my-2" />
+                  <div className="flex justify-between py-1 text-xs">
+                    <span className="text-muted-foreground font-medium">Grand Total</span>
+                    <span className="font-mono font-bold">{formatCurrency(viewInvoice.subtotal - viewInvoice.discountAmount)}</span>
+                  </div>
+                  <div className="flex justify-between py-2">
+                    <span className="text-[#1a5632] font-bold text-base">Total Due</span>
+                    <span className="font-mono font-extrabold text-lg text-[#1a5632]">{formatCurrency(viewInvoice.total)}</span>
+                  </div>
+                  <p className="text-right text-[11px] text-muted-foreground italic">{numberToWords(viewInvoice.total)}</p>
                 </div>
               </div>
 
-              {/* Status Stamp & Signature */}
-              <div className="flex justify-between items-end mt-8 mb-6">
-                <div className="text-center">
-                  {viewInvoice.status === "paid" && (
-                    <div className="text-red-600 text-4xl font-black border-4 border-red-600 rounded-xl px-5 py-1 -rotate-12 opacity-70">PAID</div>
-                  )}
-                  {viewInvoice.status === "cancelled" && (
-                    <div className="text-red-600 text-3xl font-black border-4 border-red-600 rounded-xl px-5 py-1 -rotate-12 opacity-70">CANCELLED</div>
-                  )}
+              {/* Footer */}
+              <div className="border-t-2 pt-4 flex justify-between items-center">
+                <div className="text-center flex-1">
+                  <p className="text-sm text-[#1a5632] font-semibold">Thank you for choosing Middle Class Tourism</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">This is a computer-generated invoice.</p>
                 </div>
-                <div className="text-center">
-                  <div className="w-44 border-t border-foreground mb-1" />
-                  <p className="text-xs text-[#1a5632] font-semibold italic">Authorised Sign</p>
-                </div>
-              </div>
-
-              {/* Thank You Footer */}
-              <div className="bg-[#1a5632] text-white text-center py-4 rounded-md">
-                <p className="text-xl font-bold">Thank You!</p>
               </div>
 
               <div className="flex justify-end mt-4 pt-3 border-t">
