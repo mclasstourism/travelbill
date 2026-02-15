@@ -104,10 +104,10 @@ const createInvoiceFormSchema = z.object({
   vendorId: z.string().min(1, "Vendor is required"),
   items: z.array(z.object({
     sector: z.string().min(1, "Sector is required"),
-    travelDate: z.string().optional().default(""),
-    airlinesFlightNo: z.string().optional().default(""),
-    pnr: z.string().optional().default(""),
-    tktNo: z.string().optional().default(""),
+    travelDate: z.string().default(""),
+    airlinesFlightNo: z.string().default(""),
+    pnr: z.string().default(""),
+    tktNo: z.string().default(""),
     amount: z.coerce.number().min(0, "Amount must be positive"),
     basicFare: z.coerce.number().min(0).default(0),
     tax: z.coerce.number().min(0).default(0),
@@ -828,7 +828,7 @@ export default function InvoicesPage() {
                             <FormItem>
                               <FormLabel className="text-xs">Sector *</FormLabel>
                               <FormControl>
-                                <Input placeholder="e.g. DXB-LHR" {...field} data-testid={`input-item-sector-${index}`} />
+                                <Input placeholder="e.g. DXB-LHR" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} name={field.name} ref={field.ref} data-testid={`input-item-sector-${index}`} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -841,7 +841,7 @@ export default function InvoicesPage() {
                             <FormItem>
                               <FormLabel className="text-xs">Travel Date</FormLabel>
                               <FormControl>
-                                <Input type="date" {...field} data-testid={`input-item-travel-date-${index}`} />
+                                <Input type="date" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} name={field.name} ref={field.ref} data-testid={`input-item-travel-date-${index}`} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -856,7 +856,7 @@ export default function InvoicesPage() {
                             <FormItem>
                               <FormLabel className="text-xs">Airlines/Flight No</FormLabel>
                               <FormControl>
-                                <Input placeholder="e.g. EK202" {...field} data-testid={`input-item-flight-${index}`} />
+                                <Input placeholder="e.g. EK202" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} name={field.name} ref={field.ref} data-testid={`input-item-flight-${index}`} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -869,7 +869,7 @@ export default function InvoicesPage() {
                             <FormItem>
                               <FormLabel className="text-xs">PNR</FormLabel>
                               <FormControl>
-                                <Input placeholder="PNR" {...field} data-testid={`input-item-pnr-${index}`} />
+                                <Input placeholder="PNR" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} name={field.name} ref={field.ref} data-testid={`input-item-pnr-${index}`} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -882,7 +882,7 @@ export default function InvoicesPage() {
                             <FormItem>
                               <FormLabel className="text-xs">TKT No</FormLabel>
                               <FormControl>
-                                <Input placeholder="Ticket No" {...field} data-testid={`input-item-tkt-${index}`} />
+                                <Input placeholder="Ticket No" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} name={field.name} ref={field.ref} data-testid={`input-item-tkt-${index}`} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
