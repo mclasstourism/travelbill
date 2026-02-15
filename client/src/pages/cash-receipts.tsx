@@ -4,7 +4,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
 import mcLogo from "@assets/final-logo_1771172687891.png";
-import stampImg from "@assets/WhatsApp_Image_2026-02-01_at_5.13.08_001_1771173089853.jpeg";
+import stampImg from "@assets/Middle_Class_Tourism_Stamp_1771173890616.png";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
