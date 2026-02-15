@@ -127,6 +127,12 @@ export default function InvoicesPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
+  const [quickCreateCustomer, setQuickCreateCustomer] = useState(false);
+  const [quickCreateVendor, setQuickCreateVendor] = useState(false);
+  const [newCustomerName, setNewCustomerName] = useState("");
+  const [newCustomerPhone, setNewCustomerPhone] = useState("");
+  const [newVendorName, setNewVendorName] = useState("");
+  const [newVendorPhone, setNewVendorPhone] = useState("");
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -469,6 +475,60 @@ export default function InvoicesPage() {
     },
   });
 
+  const quickCreateCustomerMutation = useMutation({
+    mutationFn: async (data: { name: string; phone: string }) => {
+      const res = await apiRequest("POST", "/api/customers", { ...data, email: "", company: "", address: "" });
+      return res.json();
+    },
+    onSuccess: (newCustomer: Customer) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      form.setValue("customerId", newCustomer.id);
+      setQuickCreateCustomer(false);
+      setNewCustomerName("");
+      setNewCustomerPhone("");
+      toast({ title: "Customer created", description: `${newCustomer.name} has been added.` });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const quickCreateAgentMutation = useMutation({
+    mutationFn: async (data: { name: string; phone: string }) => {
+      const res = await apiRequest("POST", "/api/agents", { ...data, email: "", company: "", address: "" });
+      return res.json();
+    },
+    onSuccess: (newAgent: Agent) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
+      form.setValue("customerId", newAgent.id);
+      setQuickCreateCustomer(false);
+      setNewCustomerName("");
+      setNewCustomerPhone("");
+      toast({ title: "Agent created", description: `${newAgent.name} has been added.` });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const quickCreateVendorMutation = useMutation({
+    mutationFn: async (data: { name: string; phone: string }) => {
+      const res = await apiRequest("POST", "/api/vendors", { ...data, email: "", address: "", airlines: [] });
+      return res.json();
+    },
+    onSuccess: (newVendor: Vendor) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+      form.setValue("vendorId", newVendor.id);
+      setQuickCreateVendor(false);
+      setNewVendorName("");
+      setNewVendorPhone("");
+      toast({ title: "Vendor created", description: `${newVendor.name} has been added.` });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   const filteredInvoices = invoices.filter((invoice) =>
     invoice.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -705,13 +765,24 @@ export default function InvoicesPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>{watchCustomerType === "agent" ? "Agent" : "Customer"} *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={(val) => {
+                        if (val === "__create_new__") {
+                          setQuickCreateCustomer(true);
+                          return;
+                        }
+                        field.onChange(val);
+                      }} value={field.value}>
                         <FormControl>
                           <SelectTrigger data-testid="select-invoice-customer">
                             <SelectValue placeholder={`Select ${watchCustomerType === "agent" ? "agent" : "customer"}`} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                          <SelectItem value="__create_new__">
+                            <span className="flex items-center gap-1 text-[hsl(var(--primary))] font-medium">
+                              <Plus className="w-3 h-3" /> Create New
+                            </span>
+                          </SelectItem>
                           {watchCustomerType === "agent" 
                             ? agents.map((agent) => (
                                 <SelectItem key={agent.id} value={agent.id}>
@@ -737,13 +808,24 @@ export default function InvoicesPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Vendor/Supplier *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={(val) => {
+                        if (val === "__create_new__") {
+                          setQuickCreateVendor(true);
+                          return;
+                        }
+                        field.onChange(val);
+                      }} value={field.value}>
                         <FormControl>
                           <SelectTrigger data-testid="select-invoice-vendor">
                             <SelectValue placeholder="Select vendor" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                          <SelectItem value="__create_new__">
+                            <span className="flex items-center gap-1 text-[hsl(var(--primary))] font-medium">
+                              <Plus className="w-3 h-3" /> Create New
+                            </span>
+                          </SelectItem>
                           {vendors.map((vendor) => (
                             <SelectItem key={vendor.id} value={vendor.id}>
                               {vendor.name}
@@ -756,6 +838,94 @@ export default function InvoicesPage() {
                   )}
                 />
               </div>
+
+              {quickCreateCustomer && (
+                <div className="p-4 rounded-md border border-dashed border-[hsl(var(--primary))] bg-muted/30 space-y-3">
+                  <h4 className="font-medium text-sm">Quick Create {watchCustomerType === "agent" ? "Agent" : "Customer"}</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Name *</Label>
+                      <Input
+                        placeholder="Enter name"
+                        value={newCustomerName}
+                        onChange={(e) => setNewCustomerName(e.target.value)}
+                        data-testid="input-quick-customer-name"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Phone *</Label>
+                      <Input
+                        placeholder="Enter phone"
+                        value={newCustomerPhone}
+                        onChange={(e) => setNewCustomerPhone(e.target.value)}
+                        data-testid="input-quick-customer-phone"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button type="button" variant="ghost" size="sm" onClick={() => { setQuickCreateCustomer(false); setNewCustomerName(""); setNewCustomerPhone(""); }} data-testid="button-cancel-quick-customer">
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={!newCustomerName || !newCustomerPhone || quickCreateCustomerMutation.isPending || quickCreateAgentMutation.isPending}
+                      onClick={() => {
+                        if (watchCustomerType === "agent") {
+                          quickCreateAgentMutation.mutate({ name: newCustomerName, phone: newCustomerPhone });
+                        } else {
+                          quickCreateCustomerMutation.mutate({ name: newCustomerName, phone: newCustomerPhone });
+                        }
+                      }}
+                      data-testid="button-save-quick-customer"
+                    >
+                      {(quickCreateCustomerMutation.isPending || quickCreateAgentMutation.isPending) && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+                      Create
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {quickCreateVendor && (
+                <div className="p-4 rounded-md border border-dashed border-[hsl(var(--primary))] bg-muted/30 space-y-3">
+                  <h4 className="font-medium text-sm">Quick Create Vendor</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Name *</Label>
+                      <Input
+                        placeholder="Enter vendor name"
+                        value={newVendorName}
+                        onChange={(e) => setNewVendorName(e.target.value)}
+                        data-testid="input-quick-vendor-name"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Phone *</Label>
+                      <Input
+                        placeholder="Enter phone"
+                        value={newVendorPhone}
+                        onChange={(e) => setNewVendorPhone(e.target.value)}
+                        data-testid="input-quick-vendor-phone"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button type="button" variant="ghost" size="sm" onClick={() => { setQuickCreateVendor(false); setNewVendorName(""); setNewVendorPhone(""); }} data-testid="button-cancel-quick-vendor">
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={!newVendorName || !newVendorPhone || quickCreateVendorMutation.isPending}
+                      onClick={() => quickCreateVendorMutation.mutate({ name: newVendorName, phone: newVendorPhone })}
+                      data-testid="button-save-quick-vendor"
+                    >
+                      {quickCreateVendorMutation.isPending && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+                      Create
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {selectedParty && (
                 <div className="p-4 rounded-md bg-muted/50 space-y-2">
@@ -1156,7 +1326,7 @@ export default function InvoicesPage() {
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Notes</FormLabel>
+                    <FormLabel>Notes (Optional)</FormLabel>
                     <FormControl>
                       <Textarea
                         placeholder="Additional notes..."
