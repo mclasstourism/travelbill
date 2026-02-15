@@ -207,7 +207,6 @@ export default function InvoicesPage() {
           </div>
           <div style="text-align: right;">
             <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #1a5632; letter-spacing: 2px;">INVOICE</h1>
-            <p style="margin: 4px 0 0 0; font-size: 13px; color: #1a5632;">${invoice.invoiceNumber}</p>
           </div>
         </div>
         <div style="height: 3px; background: linear-gradient(to right, #1a5632, #22c55e, #1a5632); margin: 14px 0 20px 0; border-radius: 2px;"></div>
@@ -227,7 +226,7 @@ export default function InvoicesPage() {
               </tr>
               <tr>
                 <td style="padding: 4px 12px 4px 0; color: #64748b; font-weight: 600;">Date</td>
-                <td style="padding: 4px 0; font-weight: 700;">: ${format(new Date(invoice.createdAt), "dd/MM/yyyy")}</td>
+                <td style="padding: 4px 0; font-weight: 700;">: ${format(new Date(invoice.createdAt), "dd MMMM yyyy")}</td>
               </tr>
             </table>
           </div>
@@ -317,7 +316,7 @@ export default function InvoicesPage() {
         </div>
 
         <!-- Authorised Sign -->
-        <div style="text-align: right; margin-top: 80px;">
+        <div style="text-align: right; margin-top: 120px;">
           <div style="display: inline-block; text-align: center;">
             <div style="width: 180px; border-bottom: 1px solid #374151; margin-bottom: 6px;"></div>
             <p style="margin: 0; font-size: 12px; color: #64748b; font-style: italic;">Authorised Sign</p>
