@@ -48,7 +48,7 @@ MVP fully implemented with:
 - **Customer**: Individual clients with deposit balance tracking
 - **Agent**: Bulk ticket buyers with credit and deposit balances
 - **Vendor**: Suppliers with credit and deposit balances, registered airlines
-- **Invoice**: Billing records with line items, discounts, payment method, customer type (customer or agent)
+- **Invoice**: Billing records with travel-specific line items (sector, travel date, airlines/flight no, PNR, TKT no, amount, basic fare, tax), discounts, payment method, customer type (customer or agent)
 - **Ticket**: Travel tickets with face value and deposit deduction
 - **DepositTransaction**: Customer deposit ledger entries
 - **VendorTransaction**: Vendor credit/deposit ledger entries
@@ -67,7 +67,7 @@ MVP fully implemented with:
 ### Invoice Creation
 - Select party type: Individual Customer or Agent
 - Select customer/agent and vendor/supplier for each invoice
-- Add multiple line items with quantity and price
+- Add multiple travel line items with: Sector, Travel Date, Airlines/Flight No, PNR, TKT No, Amount (AED), Basic Fare, Tax
 - Apply percentage discount
 - Choose payment method: cash, card, or credit
 - Option to use customer/agent deposit balance

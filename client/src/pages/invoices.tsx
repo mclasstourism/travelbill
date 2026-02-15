@@ -103,9 +103,14 @@ const createInvoiceFormSchema = z.object({
   customerId: z.string().min(1, "Customer/Agent is required"),
   vendorId: z.string().min(1, "Vendor is required"),
   items: z.array(z.object({
-    description: z.string().min(1, "Description is required"),
-    quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
-    unitPrice: z.coerce.number().min(0, "Price must be positive"),
+    sector: z.string().min(1, "Sector is required"),
+    travelDate: z.string().optional().default(""),
+    airlinesFlightNo: z.string().optional().default(""),
+    pnr: z.string().optional().default(""),
+    tktNo: z.string().optional().default(""),
+    amount: z.coerce.number().min(0, "Amount must be positive"),
+    basicFare: z.coerce.number().min(0).default(0),
+    tax: z.coerce.number().min(0).default(0),
   })).min(1, "At least one item is required"),
   discountPercent: z.coerce.number().min(0).max(100).default(0),
   vendorCost: z.coerce.number().min(0, "Vendor cost must be positive").default(0),
@@ -183,7 +188,7 @@ export default function InvoicesPage() {
   const handleDownloadPdf = (invoice: Invoice) => {
     const partyName = getPartyName(invoice);
     const vendorName = getVendorName(invoice.vendorId);
-    const items = invoice.items as { description: string; quantity: number; unitPrice: number }[];
+    const items = invoice.items as any[];
     const grandTotal = invoice.subtotal - invoice.discountAmount;
     
     const container = document.createElement('div');
@@ -239,24 +244,32 @@ export default function InvoicesPage() {
         </div>
 
         <!-- Items Table -->
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px;">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px;">
           <thead>
             <tr>
-              <th style="text-align: left; padding: 10px 12px; background: #1a5632; color: white; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 4px 0 0 0;">#</th>
-              <th style="text-align: left; padding: 10px 12px; background: #1a5632; color: white; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Description</th>
-              <th style="text-align: center; padding: 10px 12px; background: #1a5632; color: white; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Qty</th>
-              <th style="text-align: right; padding: 10px 12px; background: #1a5632; color: white; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Unit Price</th>
-              <th style="text-align: right; padding: 10px 12px; background: #1a5632; color: white; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 0 4px 0 0;">Amount</th>
+              <th style="text-align: left; padding: 8px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 4px 0 0 0;">#</th>
+              <th style="text-align: left; padding: 8px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Sector</th>
+              <th style="text-align: left; padding: 8px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Date</th>
+              <th style="text-align: left; padding: 8px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Flight</th>
+              <th style="text-align: left; padding: 8px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">PNR</th>
+              <th style="text-align: left; padding: 8px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">TKT No</th>
+              <th style="text-align: right; padding: 8px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Basic Fare</th>
+              <th style="text-align: right; padding: 8px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Tax</th>
+              <th style="text-align: right; padding: 8px 6px; background: #1a5632; color: white; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 0 4px 0 0;">Amount</th>
             </tr>
           </thead>
           <tbody>
-            ${items.map((item, i) => `
+            ${items.map((item: any, i: number) => `
               <tr style="background: ${i % 2 === 0 ? '#ffffff' : '#f8fafc'};">
-                <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">${i + 1}</td>
-                <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-weight: 500;">${item.description}</td>
-                <td style="text-align: center; padding: 10px 12px; border-bottom: 1px solid #e2e8f0;">${item.quantity}</td>
-                <td style="text-align: right; padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">AED ${item.unitPrice.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
-                <td style="text-align: right; padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace; font-weight: 600;">AED ${(item.quantity * item.unitPrice).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+                <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; color: #64748b;">${i + 1}</td>
+                <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; font-weight: 500;">${item.sector || ''}</td>
+                <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0;">${item.travelDate || '-'}</td>
+                <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0;">${item.airlinesFlightNo || '-'}</td>
+                <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">${item.pnr || '-'}</td>
+                <td style="padding: 8px 6px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">${item.tktNo || '-'}</td>
+                <td style="text-align: right; padding: 8px 6px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">AED ${(item.basicFare || 0).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+                <td style="text-align: right; padding: 8px 6px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">AED ${(item.tax || 0).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+                <td style="text-align: right; padding: 8px 6px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace; font-weight: 600;">AED ${(item.amount || 0).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -355,7 +368,7 @@ export default function InvoicesPage() {
       customerType: "customer",
       customerId: "",
       vendorId: "",
-      items: [{ description: "", quantity: 1, unitPrice: 0 }],
+      items: [{ sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", amount: 0, basicFare: 0, tax: 0 }],
       discountPercent: 0,
       vendorCost: 0,
       paymentMethod: "cash",
@@ -392,7 +405,7 @@ export default function InvoicesPage() {
 
   const calculations = useMemo(() => {
     const subtotal = watchItems.reduce((sum, item) => {
-      return sum + (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0);
+      return sum + (Number(item.amount) || 0);
     }, 0);
     const discountAmount = subtotal * ((Number(watchDiscountPercent) || 0) / 100);
     const afterDiscount = subtotal - discountAmount;
@@ -466,9 +479,8 @@ export default function InvoicesPage() {
 
   const onSubmit = (data: CreateInvoiceForm) => {
 
-    // Calculate values from submitted form data directly
     const subtotal = data.items.reduce((sum, item) => {
-      return sum + (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0);
+      return sum + (Number(item.amount) || 0);
     }, 0);
     const discountAmount = subtotal * ((Number(data.discountPercent) || 0) / 100);
     const afterDiscount = subtotal - discountAmount;
@@ -781,7 +793,7 @@ export default function InvoicesPage() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => append({ description: "", quantity: 1, unitPrice: 0 })}
+                    onClick={() => append({ sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", amount: 0, basicFare: 0, tax: 0 })}
                     data-testid="button-add-item"
                   >
                     <Plus className="w-4 h-4 mr-1" />
@@ -793,76 +805,10 @@ export default function InvoicesPage() {
                   {fields.map((field, index) => (
                     <div
                       key={field.id}
-                      className="grid grid-cols-12 gap-2 items-start p-3 rounded-md bg-muted/50"
+                      className="p-3 rounded-md bg-muted/50 space-y-3"
                     >
-                      <div className="col-span-5">
-                        <FormField
-                          control={form.control}
-                          name={`items.${index}.description`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormControl>
-                                <Input
-                                  placeholder="Description"
-                                  {...field}
-                                  data-testid={`input-item-description-${index}`}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <FormField
-                          control={form.control}
-                          name={`items.${index}.quantity`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  min={1}
-                                  placeholder="Qty"
-                                  value={field.value || ''}
-                                  onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
-                                  onBlur={field.onBlur}
-                                  name={field.name}
-                                  ref={field.ref}
-                                  data-testid={`input-item-quantity-${index}`}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      <div className="col-span-3">
-                        <FormField
-                          control={form.control}
-                          name={`items.${index}.unitPrice`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  min={0}
-                                  step="0.01"
-                                  placeholder="Price"
-                                  value={field.value || ''}
-                                  onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
-                                  onBlur={field.onBlur}
-                                  name={field.name}
-                                  ref={field.ref}
-                                  data-testid={`input-item-price-${index}`}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      <div className="col-span-2 flex justify-end">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Item {index + 1}</span>
                         <Button
                           type="button"
                           variant="ghost"
@@ -873,6 +819,149 @@ export default function InvoicesPage() {
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <FormField
+                          control={form.control}
+                          name={`items.${index}.sector`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">Sector *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g. DXB-LHR" {...field} data-testid={`input-item-sector-${index}`} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name={`items.${index}.travelDate`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">Travel Date</FormLabel>
+                              <FormControl>
+                                <Input type="date" {...field} data-testid={`input-item-travel-date-${index}`} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <FormField
+                          control={form.control}
+                          name={`items.${index}.airlinesFlightNo`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">Airlines/Flight No</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g. EK202" {...field} data-testid={`input-item-flight-${index}`} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name={`items.${index}.pnr`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">PNR</FormLabel>
+                              <FormControl>
+                                <Input placeholder="PNR" {...field} data-testid={`input-item-pnr-${index}`} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name={`items.${index}.tktNo`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">TKT No</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Ticket No" {...field} data-testid={`input-item-tkt-${index}`} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <FormField
+                          control={form.control}
+                          name={`items.${index}.basicFare`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">Basic Fare</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  value={field.value || ''}
+                                  onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
+                                  onBlur={field.onBlur}
+                                  name={field.name}
+                                  ref={field.ref}
+                                  data-testid={`input-item-basic-fare-${index}`}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name={`items.${index}.tax`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">Tax</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  value={field.value || ''}
+                                  onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
+                                  onBlur={field.onBlur}
+                                  name={field.name}
+                                  ref={field.ref}
+                                  data-testid={`input-item-tax-${index}`}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name={`items.${index}.amount`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">Amount (AED) *</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  value={field.value || ''}
+                                  onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
+                                  onBlur={field.onBlur}
+                                  name={field.name}
+                                  ref={field.ref}
+                                  data-testid={`input-item-amount-${index}`}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                       </div>
                     </div>
                   ))}
@@ -1234,21 +1323,29 @@ export default function InvoicesPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-[#1a5632] [&:hover]:bg-[#1a5632]" data-testid="invoice-table-header">
-                      <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide w-10">#</TableHead>
-                      <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide">Description</TableHead>
-                      <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide text-center">Qty</TableHead>
-                      <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide text-right">Unit Price</TableHead>
+                      <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide w-8">#</TableHead>
+                      <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide">Sector</TableHead>
+                      <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide">Date</TableHead>
+                      <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide">Flight</TableHead>
+                      <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide">PNR</TableHead>
+                      <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide">TKT No</TableHead>
+                      <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide text-right">Basic Fare</TableHead>
+                      <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide text-right">Tax</TableHead>
                       <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide text-right">Amount</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {viewInvoice.items.map((item, idx) => (
+                    {viewInvoice.items.map((item: any, idx: number) => (
                       <TableRow key={idx} className={idx % 2 === 0 ? "" : "bg-muted/30"}>
                         <TableCell className="text-muted-foreground text-sm">{idx + 1}</TableCell>
-                        <TableCell className="font-medium text-sm">{item.description}</TableCell>
-                        <TableCell className="text-center text-sm">{item.quantity}</TableCell>
-                        <TableCell className="text-right font-mono text-sm">{formatCurrency(item.unitPrice)}</TableCell>
-                        <TableCell className="text-right font-mono text-sm font-semibold">{formatCurrency(item.quantity * item.unitPrice)}</TableCell>
+                        <TableCell className="font-medium text-sm">{item.sector}</TableCell>
+                        <TableCell className="text-sm">{item.travelDate || "-"}</TableCell>
+                        <TableCell className="text-sm">{item.airlinesFlightNo || "-"}</TableCell>
+                        <TableCell className="font-mono text-sm">{item.pnr || "-"}</TableCell>
+                        <TableCell className="font-mono text-sm">{item.tktNo || "-"}</TableCell>
+                        <TableCell className="text-right font-mono text-sm">{formatCurrency(item.basicFare || 0)}</TableCell>
+                        <TableCell className="text-right font-mono text-sm">{formatCurrency(item.tax || 0)}</TableCell>
+                        <TableCell className="text-right font-mono text-sm font-semibold">{formatCurrency(item.amount)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

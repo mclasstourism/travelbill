@@ -236,9 +236,14 @@ export type InvoiceStatus = typeof invoiceStatuses[number];
 
 // Invoice line items
 export const insertInvoiceItemSchema = z.object({
-  description: z.string().min(1, "Description is required"),
-  quantity: z.number().min(1, "Quantity must be at least 1"),
-  unitPrice: z.number().min(0, "Price must be positive"),
+  sector: z.string().min(1, "Sector is required"),
+  travelDate: z.string().optional().default(""),
+  airlinesFlightNo: z.string().optional().default(""),
+  pnr: z.string().optional().default(""),
+  tktNo: z.string().optional().default(""),
+  amount: z.coerce.number().min(0, "Amount must be positive"),
+  basicFare: z.coerce.number().min(0).default(0),
+  tax: z.coerce.number().min(0).default(0),
 });
 
 export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;

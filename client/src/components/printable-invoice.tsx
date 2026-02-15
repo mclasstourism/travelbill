@@ -114,24 +114,32 @@ export const PrintableInvoice = forwardRef<HTMLDivElement, PrintableInvoiceProps
           </div>
         </div>
 
-        <table className="w-full mb-6 border-collapse">
+        <table className="w-full mb-6 border-collapse text-sm">
           <thead>
             <tr className="bg-gray-800 text-white">
               <th className="border border-gray-800 p-2 text-left">#</th>
-              <th className="border border-gray-800 p-2 text-left">Description</th>
-              <th className="border border-gray-800 p-2 text-center">Qty</th>
-              <th className="border border-gray-800 p-2 text-right">Unit Price</th>
+              <th className="border border-gray-800 p-2 text-left">Sector</th>
+              <th className="border border-gray-800 p-2 text-left">Date</th>
+              <th className="border border-gray-800 p-2 text-left">Flight</th>
+              <th className="border border-gray-800 p-2 text-left">PNR</th>
+              <th className="border border-gray-800 p-2 text-left">TKT No</th>
+              <th className="border border-gray-800 p-2 text-right">Basic Fare</th>
+              <th className="border border-gray-800 p-2 text-right">Tax</th>
               <th className="border border-gray-800 p-2 text-right">Amount</th>
             </tr>
           </thead>
           <tbody>
-            {invoice.items.map((item, idx) => (
+            {(invoice.items as any[]).map((item, idx) => (
               <tr key={idx} className={idx % 2 === 0 ? "bg-gray-50" : "bg-white"}>
                 <td className="border border-gray-300 p-2">{idx + 1}</td>
-                <td className="border border-gray-300 p-2">{item.description}</td>
-                <td className="border border-gray-300 p-2 text-center">{item.quantity}</td>
-                <td className="border border-gray-300 p-2 text-right font-mono">{formatCurrency(item.unitPrice)}</td>
-                <td className="border border-gray-300 p-2 text-right font-mono">{formatCurrency(item.quantity * item.unitPrice)}</td>
+                <td className="border border-gray-300 p-2 font-medium">{item.sector}</td>
+                <td className="border border-gray-300 p-2">{item.travelDate || "-"}</td>
+                <td className="border border-gray-300 p-2">{item.airlinesFlightNo || "-"}</td>
+                <td className="border border-gray-300 p-2 font-mono">{item.pnr || "-"}</td>
+                <td className="border border-gray-300 p-2 font-mono">{item.tktNo || "-"}</td>
+                <td className="border border-gray-300 p-2 text-right font-mono">{formatCurrency(item.basicFare || 0)}</td>
+                <td className="border border-gray-300 p-2 text-right font-mono">{formatCurrency(item.tax || 0)}</td>
+                <td className="border border-gray-300 p-2 text-right font-mono font-semibold">{formatCurrency(item.amount || 0)}</td>
               </tr>
             ))}
           </tbody>
