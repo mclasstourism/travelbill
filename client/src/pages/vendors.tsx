@@ -53,6 +53,8 @@ export default function VendorsPage() {
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
   const [deletingVendor, setDeletingVendor] = useState<Vendor | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [emails, setEmails] = useState<string[]>([""]);
+  const [editEmails, setEditEmails] = useState<string[]>([""]);
   const { toast } = useToast();
 
   const { data: vendors = [], isLoading } = useQuery<Vendor[]>({
@@ -97,6 +99,10 @@ export default function VendorsPage() {
 
   useEffect(() => {
     if (editingVendor) {
+      const existingEmails = editingVendor.email
+        ? editingVendor.email.split(",").map((e: string) => e.trim()).filter(Boolean)
+        : [""];
+      setEditEmails(existingEmails.length > 0 ? existingEmails : [""]);
       editForm.reset({
         name: editingVendor.name,
         email: editingVendor.email || "",
@@ -119,6 +125,7 @@ export default function VendorsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
       setIsCreateOpen(false);
       form.reset();
+      setEmails([""]);
       toast({
         title: "Vendor created",
         description: "The vendor has been added successfully.",
@@ -190,12 +197,14 @@ export default function VendorsPage() {
   );
 
   const onSubmit = (data: InsertVendor) => {
-    createMutation.mutate(data);
+    const joinedEmails = emails.map(e => e.trim()).filter(Boolean).join(", ");
+    createMutation.mutate({ ...data, email: joinedEmails });
   };
 
   const onEditSubmit = (data: InsertVendor) => {
     if (editingVendor) {
-      updateMutation.mutate({ ...data, id: editingVendor.id });
+      const joinedEmails = editEmails.map(e => e.trim()).filter(Boolean).join(", ");
+      updateMutation.mutate({ ...data, email: joinedEmails, id: editingVendor.id });
     }
   };
 
@@ -359,24 +368,46 @@ export default function VendorsPage() {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="email@example.com"
-                        {...field}
-                        data-testid="input-vendor-email"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <Label>Email</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEmails([...emails, ""])}
+                    data-testid="button-add-email"
+                  >
+                    <Plus className="h-3 w-3 mr-1" /> Add Email
+                  </Button>
+                </div>
+                {emails.map((email, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Input
+                      type="email"
+                      placeholder="email@example.com"
+                      value={email}
+                      onChange={(e) => {
+                        const updated = [...emails];
+                        updated[index] = e.target.value;
+                        setEmails(updated);
+                      }}
+                      data-testid={`input-vendor-email-${index}`}
+                    />
+                    {emails.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setEmails(emails.filter((_, i) => i !== index))}
+                        data-testid={`button-remove-email-${index}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
 
               <FormField
                 control={form.control}
@@ -517,24 +548,46 @@ export default function VendorsPage() {
                 )}
               />
 
-              <FormField
-                control={editForm.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="email@example.com"
-                        {...field}
-                        data-testid="input-edit-vendor-email"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <Label>Email</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEditEmails([...editEmails, ""])}
+                    data-testid="button-edit-add-email"
+                  >
+                    <Plus className="h-3 w-3 mr-1" /> Add Email
+                  </Button>
+                </div>
+                {editEmails.map((email, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Input
+                      type="email"
+                      placeholder="email@example.com"
+                      value={email}
+                      onChange={(e) => {
+                        const updated = [...editEmails];
+                        updated[index] = e.target.value;
+                        setEditEmails(updated);
+                      }}
+                      data-testid={`input-edit-vendor-email-${index}`}
+                    />
+                    {editEmails.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setEditEmails(editEmails.filter((_, i) => i !== index))}
+                        data-testid={`button-edit-remove-email-${index}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
 
               <FormField
                 control={editForm.control}
