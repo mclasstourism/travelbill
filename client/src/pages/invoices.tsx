@@ -240,7 +240,7 @@ export default function InvoicesPage() {
             <p style="margin: 0 0 4px 0; font-size: 10px; font-weight: 700; color: #1a5632; text-transform: uppercase; letter-spacing: 1px;">${invoice.customerType === 'agent' ? 'BILL TO (Agent)' : 'BILL TO'}</p>
             <p style="margin: 0; font-size: 15px; font-weight: 700; color: #1e293b;">${partyName}</p>
           </div>
-          <div style="flex: 1; border-left: 1px solid #e2e8f0; padding: 14px 16px;">
+          <div style="flex: 1; background: #f8fafc; border-left: 1px solid #e2e8f0; padding: 14px 16px;">
             <p style="margin: 0 0 4px 0; font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px;">VENDOR / SUPPLIER</p>
             <p style="margin: 0; font-size: 15px; font-weight: 700; color: #1e293b;">${vendorName}</p>
           </div>
