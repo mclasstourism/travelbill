@@ -19,6 +19,7 @@ import VendorCreditsPage from "@/pages/vendor-credits";
 import AgentCreditsPage from "@/pages/agent-credits";
 import ReportsPage from "@/pages/reports";
 import AdminSettingsPage from "@/pages/admin-settings";
+import CashReceiptsPage from "@/pages/cash-receipts";
 import LoginPage from "@/pages/login";
 import { Loader2 } from "lucide-react";
 
@@ -31,6 +32,7 @@ function Router() {
       <Route path="/vendors" component={VendorsPage} />
       <Route path="/invoices" component={InvoicesPage} />
       <Route path="/tickets" component={TicketsPage} />
+      <Route path="/cash-receipts" component={CashReceiptsPage} />
       <Route path="/deposits" component={DepositsPage} />
       <Route path="/vendor-credits" component={VendorCreditsPage} />
       <Route path="/agent-credits" component={AgentCreditsPage} />

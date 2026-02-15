@@ -17,6 +17,8 @@ import {
   type InsertVendorTransaction,
   type AgentTransaction,
   type InsertAgentTransaction,
+  type CashReceipt,
+  type InsertCashReceipt,
   type DashboardMetrics,
   type PasswordResetToken,
 } from "@shared/schema";
@@ -90,6 +92,11 @@ export interface IStorage {
   getAgentTransactionsByAgent(agentId: string): Promise<AgentTransaction[]>;
   createAgentTransaction(tx: InsertAgentTransaction): Promise<AgentTransaction>;
 
+  // Cash Receipts
+  getCashReceipts(): Promise<CashReceipt[]>;
+  getCashReceipt(id: string): Promise<CashReceipt | undefined>;
+  createCashReceipt(receipt: InsertCashReceipt): Promise<CashReceipt>;
+
   // Metrics
   getDashboardMetrics(): Promise<DashboardMetrics>;
 
@@ -114,8 +121,10 @@ export class MemStorage implements IStorage {
   private depositTransactions: Map<string, DepositTransaction>;
   private vendorTransactions: Map<string, VendorTransaction>;
   private agentTransactions: Map<string, AgentTransaction>;
+  private cashReceipts: Map<string, CashReceipt>;
   private invoiceCounter: number;
   private ticketCounter: number;
+  private receiptCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -128,8 +137,10 @@ export class MemStorage implements IStorage {
     this.depositTransactions = new Map();
     this.vendorTransactions = new Map();
     this.agentTransactions = new Map();
+    this.cashReceipts = new Map();
     this.invoiceCounter = 1000;
     this.ticketCounter = 1000;
+    this.receiptCounter = 1000;
 
     // Seed with a default staff user (password: admin123)
     const defaultUserId = randomUUID();
@@ -659,6 +670,32 @@ export class MemStorage implements IStorage {
     };
     this.agentTransactions.set(id, newTx);
     return newTx;
+  }
+
+  // Cash Receipts
+  async getCashReceipts(): Promise<CashReceipt[]> {
+    return Array.from(this.cashReceipts.values()).sort((a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }
+
+  async getCashReceipt(id: string): Promise<CashReceipt | undefined> {
+    return this.cashReceipts.get(id);
+  }
+
+  async createCashReceipt(receipt: InsertCashReceipt): Promise<CashReceipt> {
+    const id = randomUUID();
+    this.receiptCounter++;
+    const receiptNumber = `RCT-${this.receiptCounter}`;
+    const newReceipt: CashReceipt = {
+      ...receipt,
+      id,
+      receiptNumber,
+      status: "issued",
+      createdAt: new Date().toISOString(),
+    };
+    this.cashReceipts.set(id, newReceipt);
+    return newReceipt;
   }
 
   // Metrics

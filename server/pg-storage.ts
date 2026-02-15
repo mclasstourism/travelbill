@@ -20,6 +20,8 @@ import {
   type InsertVendorTransaction,
   type AgentTransaction,
   type InsertAgentTransaction,
+  type CashReceipt,
+  type InsertCashReceipt,
   type DashboardMetrics,
   type PasswordResetToken,
 } from "@shared/schema";
@@ -28,6 +30,7 @@ import bcrypt from "bcryptjs";
 
 export class PgStorage implements IStorage {
   private invoiceCounter: number = 1000;
+  private receiptCounter: number = 1000;
   private ticketCounter: number = 1000;
   private initialized: boolean = false;
 
@@ -53,6 +56,7 @@ export class PgStorage implements IStorage {
   private async initializeCounters() {
     const invoices = await db.select().from(schema.invoicesTable);
     const tickets = await db.select().from(schema.ticketsTable);
+    const receipts = await db.select().from(schema.cashReceiptsTable);
     
     if (invoices.length > 0) {
       const maxInvoice = Math.max(...invoices.map(i => parseInt(i.invoiceNumber.replace("INV-", "")) || 1000));
@@ -61,6 +65,10 @@ export class PgStorage implements IStorage {
     if (tickets.length > 0) {
       const maxTicket = Math.max(...tickets.map(t => parseInt(t.ticketNumber.replace("TKT-", "")) || 1000));
       this.ticketCounter = maxTicket;
+    }
+    if (receipts.length > 0) {
+      const maxReceipt = Math.max(...receipts.map(r => parseInt(r.receiptNumber.replace("RCT-", "")) || 1000));
+      this.receiptCounter = maxReceipt;
     }
   }
 
@@ -1015,6 +1023,56 @@ export class PgStorage implements IStorage {
       recentInvoices: invoices.slice(0, 5),
       recentTickets: tickets.slice(0, 5),
     };
+  }
+
+  // Cash Receipts
+  async getCashReceipts(): Promise<CashReceipt[]> {
+    const results = await db.select().from(schema.cashReceiptsTable).orderBy(desc(schema.cashReceiptsTable.createdAt));
+    return results.map(r => ({
+      ...r,
+      description: r.description || "",
+      referenceNumber: r.referenceNumber || "",
+      status: r.status || "issued",
+      createdAt: r.createdAt ? r.createdAt.toISOString() : new Date().toISOString(),
+    })) as CashReceipt[];
+  }
+
+  async getCashReceipt(id: string): Promise<CashReceipt | undefined> {
+    const [result] = await db.select().from(schema.cashReceiptsTable).where(eq(schema.cashReceiptsTable.id, id));
+    if (!result) return undefined;
+    return {
+      ...result,
+      description: result.description || "",
+      referenceNumber: result.referenceNumber || "",
+      status: result.status || "issued",
+      createdAt: result.createdAt ? result.createdAt.toISOString() : new Date().toISOString(),
+    } as CashReceipt;
+  }
+
+  async createCashReceipt(receipt: InsertCashReceipt): Promise<CashReceipt> {
+    this.receiptCounter++;
+    const receiptNumber = `RCT-${this.receiptCounter}`;
+    const id = crypto.randomUUID();
+    const [result] = await db.insert(schema.cashReceiptsTable).values({
+      id,
+      receiptNumber,
+      partyType: receipt.partyType,
+      partyId: receipt.partyId,
+      amount: receipt.amount,
+      paymentMethod: receipt.paymentMethod,
+      description: receipt.description || "",
+      referenceNumber: receipt.referenceNumber || "",
+      issuedBy: receipt.issuedBy,
+      status: "issued",
+    }).returning();
+
+    return {
+      ...result,
+      description: result.description || "",
+      referenceNumber: result.referenceNumber || "",
+      status: result.status || "issued",
+      createdAt: result.createdAt ? result.createdAt.toISOString() : new Date().toISOString(),
+    } as CashReceipt;
   }
 
   // Admin Operations

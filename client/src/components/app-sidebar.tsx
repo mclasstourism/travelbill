@@ -16,6 +16,7 @@ import {
   Sun,
   Moon,
   Smartphone,
+  Receipt,
 } from "lucide-react";
 import companyLogo from "@assets/logo_optimized.png";
 import {
@@ -50,6 +51,7 @@ const mainNavItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Invoices", url: "/invoices", icon: FileText },
   { title: "Tickets", url: "/tickets", icon: Ticket },
+  { title: "Cash Receipts", url: "/cash-receipts", icon: Receipt },
 ];
 
 const partyItems = [

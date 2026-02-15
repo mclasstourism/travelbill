@@ -13,6 +13,7 @@ MVP fully implemented with:
 - Ticket issuance with deposit deduction
 - Customer deposit management with transaction history
 - Vendor credit/deposit transaction tracking
+- Cash receipt creation and printing with party selection, payment method, reference tracking
 - All currency displays in AED
 
 ## Architecture
@@ -51,6 +52,7 @@ MVP fully implemented with:
 - **Ticket**: Travel tickets with face value and deposit deduction
 - **DepositTransaction**: Customer deposit ledger entries
 - **VendorTransaction**: Vendor credit/deposit ledger entries
+- **CashReceipt**: Payment receipts with party type, amount, payment method, reference tracking
 
 ## Features
 

@@ -388,6 +388,45 @@ export type AgentTransaction = InsertAgentTransaction & {
   createdAt: string;
 };
 
+// Cash Receipts
+export const cashReceiptsTable = pgTable("cash_receipts", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  receiptNumber: varchar("receipt_number", { length: 50 }).notNull().unique(),
+  partyType: varchar("party_type", { length: 20 }).notNull(),
+  partyId: varchar("party_id", { length: 36 }).notNull(),
+  amount: real("amount").notNull(),
+  paymentMethod: varchar("payment_method", { length: 20 }).notNull(),
+  description: text("description").default(""),
+  referenceNumber: varchar("reference_number", { length: 100 }).default(""),
+  issuedBy: varchar("issued_by", { length: 36 }).notNull(),
+  status: varchar("status", { length: 20 }).default("issued"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const receiptPartyTypes = ["customer", "agent", "vendor"] as const;
+export type ReceiptPartyType = typeof receiptPartyTypes[number];
+
+export const receiptPaymentMethods = ["cash", "card", "cheque", "bank_transfer"] as const;
+export type ReceiptPaymentMethod = typeof receiptPaymentMethods[number];
+
+export const insertCashReceiptSchema = z.object({
+  partyType: z.enum(receiptPartyTypes),
+  partyId: z.string().min(1, "Party is required"),
+  amount: z.coerce.number().min(0.01, "Amount must be positive"),
+  paymentMethod: z.enum(receiptPaymentMethods),
+  description: z.string().optional().or(z.literal("")),
+  referenceNumber: z.string().optional().or(z.literal("")),
+  issuedBy: z.string().min(1, "Issued by is required"),
+});
+
+export type InsertCashReceipt = z.infer<typeof insertCashReceiptSchema>;
+export type CashReceipt = InsertCashReceipt & {
+  id: string;
+  receiptNumber: string;
+  status: string;
+  createdAt: string;
+};
+
 // Dashboard metrics
 export type DashboardMetrics = {
   totalCustomers: number;

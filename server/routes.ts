@@ -10,6 +10,7 @@ import {
   insertDepositTransactionSchema,
   insertVendorTransactionSchema,
   insertAgentTransactionSchema,
+  insertCashReceiptSchema,
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -601,6 +602,43 @@ export async function registerRoutes(
         res.status(400).json({ error: error.errors });
       } else {
         res.status(500).json({ error: "Failed to create agent transaction" });
+      }
+    }
+  });
+
+  // Cash Receipts
+  app.get("/api/cash-receipts", async (req, res) => {
+    try {
+      const receipts = await storage.getCashReceipts();
+      res.json(receipts);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch cash receipts" });
+    }
+  });
+
+  app.get("/api/cash-receipts/:id", async (req, res) => {
+    try {
+      const receipt = await storage.getCashReceipt(req.params.id);
+      if (!receipt) {
+        res.status(404).json({ error: "Receipt not found" });
+        return;
+      }
+      res.json(receipt);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch cash receipt" });
+    }
+  });
+
+  app.post("/api/cash-receipts", async (req, res) => {
+    try {
+      const data = insertCashReceiptSchema.parse(req.body);
+      const receipt = await storage.createCashReceipt(data);
+      res.status(201).json(receipt);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create cash receipt" });
       }
     }
   });
