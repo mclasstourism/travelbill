@@ -651,7 +651,7 @@ export default function InvoicesPage() {
                   name="customerType"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Party Type *</FormLabel>
+                      <FormLabel>Customer Type *</FormLabel>
                       <Select 
                         onValueChange={(value) => {
                           field.onChange(value);
