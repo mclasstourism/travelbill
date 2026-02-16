@@ -77,6 +77,13 @@ const createReceiptSchema = z.object({
   sourceType: z.enum(["flight", "other"]),
   pnr: z.string().optional().or(z.literal("")),
   serviceName: z.string().optional().or(z.literal("")),
+  sector: z.string().optional().or(z.literal("")),
+  travelDate: z.string().optional().or(z.literal("")),
+  airlinesFlightNo: z.string().optional().or(z.literal("")),
+  tktNo: z.string().optional().or(z.literal("")),
+  departureTime: z.string().optional().or(z.literal("")),
+  arrivalTime: z.string().optional().or(z.literal("")),
+  basicFare: z.coerce.number().optional().default(0),
   amount: z.coerce.number().min(0.01, "Amount must be positive"),
   paymentMethod: z.enum(["cash", "card", "cheque", "bank_transfer"]),
   description: z.string().optional().or(z.literal("")),
@@ -147,6 +154,13 @@ export default function CashReceiptsPage() {
       sourceType: "flight",
       pnr: "",
       serviceName: "",
+      sector: "",
+      travelDate: "",
+      airlinesFlightNo: "",
+      tktNo: "",
+      departureTime: "",
+      arrivalTime: "",
+      basicFare: 0,
       amount: 0,
       paymentMethod: "cash",
       description: "",
@@ -330,10 +344,46 @@ export default function CashReceiptsPage() {
               <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Source</td>
               <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500;">${receipt.sourceType === "flight" ? "Flight Details" : "Other Service"}</td>
             </tr>
-            ${receipt.sourceType === "flight" && receipt.pnr ? `
+            ${receipt.sourceType === "flight" && receipt.sector ? `
             <tr style="background: #f8fafc;">
+              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Sector</td>
+              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500;">${receipt.sector}</td>
+            </tr>
+            ` : ""}
+            ${receipt.sourceType === "flight" && receipt.travelDate ? `
+            <tr style="background: #ffffff;">
+              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Travel Date</td>
+              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500;">${receipt.travelDate}</td>
+            </tr>
+            ` : ""}
+            ${receipt.sourceType === "flight" && receipt.airlinesFlightNo ? `
+            <tr style="background: #f8fafc;">
+              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Airlines/Flight No</td>
+              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500;">${receipt.airlinesFlightNo}</td>
+            </tr>
+            ` : ""}
+            ${receipt.sourceType === "flight" && receipt.pnr ? `
+            <tr style="background: #ffffff;">
               <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">PNR</td>
               <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500; font-family: 'Courier New', monospace;">${receipt.pnr}</td>
+            </tr>
+            ` : ""}
+            ${receipt.sourceType === "flight" && receipt.tktNo ? `
+            <tr style="background: #f8fafc;">
+              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">TKT No</td>
+              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500; font-family: 'Courier New', monospace;">${receipt.tktNo}</td>
+            </tr>
+            ` : ""}
+            ${receipt.sourceType === "flight" && (receipt.departureTime || receipt.arrivalTime) ? `
+            <tr style="background: #ffffff;">
+              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Departure / Arrival</td>
+              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500;">${receipt.departureTime || "--"} / ${receipt.arrivalTime || "--"}</td>
+            </tr>
+            ` : ""}
+            ${receipt.sourceType === "flight" && receipt.basicFare ? `
+            <tr style="background: #f8fafc;">
+              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Basic Fare</td>
+              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500; font-family: 'Courier New', monospace;">AED ${receipt.basicFare.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
             </tr>
             ` : ""}
             ${receipt.sourceType === "other" && receipt.serviceName ? `
@@ -579,8 +629,11 @@ export default function CashReceiptsPage() {
                       <TableCell>
                         <div className="flex flex-col">
                           <span className="text-sm">{receipt.sourceType === "flight" ? "Flight" : "Other"}</span>
+                          {receipt.sourceType === "flight" && receipt.sector && (
+                            <span className="text-xs text-muted-foreground">{receipt.sector}</span>
+                          )}
                           {receipt.sourceType === "flight" && receipt.pnr && (
-                            <span className="text-xs font-mono text-muted-foreground">{receipt.pnr}</span>
+                            <span className="text-xs font-mono text-muted-foreground">PNR: {receipt.pnr}</span>
                           )}
                           {receipt.sourceType === "other" && receipt.serviceName && (
                             <span className="text-xs text-muted-foreground">{receipt.serviceName}</span>
@@ -674,12 +727,48 @@ export default function CashReceiptsPage() {
                       <td className="px-3 py-2 text-muted-foreground">Source</td>
                       <td className="px-3 py-2 text-right font-medium" data-testid="text-receipt-source-type">{selectedReceipt.sourceType === "flight" ? "Flight Details" : "Other Service"}</td>
                     </tr>
-                    {selectedReceipt.sourceType === "flight" && selectedReceipt.pnr && (
+                    {selectedReceipt.sourceType === "flight" && selectedReceipt.sector && (
                       <tr className="border-b bg-muted/30">
+                        <td className="px-3 py-2 text-muted-foreground">Sector</td>
+                        <td className="px-3 py-2 text-right font-medium" data-testid="text-receipt-sector">{selectedReceipt.sector}</td>
+                      </tr>
+                    )}
+                    {selectedReceipt.sourceType === "flight" && selectedReceipt.travelDate && (
+                      <tr className="border-b">
+                        <td className="px-3 py-2 text-muted-foreground">Travel Date</td>
+                        <td className="px-3 py-2 text-right font-medium" data-testid="text-receipt-travel-date">{selectedReceipt.travelDate}</td>
+                      </tr>
+                    )}
+                    {selectedReceipt.sourceType === "flight" && selectedReceipt.airlinesFlightNo && (
+                      <tr className="border-b bg-muted/30">
+                        <td className="px-3 py-2 text-muted-foreground">Airlines/Flight No</td>
+                        <td className="px-3 py-2 text-right font-medium" data-testid="text-receipt-airlines">{selectedReceipt.airlinesFlightNo}</td>
+                      </tr>
+                    )}
+                    {selectedReceipt.sourceType === "flight" && selectedReceipt.pnr && (
+                      <tr className="border-b">
                         <td className="px-3 py-2 text-muted-foreground">PNR</td>
                         <td className="px-3 py-2 text-right font-mono font-medium" data-testid="text-receipt-pnr">{selectedReceipt.pnr}</td>
                       </tr>
                     )}
+                    {selectedReceipt.sourceType === "flight" && selectedReceipt.tktNo && (
+                      <tr className="border-b bg-muted/30">
+                        <td className="px-3 py-2 text-muted-foreground">TKT No</td>
+                        <td className="px-3 py-2 text-right font-mono font-medium" data-testid="text-receipt-tkt-no">{selectedReceipt.tktNo}</td>
+                      </tr>
+                    )}
+                    {selectedReceipt.sourceType === "flight" && (selectedReceipt.departureTime || selectedReceipt.arrivalTime) && (
+                      <tr className="border-b">
+                        <td className="px-3 py-2 text-muted-foreground">Departure / Arrival</td>
+                        <td className="px-3 py-2 text-right font-medium" data-testid="text-receipt-times">{selectedReceipt.departureTime || "--"} / {selectedReceipt.arrivalTime || "--"}</td>
+                      </tr>
+                    )}
+                    {selectedReceipt.sourceType === "flight" && selectedReceipt.basicFare ? (
+                      <tr className="border-b bg-muted/30">
+                        <td className="px-3 py-2 text-muted-foreground">Basic Fare</td>
+                        <td className="px-3 py-2 text-right font-mono font-medium" data-testid="text-receipt-basic-fare">{formatCurrency(selectedReceipt.basicFare)}</td>
+                      </tr>
+                    ) : null}
                     {selectedReceipt.sourceType === "other" && selectedReceipt.serviceName && (
                       <tr className="border-b bg-muted/30">
                         <td className="px-3 py-2 text-muted-foreground">Service</td>
@@ -822,6 +911,13 @@ export default function CashReceiptsPage() {
                           form.setValue("serviceName", "");
                         } else {
                           form.setValue("pnr", "");
+                          form.setValue("sector", "");
+                          form.setValue("travelDate", "");
+                          form.setValue("airlinesFlightNo", "");
+                          form.setValue("tktNo", "");
+                          form.setValue("departureTime", "");
+                          form.setValue("arrivalTime", "");
+                          form.setValue("basicFare", 0);
                         }
                       }}
                       value={field.value}
@@ -842,19 +938,134 @@ export default function CashReceiptsPage() {
               />
 
               {selectedSourceType === "flight" && (
-                <FormField
-                  control={form.control}
-                  name="pnr"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>PNR</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Enter PNR number" data-testid="input-pnr" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="border border-dashed rounded-md p-4 space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Flight Details</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormField
+                      control={form.control}
+                      name="sector"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Sector</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g. DXB-LHR" data-testid="input-sector" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="travelDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Travel Date</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} data-testid="input-travel-date" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <FormField
+                      control={form.control}
+                      name="airlinesFlightNo"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Airlines/Flight No</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g. EK202" data-testid="input-airlines-flight-no" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="pnr"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>PNR</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="PNR" data-testid="input-pnr" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="tktNo"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>TKT No</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="Ticket No" data-testid="input-tkt-no" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormField
+                      control={form.control}
+                      name="departureTime"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Departure Time</FormLabel>
+                          <FormControl>
+                            <Input type="time" {...field} data-testid="input-departure-time" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="arrivalTime"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Arrival Time</FormLabel>
+                          <FormControl>
+                            <Input type="time" {...field} data-testid="input-arrival-time" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormField
+                      control={form.control}
+                      name="basicFare"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Basic Fare</FormLabel>
+                          <FormControl>
+                            <Input type="number" step="0.01" min="0" {...field} data-testid="input-basic-fare" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="amount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Amount (AED) *</FormLabel>
+                          <FormControl>
+                            <Input type="number" step="0.01" min="0.01" {...field} data-testid="input-flight-amount" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
               )}
 
               {selectedSourceType === "other" && (
@@ -873,19 +1084,21 @@ export default function CashReceiptsPage() {
                 />
               )}
 
-              <FormField
-                control={form.control}
-                name="amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Amount (AED)</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.01" min="0.01" {...field} data-testid="input-amount" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {selectedSourceType !== "flight" && (
+                <FormField
+                  control={form.control}
+                  name="amount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Amount (AED)</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" min="0.01" {...field} data-testid="input-amount" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <FormField
                 control={form.control}
