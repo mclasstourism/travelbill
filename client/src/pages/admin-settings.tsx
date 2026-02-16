@@ -182,10 +182,10 @@ export default function AdminSettingsPage() {
       return;
     }
     if (newUserPin) {
-      if (newUserPin.length < 4 || newUserPin.length > 5) {
+      if (newUserPin.length !== 5) {
         toast({
           title: "Invalid PIN",
-          description: "PIN must be 4 or 5 digits.",
+          description: "PIN must be exactly 5 digits.",
           variant: "destructive",
         });
         return;
@@ -232,10 +232,10 @@ export default function AdminSettingsPage() {
     }
 
     if (editPin) {
-      if (editPin.length < 4 || editPin.length > 5) {
+      if (editPin.length !== 5) {
         toast({
           title: "Invalid PIN",
-          description: "PIN must be 4 or 5 digits.",
+          description: "PIN must be exactly 5 digits.",
           variant: "destructive",
         });
         return;
@@ -426,14 +426,14 @@ export default function AdminSettingsPage() {
               <Label htmlFor="new-user-pin">PIN Code</Label>
               <Input
                 id="new-user-pin"
-                placeholder="Enter 4 or 5 digit PIN"
+                placeholder="Enter 5 digit PIN"
                 value={newUserPin}
                 onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 5); setNewUserPin(v); }}
                 maxLength={5}
                 inputMode="numeric"
                 data-testid="input-new-user-pin"
               />
-              <p className="text-xs text-muted-foreground">4 or 5 digit PIN required to create entries (invoices, tickets, receipts).</p>
+              <p className="text-xs text-muted-foreground">5 digit PIN required to create entries (invoices, tickets, receipts).</p>
             </div>
             {newUserRole === "admin" && (
               <div className="space-y-2">
@@ -499,7 +499,7 @@ export default function AdminSettingsPage() {
               <Label htmlFor="edit-pin">PIN Code</Label>
               <Input
                 id="edit-pin"
-                placeholder={editingUser?.hasPin ? "Leave blank to keep current PIN" : "Enter 4 or 5 digit PIN"}
+                placeholder={editingUser?.hasPin ? "Leave blank to keep current PIN" : "Enter 5 digit PIN"}
                 value={editPin}
                 onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 5); setEditPin(v); }}
                 maxLength={5}
@@ -507,7 +507,7 @@ export default function AdminSettingsPage() {
                 data-testid="input-edit-pin"
               />
               <p className="text-xs text-muted-foreground">
-                {editingUser?.hasPin ? "Leave blank to keep current PIN, or enter a new 4-5 digit PIN." : "4 or 5 digit PIN required for creating entries."}
+                {editingUser?.hasPin ? "Leave blank to keep current PIN, or enter a new 5 digit PIN." : "5 digit PIN required for creating entries."}
               </p>
             </div>
             {editingUser?.role === "admin" && (

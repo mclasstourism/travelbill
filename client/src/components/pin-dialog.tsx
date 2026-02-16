@@ -96,7 +96,7 @@ export function PinDialog({ open, onOpenChange, onVerified, title, description }
             <Input
               id="pin-input"
               type="password"
-              placeholder="Enter 4 or 5 digit PIN"
+              placeholder="Enter your 5 digit PIN"
               value={pin}
               onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 5); setPin(v); setError(""); }}
               onKeyDown={handleKeyDown}

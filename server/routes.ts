@@ -93,8 +93,8 @@ export async function registerRoutes(
         res.status(400).json({ error: "Username and password are required" });
         return;
       }
-      if (pin && !/^\d{4,5}$/.test(pin)) {
-        res.status(400).json({ error: "PIN must be 4-5 digits" });
+      if (pin && !/^\d{5}$/.test(pin)) {
+        res.status(400).json({ error: "PIN must be exactly 5 digits" });
         return;
       }
       const user = await storage.createUser({
@@ -148,8 +148,8 @@ export async function registerRoutes(
       if (active !== undefined) updates.active = active;
       if (email !== undefined) updates.email = email;
       if (pin !== undefined) {
-        if (pin !== "" && !/^\d{4,5}$/.test(pin)) {
-          res.status(400).json({ error: "PIN must be 4-5 digits" });
+        if (pin !== "" && !/^\d{5}$/.test(pin)) {
+          res.status(400).json({ error: "PIN must be exactly 5 digits" });
           return;
         }
         updates.pin = pin;
