@@ -318,9 +318,12 @@ export default function InvoicesPage() {
           </div>
         </div>
 
-        <!-- Authorised Sign -->
-        <div style="text-align: right; margin-top: 120px;">
-          <div style="display: inline-block; text-align: center;">
+        <!-- Created By & Authorised Sign -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 120px;">
+          <div>
+            ${invoice.createdByName ? `<p style="margin: 0; font-size: 12px; color: #64748b;">Created by: <strong style="color: #1e293b;">${invoice.createdByName}</strong></p>` : ""}
+          </div>
+          <div style="text-align: center;">
             <div style="width: 180px; border-bottom: 1px solid #374151; margin-bottom: 6px;"></div>
             <p style="margin: 0; font-size: 12px; color: #64748b; font-style: italic;">Authorised Sign</p>
           </div>

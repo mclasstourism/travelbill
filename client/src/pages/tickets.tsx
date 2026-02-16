@@ -348,6 +348,7 @@ export default function TicketsPage() {
             <span>Issued: ${format(new Date(ticket.createdAt), "MMM d, yyyy 'at' h:mm a")}</span>
             <span>Status: ${ticket.status}</span>
           </div>
+          ${ticket.createdByName ? `<div style="margin-top: 6px;"><span>Created by: <strong style="color: #1e293b;">${ticket.createdByName}</strong></span></div>` : ""}
         </div>
         <div style="text-align: center; margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 0.8rem; color: #1a5632; font-weight: 500;">
           Thank you for choosing Middle Class Tourism

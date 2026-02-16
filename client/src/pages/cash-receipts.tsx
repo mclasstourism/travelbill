@@ -361,9 +361,12 @@ export default function CashReceiptsPage() {
           </div>
         </div>
 
-        <!-- Stamp & Signature -->
-        <div style="margin-top: 60px; text-align: right;">
-          <div style="display: inline-block; text-align: center;">
+        <!-- Created By & Stamp/Signature -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 60px;">
+          <div>
+            ${receipt.createdByName ? `<p style="margin: 0; font-size: 12px; color: #64748b;">Created by: <strong style="color: #1e293b;">${receipt.createdByName}</strong></p>` : ""}
+          </div>
+          <div style="text-align: center;">
             <img src="${stampDataUrl}" alt="Company Stamp" style="height: 150px; margin-bottom: 8px;" />
             <div style="width: 200px; border-top: 1px solid #333; margin: 0 auto 4px auto;"></div>
             <p style="margin: 0; font-size: 12px; color: #666; font-style: italic;">Authorized Sign</p>
