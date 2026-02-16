@@ -74,6 +74,7 @@ function formatCurrency(amount: number): string {
 
 const receiptItemSchema = z.object({
   tripType: z.enum(["one_way", "round_trip"]).default("one_way"),
+  returnDate: z.string().optional().default(""),
   sector: z.string().min(1, "Sector is required"),
   travelDate: z.string().min(1, "Travel date is required"),
   airlinesFlightNo: z.string().optional().default(""),
@@ -171,7 +172,7 @@ export default function CashReceiptsPage() {
       partyType: "customer",
       partyId: "",
       sourceType: "flight",
-      items: [{ tripType: "one_way" as const, sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", departureTime: "", arrivalTime: "", amount: 0 }],
+      items: [{ tripType: "one_way" as const, sector: "", travelDate: "", returnDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", departureTime: "", arrivalTime: "", amount: 0 }],
       receivedAmount: 0,
       paymentMethod: "cash",
       description: "",
@@ -425,7 +426,7 @@ export default function CashReceiptsPage() {
                 ${item.airlinesFlightNo ? `<tr style="background: #ffffff;"><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Flight No</td><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500;">${item.airlinesFlightNo}</td></tr>` : ''}
                 ${item.pnr ? `<tr style="background: #f8fafc;"><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">PNR</td><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500; font-family: 'Courier New', monospace;">${item.pnr}</td></tr>` : ''}
                 ${item.tktNo ? `<tr style="background: #ffffff;"><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">TKT No</td><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500; font-family: 'Courier New', monospace;">${item.tktNo}</td></tr>` : ''}
-                ${(item.departureTime || item.arrivalTime) ? `<tr style="background: #f8fafc;"><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Departure / Arrival</td><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500;">${item.departureTime || "--"} / ${item.arrivalTime || "--"}</td></tr>` : ''}
+                ${item.returnDate ? `<tr style="background: #f8fafc;"><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Return Date</td><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500;">${item.returnDate}</td></tr>` : ''}
                 ${items.length > 1 ? `<tr style="background: #f8fafc;"><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Amount</td><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500; font-family: 'Courier New', monospace;">AED ${Number(item.amount || 0).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td></tr>` : ''}
               `).join('');
             })()}
@@ -831,10 +832,10 @@ export default function CashReceiptsPage() {
                               <td className="px-3 py-2 text-right font-mono font-medium">{item.tktNo}</td>
                             </tr>
                           )}
-                          {(item.departureTime || item.arrivalTime) && (
-                            <tr className="border-b" key={`times-${idx}`}>
-                              <td className="px-3 py-2 text-muted-foreground">Departure / Arrival</td>
-                              <td className="px-3 py-2 text-right font-medium">{item.departureTime || "--"} / {item.arrivalTime || "--"}</td>
+                          {item.returnDate && (
+                            <tr className="border-b" key={`return-${idx}`}>
+                              <td className="px-3 py-2 text-muted-foreground">Return Date</td>
+                              <td className="px-3 py-2 text-right font-medium">{item.returnDate}</td>
                             </tr>
                           )}
                           {items.length > 1 && (
@@ -1089,7 +1090,7 @@ export default function CashReceiptsPage() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => append({ tripType: "one_way" as const, sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", departureTime: "", arrivalTime: "", amount: 0 })}
+                  onClick={() => append({ tripType: "one_way" as const, sector: "", travelDate: "", returnDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", departureTime: "", arrivalTime: "", amount: 0 })}
                   data-testid="button-add-item"
                 >
                   <Plus className="w-4 h-4 mr-1" />
@@ -1210,58 +1211,21 @@ export default function CashReceiptsPage() {
                         )}
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    {form.watch(`items.${index}.tripType`) === "round_trip" && (
                       <FormField
                         control={form.control}
-                        name={`items.${index}.departureTime`}
-                        render={({ field: f }) => {
-                          const parts = (f.value || "").split(":");
-                          const hour = parts[0] || "";
-                          const minute = parts[1] || "";
-                          return (
-                            <FormItem>
-                              <FormLabel>Departure Time</FormLabel>
-                              <div className="flex gap-1">
-                                <Select value={hour} onValueChange={(h) => f.onChange(`${h}:${minute || "00"}`)}>
-                                  <SelectTrigger className="flex-1" data-testid={`select-dep-hour-${index}`}><SelectValue placeholder="HH" /></SelectTrigger>
-                                  <SelectContent>{Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0")).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                                </Select>
-                                <Select value={minute} onValueChange={(m) => f.onChange(`${hour || "00"}:${m}`)}>
-                                  <SelectTrigger className="flex-1" data-testid={`select-dep-min-${index}`}><SelectValue placeholder="MM" /></SelectTrigger>
-                                  <SelectContent>{["00","05","10","15","20","25","30","35","40","45","50","55"].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
-                                </Select>
-                              </div>
-                              <FormMessage />
-                            </FormItem>
-                          );
-                        }}
+                        name={`items.${index}.returnDate`}
+                        render={({ field: f }) => (
+                          <FormItem>
+                            <FormLabel>Return Date *</FormLabel>
+                            <FormControl>
+                              <Input type="date" {...f} data-testid={`input-return-date-${index}`} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
-                      <FormField
-                        control={form.control}
-                        name={`items.${index}.arrivalTime`}
-                        render={({ field: f }) => {
-                          const parts = (f.value || "").split(":");
-                          const hour = parts[0] || "";
-                          const minute = parts[1] || "";
-                          return (
-                            <FormItem>
-                              <FormLabel>Arrival Time</FormLabel>
-                              <div className="flex gap-1">
-                                <Select value={hour} onValueChange={(h) => f.onChange(`${h}:${minute || "00"}`)}>
-                                  <SelectTrigger className="flex-1" data-testid={`select-arr-hour-${index}`}><SelectValue placeholder="HH" /></SelectTrigger>
-                                  <SelectContent>{Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0")).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                                </Select>
-                                <Select value={minute} onValueChange={(m) => f.onChange(`${hour || "00"}:${m}`)}>
-                                  <SelectTrigger className="flex-1" data-testid={`select-arr-min-${index}`}><SelectValue placeholder="MM" /></SelectTrigger>
-                                  <SelectContent>{["00","05","10","15","20","25","30","35","40","45","50","55"].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
-                                </Select>
-                              </div>
-                              <FormMessage />
-                            </FormItem>
-                          );
-                        }}
-                      />
-                    </div>
+                    )}
                     <FormField
                       control={form.control}
                       name={`items.${index}.amount`}
@@ -1363,7 +1327,7 @@ export default function CashReceiptsPage() {
             partyType: "customer",
             partyId: "",
             sourceType: "flight",
-            items: [{ tripType: "one_way" as const, sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", departureTime: "", arrivalTime: "", amount: 0 }],
+            items: [{ tripType: "one_way" as const, sector: "", travelDate: "", returnDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", departureTime: "", arrivalTime: "", amount: 0 }],
             receivedAmount: 0,
             paymentMethod: "cash",
             description: "",
