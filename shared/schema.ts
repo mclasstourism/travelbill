@@ -240,7 +240,7 @@ export type InvoiceStatus = typeof invoiceStatuses[number];
 // Invoice line items
 export const insertInvoiceItemSchema = z.object({
   sector: z.string().min(1, "Sector is required"),
-  travelDate: z.string().optional().default(""),
+  travelDate: z.string().min(1, "Travel date is required"),
   airlinesFlightNo: z.string().optional().default(""),
   pnr: z.string().optional().default(""),
   tktNo: z.string().optional().default(""),

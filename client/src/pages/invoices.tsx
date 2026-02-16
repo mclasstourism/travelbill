@@ -1210,7 +1210,7 @@ export default function InvoicesPage() {
                           name={`items.${index}.travelDate`}
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-xs">Travel Date</FormLabel>
+                              <FormLabel className="text-xs">Travel Date *</FormLabel>
                               <FormControl>
                                 <Input type="date" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} name={field.name} ref={field.ref} data-testid={`input-item-travel-date-${index}`} />
                               </FormControl>
@@ -1225,7 +1225,7 @@ export default function InvoicesPage() {
                           name={`items.${index}.airlinesFlightNo`}
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-xs">Airlines/Flight No</FormLabel>
+                              <FormLabel className="text-xs">Flight No</FormLabel>
                               <FormControl>
                                 <Input placeholder="e.g. EK202" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} name={field.name} ref={field.ref} data-testid={`input-item-flight-${index}`} />
                               </FormControl>
