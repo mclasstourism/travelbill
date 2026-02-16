@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import mcLogo from "@assets/final-logo_1771172687891.png";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -206,8 +207,25 @@ export default function VendorCreditsPage() {
     toast({ title: "Export successful", description: "Transaction history downloaded as Excel CSV" });
   };
 
-  const handlePrintPdf = () => {
+  const toBase64 = (src: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        canvas.getContext("2d")?.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL("image/png"));
+      };
+      img.onerror = () => resolve(src);
+      img.src = src;
+    });
+  };
+
+  const handlePrintPdf = async () => {
     if (!selectedVendor) return;
+    const logoDataUrl = await toBase64(mcLogo);
     
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
@@ -235,10 +253,14 @@ export default function VendorCreditsPage() {
         <head>
           <title>Vendor Transaction History - ${selectedVendor.name}</title>
           <style>
-            body { font-family: Arial, sans-serif; padding: 20px; max-width: 1000px; margin: 0 auto; }
-            h1 { text-align: center; margin-bottom: 5px; }
-            h2 { margin-top: 20px; }
-            .date-range { text-align: center; color: #666; margin-bottom: 20px; }
+            body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; max-width: 1000px; margin: 0 auto; color: #1e293b; }
+            .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0; }
+            .header-logo img { height: 65px; }
+            .header-info { text-align: right; }
+            .header-info p { margin: 2px 0; font-size: 12px; color: #64748b; }
+            .header-divider { height: 3px; background: linear-gradient(to right, #1a5632, #22c55e, #1a5632); margin: 14px 0 10px 0; border-radius: 2px; }
+            .report-title { text-align: center; font-size: 22px; font-weight: 700; color: #1a5632; margin: 10px 0 4px 0; letter-spacing: 1px; }
+            .date-range { text-align: center; color: #666; margin-bottom: 20px; font-size: 13px; }
             .summary { display: flex; gap: 20px; margin-bottom: 20px; }
             .summary-card { flex: 1; padding: 15px; border: 1px solid #e5e7eb; border-radius: 8px; }
             .summary-label { font-size: 12px; color: #666; }
@@ -251,8 +273,19 @@ export default function VendorCreditsPage() {
           </style>
         </head>
         <body>
-          <h1>MCT - Tourism Organizers</h1>
-          <h2 style="text-align: center;">Vendor Transaction History</h2>
+          <div class="header">
+            <div class="header-logo">
+              <img src="${logoDataUrl}" alt="Middle Class Tourism" />
+            </div>
+            <div class="header-info">
+              <p>Phone: 025 640 224 | 050 222 1042</p>
+              <p>www.middleclass.ae | sales@middleclass.ae</p>
+              <p>Shop 41, Al Dhannah Traditional Souq,</p>
+              <p>Al Dhannah City, Abu Dhabi – UAE</p>
+            </div>
+          </div>
+          <div class="header-divider"></div>
+          <p class="report-title">VENDOR TRANSACTION HISTORY</p>
           <h3 style="text-align: center; margin-top: 5px;">${selectedVendor.name}</h3>
           <p class="date-range">${dateRangeText}</p>
           
