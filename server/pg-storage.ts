@@ -149,6 +149,7 @@ export class PgStorage implements IStorage {
       email: insertUser.email,
       phone: insertUser.phone,
       passwordHint: insertUser.passwordHint,
+      pin: insertUser.pin,
       role: insertUser.role || "staff",
       active: insertUser.active ?? true,
     }).returning();
