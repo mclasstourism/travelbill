@@ -1017,7 +1017,7 @@ export default function InvoicesPage() {
                     ))}
                   </div>
                   <div>
-                    <Label className="text-xs">Phone</Label>
+                    <Label className="text-xs">Phone *</Label>
                     <Input
                       placeholder="+1 (555) 123-4567"
                       value={newVendorPhone}
@@ -1096,7 +1096,7 @@ export default function InvoicesPage() {
                     <Button
                       type="button"
                       size="sm"
-                      disabled={!newVendorName || quickCreateVendorMutation.isPending}
+                      disabled={!newVendorName || !newVendorPhone || quickCreateVendorMutation.isPending}
                       onClick={() => quickCreateVendorMutation.mutate({
                         name: newVendorName,
                         phone: newVendorPhone,
