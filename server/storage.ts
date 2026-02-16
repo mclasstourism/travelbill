@@ -71,6 +71,7 @@ export interface IStorage {
   getInvoice(id: string): Promise<Invoice | undefined>;
   createInvoice(invoice: InsertInvoice): Promise<Invoice>;
   updateInvoice(id: string, updates: Partial<Invoice>): Promise<Invoice | undefined>;
+  cancelInvoice(id: string): Promise<Invoice | undefined>;
 
   // Tickets
   getTickets(): Promise<Ticket[]>;
@@ -478,6 +479,14 @@ export class MemStorage implements IStorage {
     const invoice = this.invoices.get(id);
     if (!invoice) return undefined;
     const updated = { ...invoice, ...updates };
+    this.invoices.set(id, updated);
+    return updated;
+  }
+
+  async cancelInvoice(id: string): Promise<Invoice | undefined> {
+    const invoice = this.invoices.get(id);
+    if (!invoice) return undefined;
+    const updated = { ...invoice, status: "cancelled" as const };
     this.invoices.set(id, updated);
     return updated;
   }

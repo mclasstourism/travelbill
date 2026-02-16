@@ -46,6 +46,16 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Plus,
   FileText,
   Search,
@@ -55,6 +65,7 @@ import {
   Eye,
   User,
   Calendar,
+  XCircle,
 } from "lucide-react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -136,6 +147,7 @@ export default function InvoicesPage() {
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
   const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
+  const [cancelInvoice, setCancelInvoice] = useState<Invoice | null>(null);
   const [quickCreateCustomer, setQuickCreateCustomer] = useState(false);
   const [quickCreateVendor, setQuickCreateVendor] = useState(false);
   const [newCustomerName, setNewCustomerName] = useState("");
@@ -484,6 +496,35 @@ export default function InvoicesPage() {
     },
   });
 
+  const cancelMutation = useMutation({
+    mutationFn: async (invoiceId: string) => {
+      const res = await apiRequest("POST", `/api/invoices/${invoiceId}/cancel`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendor-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/agent-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/deposit-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
+      setCancelInvoice(null);
+      toast({
+        title: "Invoice cancelled",
+        description: "The invoice has been cancelled and all balances have been refunded.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to cancel invoice",
+        variant: "destructive",
+      });
+    },
+  });
+
   const resetQuickCustomerFields = () => {
     setNewCustomerName("");
     setNewCustomerPhone("");
@@ -812,6 +853,16 @@ export default function InvoicesPage() {
                             >
                               <Download className="w-4 h-4" />
                             </Button>
+                            {invoice.status !== "cancelled" && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => setCancelInvoice(invoice)}
+                                data-testid={`button-cancel-invoice-${invoice.id}`}
+                              >
+                                <XCircle className="w-4 h-4 text-destructive" />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -1760,6 +1811,48 @@ export default function InvoicesPage() {
         title="Enter PIN to Create Invoice"
         description="Enter your PIN code to create a new invoice. Your name will be recorded on this entry."
       />
+
+      <AlertDialog open={!!cancelInvoice} onOpenChange={(open) => !open && setCancelInvoice(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Invoice {cancelInvoice?.invoiceNumber}?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">This will cancel the invoice and refund all deducted balances:</span>
+              {cancelInvoice && cancelInvoice.depositUsed > 0 && (
+                <span className="block text-sm">
+                  Deposit refund: <strong className="font-mono">{formatCurrency(cancelInvoice.depositUsed)}</strong> back to {cancelInvoice.customerType === "agent" ? "agent" : "customer"}
+                </span>
+              )}
+              {cancelInvoice && cancelInvoice.agentCreditUsed > 0 && (
+                <span className="block text-sm">
+                  Credit refund: <strong className="font-mono">{formatCurrency(cancelInvoice.agentCreditUsed)}</strong> back to agent
+                </span>
+              )}
+              {cancelInvoice && cancelInvoice.vendorBalanceDeducted > 0 && (
+                <span className="block text-sm">
+                  Vendor balance refund: <strong className="font-mono">{formatCurrency(cancelInvoice.vendorBalanceDeducted)}</strong> back to vendor
+                </span>
+              )}
+              <span className="block text-sm font-medium mt-2">This action cannot be undone.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-dialog-dismiss">Keep Invoice</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => cancelInvoice && cancelMutation.mutate(cancelInvoice.id)}
+              className="bg-destructive text-destructive-foreground"
+              data-testid="button-cancel-dialog-confirm"
+            >
+              {cancelMutation.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <XCircle className="w-4 h-4 mr-2" />
+              )}
+              Cancel Invoice
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

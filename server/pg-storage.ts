@@ -580,6 +580,118 @@ export class PgStorage implements IStorage {
     return this.mapInvoice(result[0]);
   }
 
+  async cancelInvoice(id: string): Promise<Invoice | undefined> {
+    const invoice = await this.getInvoice(id);
+    if (!invoice) return undefined;
+    if (invoice.status === "cancelled") return invoice;
+
+    // Reverse customer deposit deduction
+    if (invoice.useCustomerDeposit && invoice.depositUsed > 0) {
+      const customerType = invoice.customerType || "customer";
+
+      if (customerType === "customer") {
+        const customer = await this.getCustomer(invoice.customerId);
+        if (customer) {
+          const newBalance = customer.depositBalance + invoice.depositUsed;
+          await db.update(schema.customersTable)
+            .set({ depositBalance: newBalance })
+            .where(eq(schema.customersTable.id, invoice.customerId));
+          await db.insert(schema.depositTransactionsTable).values({
+            customerId: invoice.customerId,
+            type: "credit",
+            amount: invoice.depositUsed,
+            description: `Invoice ${invoice.invoiceNumber} cancelled - Deposit refunded`,
+            referenceId: invoice.id,
+            referenceType: "invoice_cancel",
+            balanceAfter: newBalance,
+          });
+        }
+      } else if (customerType === "agent") {
+        const agent = await this.getAgent(invoice.customerId);
+        if (agent) {
+          const newBalance = agent.depositBalance + invoice.depositUsed;
+          await db.update(schema.agentsTable)
+            .set({ depositBalance: newBalance })
+            .where(eq(schema.agentsTable.id, invoice.customerId));
+          await db.insert(schema.agentTransactionsTable).values({
+            agentId: invoice.customerId,
+            type: "credit",
+            transactionType: "deposit",
+            amount: invoice.depositUsed,
+            description: `Invoice ${invoice.invoiceNumber} cancelled - Deposit refunded`,
+            paymentMethod: "cash",
+            referenceId: invoice.id,
+            referenceType: "invoice_cancel",
+            balanceAfter: newBalance,
+          });
+        }
+      }
+    }
+
+    // Reverse agent credit deduction
+    if (invoice.useAgentCredit && invoice.agentCreditUsed > 0 && invoice.customerType === "agent") {
+      const agent = await this.getAgent(invoice.customerId);
+      if (agent) {
+        const newCreditBalance = agent.creditBalance + invoice.agentCreditUsed;
+        await db.update(schema.agentsTable)
+          .set({ creditBalance: newCreditBalance })
+          .where(eq(schema.agentsTable.id, invoice.customerId));
+        await db.insert(schema.agentTransactionsTable).values({
+          agentId: invoice.customerId,
+          type: "credit",
+          transactionType: "credit",
+          amount: invoice.agentCreditUsed,
+          description: `Invoice ${invoice.invoiceNumber} cancelled - Credit refunded`,
+          paymentMethod: invoice.paymentMethod,
+          referenceId: invoice.id,
+          referenceType: "invoice_cancel",
+          balanceAfter: newCreditBalance,
+        });
+      }
+    }
+
+    // Reverse vendor balance deduction
+    if (invoice.useVendorBalance && invoice.useVendorBalance !== "none" && invoice.vendorBalanceDeducted > 0) {
+      const vendor = await this.getVendor(invoice.vendorId);
+      if (vendor) {
+        const transactionType = invoice.useVendorBalance as "credit" | "deposit";
+        let newBalance: number;
+
+        if (transactionType === "credit") {
+          newBalance = vendor.creditBalance + invoice.vendorBalanceDeducted;
+          await db.update(schema.vendorsTable)
+            .set({ creditBalance: newBalance })
+            .where(eq(schema.vendorsTable.id, invoice.vendorId));
+        } else {
+          newBalance = vendor.depositBalance + invoice.vendorBalanceDeducted;
+          await db.update(schema.vendorsTable)
+            .set({ depositBalance: newBalance })
+            .where(eq(schema.vendorsTable.id, invoice.vendorId));
+        }
+
+        await db.insert(schema.vendorTransactionsTable).values({
+          vendorId: invoice.vendorId,
+          type: "credit",
+          transactionType: transactionType,
+          amount: invoice.vendorBalanceDeducted,
+          description: `Invoice ${invoice.invoiceNumber} cancelled - ${transactionType === "credit" ? "Credit" : "Deposit"} refunded`,
+          paymentMethod: "cash",
+          referenceId: invoice.id,
+          referenceType: "invoice_cancel",
+          balanceAfter: newBalance,
+        });
+      }
+    }
+
+    // Update invoice status to cancelled
+    const result = await db.update(schema.invoicesTable)
+      .set({ status: "cancelled" })
+      .where(eq(schema.invoicesTable.id, id))
+      .returning();
+    if (result.length === 0) return undefined;
+    return this.mapInvoice(result[0]);
+  }
+
   // Tickets
   async getTickets(): Promise<Ticket[]> {
     const result = await db.select().from(schema.ticketsTable).orderBy(desc(schema.ticketsTable.createdAt));

@@ -488,6 +488,29 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/invoices/:id/cancel", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const invoice = await storage.getInvoice(id);
+      if (!invoice) {
+        res.status(404).json({ error: "Invoice not found" });
+        return;
+      }
+      if (invoice.status === "cancelled") {
+        res.status(400).json({ error: "Invoice is already cancelled" });
+        return;
+      }
+      const cancelled = await storage.cancelInvoice(id);
+      if (!cancelled) {
+        res.status(500).json({ error: "Failed to cancel invoice" });
+        return;
+      }
+      res.json(cancelled);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to cancel invoice" });
+    }
+  });
+
   // Tickets
   app.get("/api/tickets", async (req, res) => {
     try {
