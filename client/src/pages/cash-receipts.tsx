@@ -1296,7 +1296,7 @@ export default function CashReceiptsPage() {
                 name="paymentMethod"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Payment Method</FormLabel>
+                    <FormLabel>Payment Method *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger data-testid="select-payment-method">
@@ -1310,20 +1310,6 @@ export default function CashReceiptsPage() {
                         <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
                       </SelectContent>
                     </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Note (Optional)</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} placeholder="Add a note..." className="resize-none" data-testid="input-description" />
-                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
