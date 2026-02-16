@@ -10,6 +10,7 @@ export const usersTable = pgTable("users", {
   email: varchar("email", { length: 255 }),
   phone: varchar("phone", { length: 50 }),
   passwordHint: text("password_hint"),
+  pin: varchar("pin", { length: 10 }),
   role: varchar("role", { length: 20 }).default("staff"),
   active: boolean("active").default(true),
 });
@@ -75,6 +76,7 @@ export const invoicesTable = pgTable("invoices", {
   vendorBalanceDeducted: real("vendor_balance_deducted").default(0),
   notes: text("notes").default(""),
   issuedBy: varchar("issued_by", { length: 36 }).notNull(),
+  createdByName: varchar("created_by_name", { length: 255 }).default(""),
   status: varchar("status", { length: 20 }).default("issued"),
   paidAmount: real("paid_amount").default(0),
   createdAt: timestamp("created_at").defaultNow(),
@@ -106,6 +108,7 @@ export const ticketsTable = pgTable("tickets", {
   useVendorBalance: varchar("use_vendor_balance", { length: 20 }).default("none"),
   vendorBalanceDeducted: real("vendor_balance_deducted").default(0),
   issuedBy: varchar("issued_by", { length: 36 }).notNull(),
+  createdByName: varchar("created_by_name", { length: 255 }).default(""),
   status: varchar("status", { length: 20 }).default("issued"),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -277,6 +280,7 @@ export const insertInvoiceSchema = z.object({
   vendorBalanceDeducted: z.number().min(0).default(0),
   notes: z.string().optional().or(z.literal("")),
   issuedBy: z.string().min(1, "Bill creator is required"),
+  createdByName: z.string().optional().default(""),
 });
 
 export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
@@ -286,6 +290,7 @@ export type Invoice = InsertInvoice & {
   status: InvoiceStatus;
   createdAt: string;
   paidAmount: number;
+  createdByName: string;
 };
 
 // Tickets (for travel tickets)
@@ -319,6 +324,7 @@ export const insertTicketSchema = z.object({
   useVendorBalance: z.enum(vendorBalanceSources).default("none"),
   vendorBalanceDeducted: z.number().min(0).default(0),
   issuedBy: z.string().min(1, "Bill creator is required"),
+  createdByName: z.string().optional().default(""),
 });
 
 export type InsertTicket = z.infer<typeof insertTicketSchema>;
@@ -327,6 +333,7 @@ export type Ticket = InsertTicket & {
   ticketNumber: string;
   status: TicketStatus;
   createdAt: string;
+  createdByName: string;
 };
 
 // Deposit transactions for customers
@@ -407,6 +414,7 @@ export const cashReceiptsTable = pgTable("cash_receipts", {
   description: text("description").default(""),
   referenceNumber: varchar("reference_number", { length: 100 }).default(""),
   issuedBy: varchar("issued_by", { length: 36 }).notNull(),
+  createdByName: varchar("created_by_name", { length: 255 }).default(""),
   status: varchar("status", { length: 20 }).default("issued"),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -431,6 +439,7 @@ export const insertCashReceiptSchema = z.object({
   description: z.string().optional().or(z.literal("")),
   referenceNumber: z.string().optional().or(z.literal("")),
   issuedBy: z.string().min(1, "Issued by is required"),
+  createdByName: z.string().optional().default(""),
 });
 
 export type InsertCashReceipt = z.infer<typeof insertCashReceiptSchema>;
@@ -439,6 +448,7 @@ export type CashReceipt = InsertCashReceipt & {
   receiptNumber: string;
   status: string;
   createdAt: string;
+  createdByName: string;
 };
 
 // Dashboard metrics
@@ -461,6 +471,7 @@ export const insertUserSchema = z.object({
   email: z.string().email().optional(),
   phone: z.string().optional(),
   passwordHint: z.string().optional(),
+  pin: z.string().optional(),
   role: z.enum(["admin", "staff"]).default("staff"),
   active: z.boolean().default(true),
 });
@@ -473,6 +484,7 @@ export type User = {
   email?: string;
   phone?: string;
   passwordHint?: string;
+  pin?: string;
   role: "admin" | "staff";
   active: boolean;
 };

@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
+import { PinDialog } from "@/components/pin-dialog";
 import html2pdf from "html2pdf.js";
 import mcLogo from "@assets/final-logo_1771172687891.png";
 import stampImg from "@assets/Middle_Class_Tourism_Stamp_1771173890616.png";
@@ -100,6 +101,8 @@ const numberToWords = (num: number): string => {
 
 export default function CashReceiptsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
+  const [pinVerifiedUser, setPinVerifiedUser] = useState<{ userId: string; username: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedReceipt, setSelectedReceipt] = useState<CashReceipt | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>("all");
@@ -159,7 +162,8 @@ export default function CashReceiptsPage() {
     mutationFn: async (data: CreateReceiptForm) => {
       const res = await apiRequest("POST", "/api/cash-receipts", {
         ...data,
-        issuedBy: user?.id || "",
+        issuedBy: pinVerifiedUser?.userId || user?.id || "",
+        createdByName: pinVerifiedUser?.username || user?.username || "",
       });
       return res.json();
     },
@@ -423,7 +427,7 @@ export default function CashReceiptsPage() {
       <div className="flex items-center gap-2 flex-wrap">
         <h1 className="text-xl font-bold" data-testid="text-page-title">Cash Receipts</h1>
         <div className="ml-auto">
-          <Button onClick={() => setIsCreateOpen(true)} data-testid="button-create-receipt">
+          <Button onClick={() => setIsPinDialogOpen(true)} data-testid="button-create-receipt">
             <Plus className="w-4 h-4 mr-2" />
             New Receipt
           </Button>
@@ -515,6 +519,7 @@ export default function CashReceiptsPage() {
                     <TableHead>Source</TableHead>
                     <TableHead>Payment</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>Created By</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -545,6 +550,9 @@ export default function CashReceiptsPage() {
                       </TableCell>
                       <TableCell className="text-right font-mono font-medium text-[hsl(var(--primary))]" data-testid={`text-amount-${receipt.id}`}>
                         {formatCurrency(receipt.amount)}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm" data-testid={`text-created-by-receipt-${receipt.id}`}>
+                        {receipt.createdByName || "—"}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
@@ -883,6 +891,17 @@ export default function CashReceiptsPage() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      <PinDialog
+        open={isPinDialogOpen}
+        onOpenChange={setIsPinDialogOpen}
+        onVerified={(result) => {
+          setPinVerifiedUser(result);
+          setIsCreateOpen(true);
+        }}
+        title="Enter PIN to Create Receipt"
+        description="Enter your PIN code to create a new receipt. Your name will be recorded on this entry."
+      />
     </div>
   );
 }

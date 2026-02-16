@@ -130,6 +130,7 @@ export class PgStorage implements IStorage {
       email: row.email || undefined,
       phone: row.phone || undefined,
       passwordHint: row.passwordHint || undefined,
+      pin: row.pin || undefined,
       role: (row.role as "admin" | "staff") || "staff",
       active: row.active ?? true,
     };
@@ -154,12 +155,13 @@ export class PgStorage implements IStorage {
     return this.mapUser(result[0]);
   }
 
-  async updateUser(id: string, updates: Partial<{ username: string; password: string; active: boolean; email: string }>): Promise<User | undefined> {
+  async updateUser(id: string, updates: Partial<{ username: string; password: string; active: boolean; email: string; pin: string }>): Promise<User | undefined> {
     const dbUpdates: any = {};
     if (updates.username !== undefined) dbUpdates.username = updates.username;
     if (updates.password !== undefined) dbUpdates.password = bcrypt.hashSync(updates.password, 10);
     if (updates.active !== undefined) dbUpdates.active = updates.active;
     if (updates.email !== undefined) dbUpdates.email = updates.email;
+    if (updates.pin !== undefined) dbUpdates.pin = updates.pin;
     
     if (Object.keys(dbUpdates).length === 0) {
       return this.getUser(id);
@@ -168,6 +170,14 @@ export class PgStorage implements IStorage {
     const result = await db.update(schema.usersTable).set(dbUpdates).where(eq(schema.usersTable.id, id)).returning();
     if (result.length === 0) return undefined;
     return this.mapUser(result[0]);
+  }
+
+  async verifyPin(pin: string): Promise<User | null> {
+    const result = await db.select().from(schema.usersTable).where(eq(schema.usersTable.pin, pin));
+    if (result.length === 0) return null;
+    const user = result[0];
+    if (!user.active) return null;
+    return this.mapUser(user);
   }
 
   async deleteUser(id: string): Promise<void> {

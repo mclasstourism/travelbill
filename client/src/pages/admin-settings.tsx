@@ -34,11 +34,12 @@ import {
 import {
   Trash2,
   Loader2,
-  Shield,
   ShieldCheck,
   UserPlus,
   Pencil,
   User as UserIcon,
+  KeyRound,
+  Users,
 } from "lucide-react";
 import type { User } from "@shared/schema";
 
@@ -50,6 +51,7 @@ export default function AdminSettingsPage() {
   const [newUsername, setNewUsername] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
   const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserPin, setNewUserPin] = useState("");
   const [newUserRole, setNewUserRole] = useState<"admin" | "staff">("admin");
   
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
@@ -57,6 +59,7 @@ export default function AdminSettingsPage() {
   const [editUsername, setEditUsername] = useState("");
   const [editPassword, setEditPassword] = useState("");
   const [editEmail, setEditEmail] = useState("");
+  const [editPin, setEditPin] = useState("");
 
   
   const { toast } = useToast();
@@ -66,10 +69,11 @@ export default function AdminSettingsPage() {
   });
 
   const adminUsers = users.filter(u => u.role === "admin");
+  const staffUsers = users.filter(u => u.role === "staff");
 
 
   const createUserMutation = useMutation({
-    mutationFn: async (data: { username: string; password: string; email?: string; role: "admin" | "staff" }) => {
+    mutationFn: async (data: { username: string; password: string; email?: string; pin?: string; role: "admin" | "staff" }) => {
       const res = await apiRequest("POST", "/api/users", data);
       if (!res.ok) {
         const err = await res.json();
@@ -83,6 +87,7 @@ export default function AdminSettingsPage() {
       setNewUsername("");
       setNewUserPassword("");
       setNewUserEmail("");
+      setNewUserPin("");
       setNewUserRole("admin");
       toast({
         title: "User Created",
@@ -99,7 +104,7 @@ export default function AdminSettingsPage() {
   });
 
   const updateUserMutation = useMutation({
-    mutationFn: async ({ id, ...data }: { id: string; username?: string; password?: string; email?: string }) => {
+    mutationFn: async ({ id, ...data }: { id: string; username?: string; password?: string; email?: string; pin?: string }) => {
       const res = await apiRequest("PATCH", `/api/users/${id}`, data);
       if (!res.ok) {
         const err = await res.json();
@@ -114,6 +119,7 @@ export default function AdminSettingsPage() {
       setEditUsername("");
       setEditPassword("");
       setEditEmail("");
+      setEditPin("");
       toast({
         title: "User Updated",
         description: "The account has been updated successfully.",
@@ -154,6 +160,7 @@ export default function AdminSettingsPage() {
     setNewUsername("");
     setNewUserPassword("");
     setNewUserEmail("");
+    setNewUserPin("");
     setIsAddUserOpen(true);
   };
 
@@ -174,10 +181,22 @@ export default function AdminSettingsPage() {
       });
       return;
     }
+    if (newUserPin) {
+      const existingPinUser = users.find(u => u.pin === newUserPin);
+      if (existingPinUser) {
+        toast({
+          title: "PIN Already Used",
+          description: `This PIN is already assigned to ${existingPinUser.username}. Each user must have a unique PIN.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     createUserMutation.mutate({
       username: newUsername,
       password: newUserPassword,
       email: newUserEmail || undefined,
+      pin: newUserPin || undefined,
       role: newUserRole,
     });
   };
@@ -187,6 +206,7 @@ export default function AdminSettingsPage() {
     setEditUsername(user.username);
     setEditPassword("");
     setEditEmail(user.email || "");
+    setEditPin(user.pin || "");
     setIsEditUserOpen(true);
   };
 
@@ -211,10 +231,23 @@ export default function AdminSettingsPage() {
       return;
     }
 
-    const updates: { id: string; username?: string; password?: string; email?: string } = { id: editingUser.id };
+    if (editPin) {
+      const existingPinUser = users.find(u => u.pin === editPin && u.id !== editingUser.id);
+      if (existingPinUser) {
+        toast({
+          title: "PIN Already Used",
+          description: `This PIN is already assigned to ${existingPinUser.username}. Each user must have a unique PIN.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    const updates: { id: string; username?: string; password?: string; email?: string; pin?: string } = { id: editingUser.id };
     if (editUsername !== editingUser.username) updates.username = editUsername;
     if (editPassword) updates.password = editPassword;
     if (editEmail !== (editingUser.email || "")) updates.email = editEmail;
+    if (editPin !== (editingUser.pin || "")) updates.pin = editPin;
     
     if (Object.keys(updates).length <= 1) {
       setIsEditUserOpen(false);
@@ -224,14 +257,91 @@ export default function AdminSettingsPage() {
     updateUserMutation.mutate(updates);
   };
 
+  const renderUserTable = (userList: SafeUser[], roleLabel: string) => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Username</TableHead>
+          <TableHead>Email</TableHead>
+          <TableHead>PIN</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead className="w-24">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {userList.map((user) => (
+          <TableRow key={user.id} data-testid={`row-${roleLabel}-${user.username}`}>
+            <TableCell>
+              <div className="flex items-center gap-2">
+                <UserIcon className="w-4 h-4 text-muted-foreground" />
+                <span className="font-medium">{user.username}</span>
+              </div>
+            </TableCell>
+            <TableCell className="text-muted-foreground">
+              {user.email || "—"}
+            </TableCell>
+            <TableCell>
+              {user.pin ? (
+                <Badge variant="outline" className="text-xs font-mono">
+                  <KeyRound className="w-3 h-3 mr-1" />
+                  {user.pin}
+                </Badge>
+              ) : (
+                <span className="text-muted-foreground text-xs">No PIN</span>
+              )}
+            </TableCell>
+            <TableCell>
+              <Badge variant={user.active ? "default" : "secondary"} className="text-xs">
+                {user.active ? "Active" : "Inactive"}
+              </Badge>
+            </TableCell>
+            <TableCell>
+              <div className="flex gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleEditUser(user)}
+                  data-testid={`button-edit-${roleLabel}-${user.username}`}
+                >
+                  <Pencil className="w-4 h-4" />
+                </Button>
+                {(roleLabel === "staff" || userList.length > 1) && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      if (confirm(`Are you sure you want to delete this ${roleLabel} account?`)) {
+                        deleteUserMutation.mutate(user.id);
+                      }
+                    }}
+                    disabled={deleteUserMutation.isPending}
+                    data-testid={`button-delete-${roleLabel}-${user.username}`}
+                  >
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                )}
+              </div>
+            </TableCell>
+          </TableRow>
+        ))}
+        {userList.length === 0 && (
+          <TableRow>
+            <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+              No {roleLabel} accounts found
+            </TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
+  );
+
   return (
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-semibold" data-testid="text-admin-settings-title">Admin Settings</h1>
-        <p className="text-sm text-muted-foreground">Manage admin accounts</p>
+        <p className="text-sm text-muted-foreground">Manage user accounts and PIN codes</p>
       </div>
 
-      {/* Admin Users Management Section */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -240,7 +350,7 @@ export default function AdminSettingsPage() {
               <div>
                 <CardTitle className="text-lg">Admin Users</CardTitle>
                 <CardDescription>
-                  Admin users have full access to all features including settings. You can add multiple admins.
+                  Admin users have full access to all features including settings.
                 </CardDescription>
               </div>
             </div>
@@ -251,75 +361,33 @@ export default function AdminSettingsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Username</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-24">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {adminUsers.map((user) => (
-                <TableRow key={user.id} data-testid={`row-admin-${user.username}`}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <UserIcon className="w-4 h-4 text-muted-foreground" />
-                      <span className="font-medium">{user.username}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {user.email || "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={user.active ? "default" : "secondary"} className="text-xs">
-                      {user.active ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEditUser(user)}
-                        data-testid={`button-edit-admin-${user.username}`}
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      {adminUsers.length > 1 && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            if (confirm("Are you sure you want to delete this admin account?")) {
-                              deleteUserMutation.mutate(user.id);
-                            }
-                          }}
-                          disabled={deleteUserMutation.isPending}
-                          data-testid={`button-delete-admin-${user.username}`}
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {adminUsers.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                    No admin accounts found
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+          {renderUserTable(adminUsers, "admin")}
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary" />
+              <div>
+                <CardTitle className="text-lg">Staff Users</CardTitle>
+                <CardDescription>
+                  Staff users can create entries using their PIN. They cannot access settings.
+                </CardDescription>
+              </div>
+            </div>
+            <Button onClick={() => handleOpenAddUser("staff")} data-testid="button-add-staff">
+              <UserPlus className="w-4 h-4 mr-2" />
+              Add Staff
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {renderUserTable(staffUsers, "staff")}
+        </CardContent>
+      </Card>
 
-      {/* Add User Dialog */}
       <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
         <DialogContent>
           <DialogHeader>
@@ -329,7 +397,7 @@ export default function AdminSettingsPage() {
             <DialogDescription>
               {newUserRole === "admin"
                 ? "Create a new admin account with full access to all features."
-                : "Create a new staff account with limited access."}
+                : "Create a new staff account. Assign a unique PIN for entry creation."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -353,6 +421,17 @@ export default function AdminSettingsPage() {
                 onChange={(e) => setNewUserPassword(e.target.value)}
                 data-testid="input-new-user-password"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-user-pin">PIN Code</Label>
+              <Input
+                id="new-user-pin"
+                placeholder="Enter unique PIN (e.g. 1234)"
+                value={newUserPin}
+                onChange={(e) => setNewUserPin(e.target.value)}
+                data-testid="input-new-user-pin"
+              />
+              <p className="text-xs text-muted-foreground">Each user needs a unique PIN to create entries (invoices, tickets, receipts).</p>
             </div>
             {newUserRole === "admin" && (
               <div className="space-y-2">
@@ -382,7 +461,6 @@ export default function AdminSettingsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit User Dialog */}
       <Dialog open={isEditUserOpen} onOpenChange={setIsEditUserOpen}>
         <DialogContent>
           <DialogHeader>
@@ -414,6 +492,17 @@ export default function AdminSettingsPage() {
                 onChange={(e) => setEditPassword(e.target.value)}
                 data-testid="input-edit-password"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-pin">PIN Code</Label>
+              <Input
+                id="edit-pin"
+                placeholder="Enter unique PIN"
+                value={editPin}
+                onChange={(e) => setEditPin(e.target.value)}
+                data-testid="input-edit-pin"
+              />
+              <p className="text-xs text-muted-foreground">Unique PIN required for creating entries.</p>
             </div>
             {editingUser?.role === "admin" && (
               <div className="space-y-2">

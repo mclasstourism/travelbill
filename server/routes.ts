@@ -88,7 +88,7 @@ export async function registerRoutes(
   // Create new user (admin only)
   app.post("/api/users", async (req, res) => {
     try {
-      const { username, password, email, role } = req.body;
+      const { username, password, email, pin, role } = req.body;
       if (!username || !password) {
         res.status(400).json({ error: "Username and password are required" });
         return;
@@ -97,6 +97,7 @@ export async function registerRoutes(
         username,
         password,
         email: email || undefined,
+        pin: pin || undefined,
         role: role || "staff",
         active: true,
       });
@@ -111,17 +112,38 @@ export async function registerRoutes(
     }
   });
 
+  // Verify PIN
+  app.post("/api/auth/verify-pin", async (req, res) => {
+    try {
+      const { pin } = req.body;
+      if (!pin) {
+        res.status(400).json({ success: false, error: "PIN is required" });
+        return;
+      }
+      const user = await storage.verifyPin(pin);
+      if (!user) {
+        res.status(401).json({ success: false, error: "Invalid PIN" });
+        return;
+      }
+      const { password: _, ...safeUser } = user;
+      res.json({ success: true, user: safeUser });
+    } catch (error) {
+      res.status(500).json({ success: false, error: "PIN verification failed" });
+    }
+  });
+
   // Update user (admin only)
   app.patch("/api/users/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const { username, password, active, email } = req.body;
+      const { username, password, active, email, pin } = req.body;
       
       const updates: any = {};
       if (username !== undefined) updates.username = username;
       if (password !== undefined && password !== "") updates.password = password;
       if (active !== undefined) updates.active = active;
       if (email !== undefined) updates.email = email;
+      if (pin !== undefined) updates.pin = pin;
       
       const user = await storage.updateUser(id, updates);
       if (!user) {

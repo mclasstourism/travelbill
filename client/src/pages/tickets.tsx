@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
+import { PinDialog } from "@/components/pin-dialog";
 import mcLogo from "@assets/image_1769840649122.png";
 import html2pdf from "html2pdf.js";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -93,6 +94,8 @@ type CreateTicketForm = z.infer<typeof createTicketFormSchema>;
 
 export default function TicketsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
+  const [pinVerifiedUser, setPinVerifiedUser] = useState<{ userId: string; username: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewTicket, setViewTicket] = useState<Ticket | null>(null);
   const { toast } = useToast();
@@ -204,6 +207,11 @@ export default function TicketsPage() {
   );
 
   const handleCreateClick = () => {
+    setIsPinDialogOpen(true);
+  };
+
+  const handlePinVerified = (result: { userId: string; username: string }) => {
+    setPinVerifiedUser(result);
     setIsCreateOpen(true);
   };
 
@@ -211,14 +219,13 @@ export default function TicketsPage() {
 
     const vendorCost = Number(data.vendorCost) || 0;
     const mcAddition = Number(data.mcAddition) || 0;
-    const faceValue = vendorCost + mcAddition; // Customer Price = Vendor Cost + MC Addition
+    const faceValue = vendorCost + mcAddition;
     
     let depositDeducted = 0;
     if (data.deductFromDeposit && selectedCustomer) {
       depositDeducted = Math.min(selectedCustomer.depositBalance, faceValue);
     }
 
-    // Calculate vendor balance deduction
     let vendorBalanceDeducted = 0;
     if (data.useVendorBalance === "credit" && selectedVendor) {
       vendorBalanceDeducted = Math.min(selectedVendor.creditBalance, vendorCost);
@@ -234,7 +241,8 @@ export default function TicketsPage() {
       depositDeducted,
       useVendorBalance: data.useVendorBalance,
       vendorBalanceDeducted,
-      issuedBy: user?.id || "",
+      issuedBy: pinVerifiedUser?.userId || user?.id || "",
+      createdByName: pinVerifiedUser?.username || user?.username || "",
     };
 
     createMutation.mutate(ticketData);
@@ -411,6 +419,7 @@ export default function TicketsPage() {
                     <TableHead>Route</TableHead>
                     <TableHead>Date Issued</TableHead>
                     <TableHead className="text-right">Value</TableHead>
+                    <TableHead>Created By</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -433,6 +442,9 @@ export default function TicketsPage() {
                       </TableCell>
                       <TableCell className="text-right font-mono font-semibold">
                         {formatCurrency(ticket.faceValue)}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm" data-testid={`text-created-by-ticket-${ticket.id}`}>
+                        {ticket.createdByName || "—"}
                       </TableCell>
                       <TableCell>
                         <Badge variant={getStatusBadgeVariant(ticket.status)}>
@@ -1085,6 +1097,14 @@ export default function TicketsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <PinDialog
+        open={isPinDialogOpen}
+        onOpenChange={setIsPinDialogOpen}
+        onVerified={handlePinVerified}
+        title="Enter PIN to Issue Ticket"
+        description="Enter your PIN code to issue a new ticket. Your name will be recorded on this entry."
+      />
     </div>
   );
 }

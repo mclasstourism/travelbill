@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
+import { PinDialog } from "@/components/pin-dialog";
 import html2pdf from "html2pdf.js";
 import mcLogo from "@assets/image_1769840649122.png";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -125,6 +126,8 @@ type CreateInvoiceForm = z.infer<typeof createInvoiceFormSchema>;
 
 export default function InvoicesPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
+  const [pinVerifiedUser, setPinVerifiedUser] = useState<{ userId: string; username: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
   const [quickCreateCustomer, setQuickCreateCustomer] = useState(false);
@@ -525,6 +528,11 @@ export default function InvoicesPage() {
   );
 
   const handleCreateClick = () => {
+    setIsPinDialogOpen(true);
+  };
+
+  const handlePinVerified = (result: { userId: string; username: string }) => {
+    setPinVerifiedUser(result);
     form.reset({
       customerType: "customer",
       customerId: "",
@@ -593,7 +601,8 @@ export default function InvoicesPage() {
       useVendorBalance: data.useVendorBalance,
       vendorBalanceDeducted,
       notes: data.notes || "",
-      issuedBy: user?.id || "",
+      issuedBy: pinVerifiedUser?.userId || user?.id || "",
+      createdByName: pinVerifiedUser?.username || user?.username || "",
     };
 
     createMutation.mutate(invoiceData);
@@ -651,6 +660,7 @@ export default function InvoicesPage() {
                     <TableHead>Date</TableHead>
                     <TableHead>Payment</TableHead>
                     <TableHead className="text-right">Total</TableHead>
+                    <TableHead>Created By</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -674,6 +684,9 @@ export default function InvoicesPage() {
                         </TableCell>
                         <TableCell className="text-right font-mono font-semibold">
                           {formatCurrency(invoice.subtotal - invoice.discountAmount)}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm" data-testid={`text-created-by-invoice-${invoice.id}`}>
+                          {invoice.createdByName || "—"}
                         </TableCell>
                         <TableCell>
                           <Badge variant={getStatusBadgeVariant(invoice.status)}>
@@ -1571,6 +1584,14 @@ export default function InvoicesPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <PinDialog
+        open={isPinDialogOpen}
+        onOpenChange={setIsPinDialogOpen}
+        onVerified={handlePinVerified}
+        title="Enter PIN to Create Invoice"
+        description="Enter your PIN code to create a new invoice. Your name will be recorded on this entry."
+      />
     </div>
   );
 }
