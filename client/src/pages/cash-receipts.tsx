@@ -88,6 +88,15 @@ const createReceiptSchema = z.object({
   paymentMethod: z.enum(["cash", "card", "cheque", "bank_transfer"]),
   description: z.string().optional().or(z.literal("")),
   referenceNumber: z.string().optional().or(z.literal("")),
+}).superRefine((data, ctx) => {
+  if (data.sourceType === "flight") {
+    if (!data.sector || data.sector.trim() === "") {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Sector is required", path: ["sector"] });
+    }
+    if (!data.travelDate || data.travelDate.trim() === "") {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Travel date is required", path: ["travelDate"] });
+    }
+  }
 });
 
 type CreateReceiptForm = z.infer<typeof createReceiptSchema>;
@@ -358,7 +367,7 @@ export default function CashReceiptsPage() {
             ` : ""}
             ${receipt.sourceType === "flight" && receipt.airlinesFlightNo ? `
             <tr style="background: #f8fafc;">
-              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Airlines/Flight No</td>
+              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Flight No</td>
               <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500;">${receipt.airlinesFlightNo}</td>
             </tr>
             ` : ""}
@@ -741,7 +750,7 @@ export default function CashReceiptsPage() {
                     )}
                     {selectedReceipt.sourceType === "flight" && selectedReceipt.airlinesFlightNo && (
                       <tr className="border-b bg-muted/30">
-                        <td className="px-3 py-2 text-muted-foreground">Airlines/Flight No</td>
+                        <td className="px-3 py-2 text-muted-foreground">Flight No</td>
                         <td className="px-3 py-2 text-right font-medium" data-testid="text-receipt-airlines">{selectedReceipt.airlinesFlightNo}</td>
                       </tr>
                     )}
@@ -946,7 +955,7 @@ export default function CashReceiptsPage() {
                       name="sector"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Sector</FormLabel>
+                          <FormLabel>Sector *</FormLabel>
                           <FormControl>
                             <Input {...field} placeholder="e.g. DXB-LHR" data-testid="input-sector" />
                           </FormControl>
@@ -959,7 +968,7 @@ export default function CashReceiptsPage() {
                       name="travelDate"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Travel Date</FormLabel>
+                          <FormLabel>Travel Date *</FormLabel>
                           <FormControl>
                             <Input type="date" {...field} data-testid="input-travel-date" />
                           </FormControl>
@@ -974,7 +983,7 @@ export default function CashReceiptsPage() {
                       name="airlinesFlightNo"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Airlines/Flight No</FormLabel>
+                          <FormLabel>Flight No</FormLabel>
                           <FormControl>
                             <Input {...field} placeholder="e.g. EK202" data-testid="input-airlines-flight-no" />
                           </FormControl>
