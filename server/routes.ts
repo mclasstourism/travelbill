@@ -523,19 +523,18 @@ export async function registerRoutes(
         res.status(400).json({ error: "Only cancelled invoices can be refunded" });
         return;
       }
-      const { refundMethod, refundNotes, refundedBy } = req.body;
+      const { refundAmount, refundMethod, refundNotes, refundedBy } = req.body;
       if (!refundMethod || !refundedBy) {
         res.status(400).json({ error: "Refund method and refunded by are required" });
         return;
       }
-      const cashCardRefund = invoice.total - (invoice.depositUsed || 0) - (invoice.agentCreditUsed || 0);
-      const refundAmount = Math.max(0, cashCardRefund);
-      if (refundAmount <= 0) {
-        const refunded = await storage.processRefund(id, { refundAmount: 0, refundMethod, refundNotes: refundNotes || "", refundedBy });
-        res.json(refunded);
+      const maxCashCardRefund = Math.max(0, invoice.total - (invoice.depositUsed || 0) - (invoice.agentCreditUsed || 0));
+      const parsedRefundAmount = typeof refundAmount === "number" ? refundAmount : parseFloat(refundAmount) || 0;
+      if (parsedRefundAmount < 0 || parsedRefundAmount > maxCashCardRefund) {
+        res.status(400).json({ error: `Refund amount must be between 0 and ${maxCashCardRefund.toFixed(2)}` });
         return;
       }
-      const refunded = await storage.processRefund(id, { refundAmount, refundMethod, refundNotes: refundNotes || "", refundedBy });
+      const refunded = await storage.processRefund(id, { refundAmount: parsedRefundAmount, refundMethod, refundNotes: refundNotes || "", refundedBy });
       if (!refunded) {
         res.status(500).json({ error: "Failed to process refund" });
         return;

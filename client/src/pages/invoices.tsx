@@ -154,6 +154,7 @@ export default function InvoicesPage() {
   const [refundInvoice, setRefundInvoice] = useState<Invoice | null>(null);
   const [refundMethod, setRefundMethod] = useState("cash");
   const [refundNotes, setRefundNotes] = useState("");
+  const [refundAmount, setRefundAmount] = useState("");
   const [isRefundPinDialogOpen, setIsRefundPinDialogOpen] = useState(false);
   const [pendingRefundInvoice, setPendingRefundInvoice] = useState<Invoice | null>(null);
   const [refundVerifiedUser, setRefundVerifiedUser] = useState<{ userId: string; username: string } | null>(null);
@@ -1827,6 +1828,44 @@ export default function InvoicesPage() {
                 </div>
               </div>
 
+              {viewInvoice.status === "refunded" && viewInvoice.refundAmount > 0 && (
+                <div className="p-3 rounded-md border border-orange-300 dark:border-orange-700 space-y-1 mt-3">
+                  <p className="text-sm font-semibold text-orange-600 dark:text-orange-400 mb-2">Refund Details</p>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Refund Amount</span>
+                    <span className="font-mono font-medium">{formatCurrency(viewInvoice.refundAmount)}</span>
+                  </div>
+                  {viewInvoice.total - (viewInvoice.depositUsed || 0) - (viewInvoice.agentCreditUsed || 0) - viewInvoice.refundAmount > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Penalty / Deduction</span>
+                      <span className="font-mono text-orange-600 dark:text-orange-400">{formatCurrency(viewInvoice.total - (viewInvoice.depositUsed || 0) - (viewInvoice.agentCreditUsed || 0) - viewInvoice.refundAmount)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Refund Method</span>
+                    <span className="capitalize">{viewInvoice.refundMethod?.replace("_", " ")}</span>
+                  </div>
+                  {viewInvoice.refundedBy && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Refunded By</span>
+                      <span>{viewInvoice.refundedBy}</span>
+                    </div>
+                  )}
+                  {viewInvoice.refundDate && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Refund Date</span>
+                      <span>{new Date(viewInvoice.refundDate).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                  {viewInvoice.refundNotes && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Notes</span>
+                      <span className="text-right max-w-[60%]">{viewInvoice.refundNotes}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Footer */}
               <div className="border-t-2 pt-4 flex justify-between items-center">
                 <div className="text-center flex-1">
@@ -1909,7 +1948,12 @@ export default function InvoicesPage() {
               Record the refund payment details for this cancelled invoice.
             </DialogDescription>
           </DialogHeader>
-          {refundInvoice && (
+          {refundInvoice && (() => {
+            const maxCashCardRefund = Math.max(0, refundInvoice.total - (refundInvoice.depositUsed || 0) - (refundInvoice.agentCreditUsed || 0));
+            const parsedRefundAmount = parseFloat(refundAmount) || 0;
+            const penaltyAmount = Math.max(0, maxCashCardRefund - parsedRefundAmount);
+            const isValidAmount = parsedRefundAmount > 0 && parsedRefundAmount <= maxCashCardRefund;
+            return (
             <div className="space-y-4">
               <div className="p-3 rounded-md border space-y-1">
                 <div className="flex justify-between text-sm">
@@ -1929,10 +1973,40 @@ export default function InvoicesPage() {
                   </div>
                 )}
                 <div className="flex justify-between text-sm font-medium border-t pt-1">
-                  <span>Cash/Card Refund Amount</span>
-                  <span className="font-mono">{formatCurrency(refundInvoice.total - refundInvoice.depositUsed - refundInvoice.agentCreditUsed)}</span>
+                  <span>Max Cash/Card Refund</span>
+                  <span className="font-mono">{formatCurrency(maxCashCardRefund)}</span>
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Refund Amount (AED)</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max={maxCashCardRefund}
+                  value={refundAmount}
+                  onChange={(e) => setRefundAmount(e.target.value)}
+                  placeholder="Enter refund amount..."
+                  data-testid="input-refund-amount"
+                />
+                {parsedRefundAmount > maxCashCardRefund && (
+                  <p className="text-sm text-destructive">Refund amount cannot exceed {formatCurrency(maxCashCardRefund)}</p>
+                )}
+              </div>
+
+              {penaltyAmount > 0 && isValidAmount && (
+                <div className="p-3 rounded-md border border-orange-300 dark:border-orange-700 space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Penalty / Deduction</span>
+                    <span className="font-mono font-medium text-orange-600 dark:text-orange-400">{formatCurrency(penaltyAmount)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-medium border-t pt-1">
+                    <span>Net Refund to Customer</span>
+                    <span className="font-mono">{formatCurrency(parsedRefundAmount)}</span>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">Refund Method</label>
@@ -1966,19 +2040,18 @@ export default function InvoicesPage() {
                 </Button>
                 <Button
                   onClick={() => {
-                    if (!refundInvoice || !refundVerifiedUser) return;
-                    const refundAmount = refundInvoice.total - refundInvoice.depositUsed - refundInvoice.agentCreditUsed;
+                    if (!refundInvoice || !refundVerifiedUser || !isValidAmount) return;
                     refundMutation.mutate({
                       invoiceId: refundInvoice.id,
                       data: {
-                        refundAmount,
+                        refundAmount: parsedRefundAmount,
                         refundMethod,
                         refundNotes,
                         refundedBy: refundVerifiedUser.username,
                       },
                     });
                   }}
-                  disabled={refundMutation.isPending}
+                  disabled={refundMutation.isPending || !isValidAmount}
                   data-testid="button-refund-confirm"
                 >
                   {refundMutation.isPending ? (
@@ -1990,7 +2063,8 @@ export default function InvoicesPage() {
                 </Button>
               </div>
             </div>
-          )}
+            );
+          })()}
         </DialogContent>
       </Dialog>
 
@@ -2004,6 +2078,8 @@ export default function InvoicesPage() {
             setRefundInvoice(pendingRefundInvoice);
             setRefundMethod("cash");
             setRefundNotes("");
+            const maxRefund = pendingRefundInvoice.total - (pendingRefundInvoice.depositUsed || 0) - (pendingRefundInvoice.agentCreditUsed || 0);
+            setRefundAmount(Math.max(0, maxRefund).toFixed(2));
             setPendingRefundInvoice(null);
           }
         }}
