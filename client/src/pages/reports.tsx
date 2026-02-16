@@ -245,10 +245,10 @@ export default function ReportsPage() {
               <img src="${logoDataUrl}" alt="MCT - Tourism Organizers" />
             </div>
             <div class="header-info">
-              <p style="font-size: 14px; font-weight: 600; color: #1e293b;">MCT - Tourism Organizers</p>
-              <p>Travel & Tourism Services</p>
-              <p>Phone: +971 XX XXX XXXX</p>
-              <p>Email: info@mct-tourism.com</p>
+              <p>Phone: 025 640 224 | 050 222 1042</p>
+              <p>www.middleclass.ae | sales@middleclass.ae</p>
+              <p>Shop 41, Al Dhannah Traditional Souq,</p>
+              <p>Al Dhannah City, Abu Dhabi – UAE</p>
             </div>
           </div>
           <div class="header-divider"></div>
