@@ -43,7 +43,7 @@ import {
 } from "lucide-react";
 import type { User } from "@shared/schema";
 
-type SafeUser = Omit<User, "password">;
+type SafeUser = Omit<User, "password" | "pin"> & { hasPin: boolean };
 
 export default function AdminSettingsPage() {
 
@@ -190,15 +190,7 @@ export default function AdminSettingsPage() {
         });
         return;
       }
-      const existingPinUser = users.find(u => u.pin === newUserPin);
-      if (existingPinUser) {
-        toast({
-          title: "PIN Already Used",
-          description: `This PIN is already assigned to ${existingPinUser.username}. Each user must have a unique PIN.`,
-          variant: "destructive",
-        });
-        return;
-      }
+    
     }
     createUserMutation.mutate({
       username: newUsername,
@@ -214,7 +206,7 @@ export default function AdminSettingsPage() {
     setEditUsername(user.username);
     setEditPassword("");
     setEditEmail(user.email || "");
-    setEditPin(user.pin || "");
+    setEditPin("");
     setIsEditUserOpen(true);
   };
 
@@ -248,22 +240,14 @@ export default function AdminSettingsPage() {
         });
         return;
       }
-      const existingPinUser = users.find(u => u.pin === editPin && u.id !== editingUser.id);
-      if (existingPinUser) {
-        toast({
-          title: "PIN Already Used",
-          description: `This PIN is already assigned to ${existingPinUser.username}. Each user must have a unique PIN.`,
-          variant: "destructive",
-        });
-        return;
-      }
+    
     }
 
     const updates: { id: string; username?: string; password?: string; email?: string; pin?: string } = { id: editingUser.id };
     if (editUsername !== editingUser.username) updates.username = editUsername;
     if (editPassword) updates.password = editPassword;
     if (editEmail !== (editingUser.email || "")) updates.email = editEmail;
-    if (editPin !== (editingUser.pin || "")) updates.pin = editPin;
+    if (editPin) updates.pin = editPin;
     
     if (Object.keys(updates).length <= 1) {
       setIsEditUserOpen(false);
@@ -297,10 +281,10 @@ export default function AdminSettingsPage() {
               {user.email || "—"}
             </TableCell>
             <TableCell>
-              {user.pin ? (
+              {user.hasPin ? (
                 <Badge variant="outline" className="text-xs font-mono">
                   <KeyRound className="w-3 h-3 mr-1" />
-                  {user.pin}
+                  PIN Set
                 </Badge>
               ) : (
                 <span className="text-muted-foreground text-xs">No PIN</span>
@@ -515,14 +499,16 @@ export default function AdminSettingsPage() {
               <Label htmlFor="edit-pin">PIN Code</Label>
               <Input
                 id="edit-pin"
-                placeholder="Enter 4 or 5 digit PIN"
+                placeholder={editingUser?.hasPin ? "Leave blank to keep current PIN" : "Enter 4 or 5 digit PIN"}
                 value={editPin}
                 onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 5); setEditPin(v); }}
                 maxLength={5}
                 inputMode="numeric"
                 data-testid="input-edit-pin"
               />
-              <p className="text-xs text-muted-foreground">4 or 5 digit PIN required for creating entries.</p>
+              <p className="text-xs text-muted-foreground">
+                {editingUser?.hasPin ? "Leave blank to keep current PIN, or enter a new 4-5 digit PIN." : "4 or 5 digit PIN required for creating entries."}
+              </p>
             </div>
             {editingUser?.role === "admin" && (
               <div className="space-y-2">

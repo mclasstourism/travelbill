@@ -32,7 +32,7 @@ export async function registerRoutes(
         res.status(401).json({ success: false, error: "Invalid credentials" });
         return;
       }
-      const { password: _, ...safeUser } = user;
+      const { password: _, pin: _p, ...safeUser } = user;
       res.json({ success: true, user: safeUser });
     } catch (error) {
       res.status(500).json({ success: false, error: "Login failed" });
@@ -52,7 +52,7 @@ export async function registerRoutes(
         res.status(401).json({ valid: false });
         return;
       }
-      const { password: _, ...safeUser } = user;
+      const { password: _, pin: _p, ...safeUser } = user;
       res.json({ valid: true, user: safeUser });
     } catch (error) {
       res.status(500).json({ valid: false });
@@ -78,7 +78,7 @@ export async function registerRoutes(
   app.get("/api/users", async (req, res) => {
     try {
       const users = await storage.getAllUsers();
-      const safeUsers = users.map(({ password, ...user }) => user);
+      const safeUsers = users.map(({ password, pin, ...user }) => ({ ...user, hasPin: !!pin }));
       res.json(safeUsers);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch users" });
@@ -93,6 +93,10 @@ export async function registerRoutes(
         res.status(400).json({ error: "Username and password are required" });
         return;
       }
+      if (pin && !/^\d{4,5}$/.test(pin)) {
+        res.status(400).json({ error: "PIN must be 4-5 digits" });
+        return;
+      }
       const user = await storage.createUser({
         username,
         password,
@@ -101,7 +105,7 @@ export async function registerRoutes(
         role: role || "staff",
         active: true,
       });
-      const { password: _, ...safeUser } = user;
+      const { password: _, pin: _p, ...safeUser } = user;
       res.json(safeUser);
     } catch (error: any) {
       if (error.message?.includes("duplicate") || error.code === "23505") {
@@ -125,7 +129,7 @@ export async function registerRoutes(
         res.status(401).json({ success: false, error: "Invalid PIN" });
         return;
       }
-      const { password: _, ...safeUser } = user;
+      const { password: _, pin: _p, ...safeUser } = user;
       res.json({ success: true, user: safeUser });
     } catch (error) {
       res.status(500).json({ success: false, error: "PIN verification failed" });
@@ -143,14 +147,20 @@ export async function registerRoutes(
       if (password !== undefined && password !== "") updates.password = password;
       if (active !== undefined) updates.active = active;
       if (email !== undefined) updates.email = email;
-      if (pin !== undefined) updates.pin = pin;
+      if (pin !== undefined) {
+        if (pin !== "" && !/^\d{4,5}$/.test(pin)) {
+          res.status(400).json({ error: "PIN must be 4-5 digits" });
+          return;
+        }
+        updates.pin = pin;
+      }
       
       const user = await storage.updateUser(id, updates);
       if (!user) {
         res.status(404).json({ error: "User not found" });
         return;
       }
-      const { password: _, ...safeUser } = user;
+      const { password: _, pin: _p, ...safeUser } = user;
       res.json(safeUser);
     } catch (error: any) {
       if (error.message?.includes("duplicate") || error.code === "23505") {

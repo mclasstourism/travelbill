@@ -56,6 +56,7 @@ import {
   Wallet,
   Download,
   Eye,
+  User,
 } from "lucide-react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -140,6 +141,7 @@ export default function InvoicesPage() {
   const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
   const [pinVerifiedUser, setPinVerifiedUser] = useState<{ userId: string; username: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [createdByFilter, setCreatedByFilter] = useState("all");
   const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
   const [quickCreateCustomer, setQuickCreateCustomer] = useState(false);
   const [quickCreateVendor, setQuickCreateVendor] = useState(false);
@@ -537,9 +539,16 @@ export default function InvoicesPage() {
     },
   });
 
-  const filteredInvoices = invoices.filter((invoice) =>
-    invoice.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const createdByOptions = useMemo(() => {
+    const names = new Set(invoices.map(i => i.createdByName).filter(Boolean));
+    return Array.from(names).sort();
+  }, [invoices]);
+
+  const filteredInvoices = invoices.filter((invoice) => {
+    if (!invoice.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (createdByFilter !== "all" && invoice.createdByName !== createdByFilter) return false;
+    return true;
+  });
 
   const handleCreateClick = () => {
     setIsPinDialogOpen(true);
@@ -650,6 +659,25 @@ export default function InvoicesPage() {
                 data-testid="input-search-invoices"
               />
             </div>
+            {createdByOptions.length > 0 && (
+              <Select value={createdByFilter} onValueChange={setCreatedByFilter}>
+                <SelectTrigger className="w-[180px]" data-testid="select-created-by-filter">
+                  <User className="w-4 h-4 mr-2" />
+                  <SelectValue placeholder="Created By" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Staff</SelectItem>
+                  {createdByOptions.map(name => (
+                    <SelectItem key={name} value={name}>
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: getNameColor(name) }} />
+                        {name}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </CardHeader>
         <CardContent>

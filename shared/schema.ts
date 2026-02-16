@@ -10,7 +10,7 @@ export const usersTable = pgTable("users", {
   email: varchar("email", { length: 255 }),
   phone: varchar("phone", { length: 50 }),
   passwordHint: text("password_hint"),
-  pin: varchar("pin", { length: 10 }),
+  pin: varchar("pin", { length: 72 }),
   role: varchar("role", { length: 20 }).default("staff"),
   active: boolean("active").default(true),
 });

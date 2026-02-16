@@ -149,7 +149,7 @@ export class PgStorage implements IStorage {
       email: insertUser.email,
       phone: insertUser.phone,
       passwordHint: insertUser.passwordHint,
-      pin: insertUser.pin,
+      pin: insertUser.pin ? bcrypt.hashSync(insertUser.pin, 10) : undefined,
       role: insertUser.role || "staff",
       active: insertUser.active ?? true,
     }).returning();
@@ -162,7 +162,7 @@ export class PgStorage implements IStorage {
     if (updates.password !== undefined) dbUpdates.password = bcrypt.hashSync(updates.password, 10);
     if (updates.active !== undefined) dbUpdates.active = updates.active;
     if (updates.email !== undefined) dbUpdates.email = updates.email;
-    if (updates.pin !== undefined) dbUpdates.pin = updates.pin;
+    if (updates.pin !== undefined) dbUpdates.pin = updates.pin ? bcrypt.hashSync(updates.pin, 10) : null;
     
     if (Object.keys(dbUpdates).length === 0) {
       return this.getUser(id);
@@ -174,11 +174,13 @@ export class PgStorage implements IStorage {
   }
 
   async verifyPin(pin: string): Promise<User | null> {
-    const result = await db.select().from(schema.usersTable).where(eq(schema.usersTable.pin, pin));
-    if (result.length === 0) return null;
-    const user = result[0];
-    if (!user.active) return null;
-    return this.mapUser(user);
+    const result = await db.select().from(schema.usersTable).where(eq(schema.usersTable.active, true));
+    for (const user of result) {
+      if (user.pin && bcrypt.compareSync(pin, user.pin)) {
+        return this.mapUser(user);
+      }
+    }
+    return null;
   }
 
   async deleteUser(id: string): Promise<void> {

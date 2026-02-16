@@ -189,7 +189,8 @@ export class MemStorage implements IStorage {
     const hashedPassword = bcrypt.hashSync(insertUser.password, 10);
     const user: User = { 
       ...insertUser, 
-      password: hashedPassword, 
+      password: hashedPassword,
+      pin: insertUser.pin ? bcrypt.hashSync(insertUser.pin, 10) : insertUser.pin,
       id,
       role: insertUser.role || "staff",
       active: insertUser.active ?? true,
@@ -205,14 +206,14 @@ export class MemStorage implements IStorage {
     if (updates.password !== undefined) user.password = bcrypt.hashSync(updates.password, 10);
     if (updates.active !== undefined) user.active = updates.active;
     if (updates.email !== undefined) user.email = updates.email;
-    if (updates.pin !== undefined) user.pin = updates.pin;
+    if (updates.pin !== undefined) user.pin = updates.pin ? bcrypt.hashSync(updates.pin, 10) : undefined;
     this.users.set(id, user);
     return user;
   }
 
   async verifyPin(pin: string): Promise<User | null> {
     for (const user of this.users.values()) {
-      if (user.pin === pin && user.active) return user;
+      if (user.pin && user.active && bcrypt.compareSync(pin, user.pin)) return user;
     }
     return null;
   }

@@ -43,7 +43,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Receipt, Search, Loader2, Eye, Printer, Calendar, Download } from "lucide-react";
+import { Plus, Receipt, Search, Loader2, Eye, Printer, Calendar, Download, User } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval, parseISO } from "date-fns";
@@ -115,6 +115,7 @@ export default function CashReceiptsPage() {
   const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
   const [pinVerifiedUser, setPinVerifiedUser] = useState<{ userId: string; username: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [createdByFilter, setCreatedByFilter] = useState("all");
   const [selectedReceipt, setSelectedReceipt] = useState<CashReceipt | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>("all");
   const [customStartDate, setCustomStartDate] = useState("");
@@ -253,8 +254,12 @@ export default function CashReceiptsPage() {
       });
     }
 
+    if (createdByFilter !== "all") {
+      filtered = filtered.filter(r => r.createdByName === createdByFilter);
+    }
+
     return filtered;
-  }, [receipts, searchQuery, dateRange, customStartDate, customEndDate, customers, agents, vendors]);
+  }, [receipts, searchQuery, dateRange, customStartDate, customEndDate, customers, agents, vendors, createdByFilter]);
 
   const totalAmount = useMemo(() => {
     return filteredReceipts.reduce((sum, r) => sum + r.amount, 0);
@@ -490,6 +495,29 @@ export default function CashReceiptsPage() {
                 data-testid="input-search-receipts"
               />
             </div>
+            {(() => {
+              const names = new Set(receipts.map(r => r.createdByName).filter(Boolean));
+              const options = Array.from(names).sort();
+              return options.length > 0 ? (
+                <Select value={createdByFilter} onValueChange={setCreatedByFilter}>
+                  <SelectTrigger className="w-[180px]" data-testid="select-created-by-filter">
+                    <User className="w-4 h-4 mr-2" />
+                    <SelectValue placeholder="Created By" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Staff</SelectItem>
+                    {options.map(name => (
+                      <SelectItem key={name} value={name}>
+                        <span className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: getNameColor(name) }} />
+                          {name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : null;
+            })()}
             <Select value={dateRange} onValueChange={(v) => setDateRange(v as DateRange)}>
               <SelectTrigger className="w-[180px]" data-testid="select-date-range">
                 <Calendar className="w-4 h-4 mr-2" />
