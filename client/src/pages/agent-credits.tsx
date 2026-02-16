@@ -622,7 +622,12 @@ export default function AgentCreditsPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredAgents.map((agent) => (
-                    <TableRow key={agent.id} data-testid={`row-agent-${agent.id}`}>
+                    <TableRow
+                      key={agent.id}
+                      data-testid={`row-agent-${agent.id}`}
+                      className="cursor-pointer"
+                      onClick={() => handleViewHistory(agent)}
+                    >
                       <TableCell className="font-medium">{agent.name}</TableCell>
                       <TableCell className="text-muted-foreground">{agent.company || "-"}</TableCell>
                       <TableCell className="text-muted-foreground">{agent.phone || "-"}</TableCell>
@@ -634,13 +639,12 @@ export default function AgentCreditsPage() {
                       </TableCell>
                       <TableCell>
                         <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleViewHistory(agent)}
+                          size="icon"
+                          variant="ghost"
+                          onClick={(e) => { e.stopPropagation(); handleViewHistory(agent); }}
                           data-testid={`button-view-history-${agent.id}`}
                         >
-                          <Eye className="w-4 h-4 mr-1" />
-                          History
+                          <Eye className="w-4 h-4" />
                         </Button>
                       </TableCell>
                     </TableRow>

@@ -561,7 +561,12 @@ export default function DepositsPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredCustomers.map((customer) => (
-                    <TableRow key={customer.id} data-testid={`row-customer-${customer.id}`}>
+                    <TableRow
+                      key={customer.id}
+                      data-testid={`row-customer-${customer.id}`}
+                      className="cursor-pointer"
+                      onClick={() => handleViewHistory(customer)}
+                    >
                       <TableCell className="font-medium">{customer.name}</TableCell>
                       <TableCell className="text-muted-foreground">{customer.phone || "-"}</TableCell>
                       <TableCell className="text-muted-foreground">{customer.company || "-"}</TableCell>
@@ -570,13 +575,12 @@ export default function DepositsPage() {
                       </TableCell>
                       <TableCell>
                         <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleViewHistory(customer)}
+                          size="icon"
+                          variant="ghost"
+                          onClick={(e) => { e.stopPropagation(); handleViewHistory(customer); }}
                           data-testid={`button-view-history-${customer.id}`}
                         >
-                          <Eye className="w-4 h-4 mr-1" />
-                          History
+                          <Eye className="w-4 h-4" />
                         </Button>
                       </TableCell>
                     </TableRow>
