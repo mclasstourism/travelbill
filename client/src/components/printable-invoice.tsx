@@ -124,7 +124,6 @@ export const PrintableInvoice = forwardRef<HTMLDivElement, PrintableInvoiceProps
               <th className="border border-gray-800 p-2 text-left">PNR</th>
               <th className="border border-gray-800 p-2 text-left">TKT No</th>
               <th className="border border-gray-800 p-2 text-right">Basic Fare</th>
-              <th className="border border-gray-800 p-2 text-right">Tax</th>
               <th className="border border-gray-800 p-2 text-right">Amount</th>
             </tr>
           </thead>
@@ -138,7 +137,6 @@ export const PrintableInvoice = forwardRef<HTMLDivElement, PrintableInvoiceProps
                 <td className="border border-gray-300 p-2 font-mono">{item.pnr || "-"}</td>
                 <td className="border border-gray-300 p-2 font-mono">{item.tktNo || "-"}</td>
                 <td className="border border-gray-300 p-2 text-right font-mono">{formatCurrency(item.basicFare || 0)}</td>
-                <td className="border border-gray-300 p-2 text-right font-mono">{formatCurrency(item.tax || 0)}</td>
                 <td className="border border-gray-300 p-2 text-right font-mono font-semibold">{formatCurrency(item.amount || 0)}</td>
               </tr>
             ))}
@@ -193,11 +191,7 @@ export const PrintableInvoice = forwardRef<HTMLDivElement, PrintableInvoiceProps
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-8 mb-8">
-          <div>
-            <h3 className="font-bold text-gray-700 mb-2 text-sm">Payment Method:</h3>
-            <p className="capitalize">{invoice.paymentMethod}</p>
-          </div>
+        <div className="mb-8">
           <div>
             <h3 className="font-bold text-gray-700 mb-2 text-sm">Status:</h3>
             <p className="capitalize font-semibold">{invoice.status}</p>

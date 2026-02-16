@@ -246,7 +246,6 @@ export const insertInvoiceItemSchema = z.object({
   tktNo: z.string().optional().default(""),
   amount: z.coerce.number().min(0, "Amount must be positive"),
   basicFare: z.coerce.number().min(0).default(0),
-  tax: z.coerce.number().min(0).default(0),
 });
 
 export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;

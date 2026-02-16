@@ -51,9 +51,6 @@ import {
   Search,
   Loader2,
   Trash2,
-  Banknote,
-  CreditCard,
-  Wallet,
   Download,
   Eye,
   User,
@@ -69,7 +66,6 @@ import {
   type Agent,
   type Vendor,
   type InsertInvoice,
-  paymentMethods,
 } from "@shared/schema";
 
 const nameColors = [
@@ -105,12 +101,6 @@ function getStatusBadgeVariant(status: string): "default" | "secondary" | "destr
   }
 }
 
-const paymentMethodIcons = {
-  cash: Banknote,
-  card: CreditCard,
-  credit: Wallet,
-};
-
 const createInvoiceFormSchema = z.object({
   customerType: z.enum(["customer", "agent"]).default("customer"),
   customerId: z.string().min(1, "Customer/Agent is required"),
@@ -123,11 +113,8 @@ const createInvoiceFormSchema = z.object({
     tktNo: z.string().default(""),
     amount: z.coerce.number().min(0, "Amount must be positive"),
     basicFare: z.coerce.number().min(0).default(0),
-    tax: z.coerce.number().min(0).default(0),
   })).min(1, "At least one item is required"),
   discountPercent: z.coerce.number().min(0).max(100).default(0),
-  vendorCost: z.coerce.number().min(0, "Vendor cost must be positive").default(0),
-  paymentMethod: z.enum(paymentMethods),
   useCustomerDeposit: z.boolean().default(false),
   useAgentCredit: z.boolean().default(false),
   useVendorBalance: z.enum(["none", "credit", "deposit"]).default("none"),
@@ -384,10 +371,8 @@ export default function InvoicesPage() {
       customerType: "customer",
       customerId: "",
       vendorId: "",
-      items: [{ sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", amount: 0, basicFare: 0, tax: 0 }],
+      items: [{ sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", amount: 0, basicFare: 0 }],
       discountPercent: 0,
-      vendorCost: 0,
-      paymentMethod: "cash",
       useCustomerDeposit: false,
       useAgentCredit: false,
       useVendorBalance: "none",
@@ -408,7 +393,6 @@ export default function InvoicesPage() {
   const watchCustomerId = form.watch("customerId");
   const watchVendorId = form.watch("vendorId");
   const watchUseVendorBalance = form.watch("useVendorBalance");
-  const watchVendorCost = form.watch("vendorCost");
 
   const selectedCustomer = watchCustomerType === "customer" 
     ? customers.find((c) => c.id === watchCustomerId)
@@ -440,20 +424,19 @@ export default function InvoicesPage() {
     }
     let afterAgentCredit = afterCustomerDeposit - agentCreditUsed;
     
-    // Vendor balance deduction is based on Vendor Cost (what you pay the vendor)
-    const vendorCostAmount = Number(watchVendorCost) || 0;
+    // Vendor balance deduction is based on subtotal (invoice total amount)
     let vendorBalanceDeducted = 0;
-    if (watchUseVendorBalance && watchUseVendorBalance !== "none" && selectedVendor && vendorCostAmount > 0) {
+    if (watchUseVendorBalance && watchUseVendorBalance !== "none" && selectedVendor && subtotal > 0) {
       const vendorBalance = watchUseVendorBalance === "credit" 
         ? selectedVendor.creditBalance 
         : selectedVendor.depositBalance;
-      vendorBalanceDeducted = Math.min(vendorBalance, vendorCostAmount);
+      vendorBalanceDeducted = Math.min(vendorBalance, subtotal);
     }
     
     // Vendor balance deduction doesn't reduce customer invoice - it reduces what you owe vendor
     const total = afterAgentCredit;
-    return { subtotal, discountAmount, afterDiscount, depositUsed, agentCreditUsed, vendorBalanceDeducted, vendorCost: vendorCostAmount, total };
-  }, [watchItems, watchDiscountPercent, watchUseDeposit, watchUseAgentCredit, selectedParty, selectedAgent, watchUseVendorBalance, selectedVendor, watchVendorCost]);
+    return { subtotal, discountAmount, afterDiscount, depositUsed, agentCreditUsed, vendorBalanceDeducted, total };
+  }, [watchItems, watchDiscountPercent, watchUseDeposit, watchUseAgentCredit, selectedParty, selectedAgent, watchUseVendorBalance, selectedVendor]);
 
   const createMutation = useMutation({
     mutationFn: async (data: InsertInvoice) => {
@@ -560,10 +543,8 @@ export default function InvoicesPage() {
       customerType: "customer",
       customerId: "",
       vendorId: "",
-      items: [{ sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", amount: 0, basicFare: 0, tax: 0 }],
+      items: [{ sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", amount: 0, basicFare: 0 }],
       discountPercent: 0,
-      vendorCost: 0,
-      paymentMethod: "cash",
       useCustomerDeposit: false,
       useAgentCredit: false,
       useVendorBalance: "none",
@@ -594,14 +575,13 @@ export default function InvoicesPage() {
     }
     const afterAgentCredit = afterDeposit - agentCreditUsed;
 
-    // Calculate vendor balance deduction (based on vendor cost, reduces what you owe vendor)
-    const vendorCostAmount = Number(data.vendorCost) || 0;
+    // Calculate vendor balance deduction (based on subtotal)
     let vendorBalanceDeducted = 0;
-    if (data.useVendorBalance && data.useVendorBalance !== "none" && selectedVendor && vendorCostAmount > 0) {
+    if (data.useVendorBalance && data.useVendorBalance !== "none" && selectedVendor && subtotal > 0) {
       const vendorBalance = data.useVendorBalance === "credit" 
         ? selectedVendor.creditBalance 
         : selectedVendor.depositBalance;
-      vendorBalanceDeducted = Math.min(vendorBalance, vendorCostAmount);
+      vendorBalanceDeducted = Math.min(vendorBalance, subtotal);
     }
     // Vendor balance deduction doesn't reduce customer invoice - it reduces what you owe vendor
     const total = afterAgentCredit;
@@ -615,8 +595,8 @@ export default function InvoicesPage() {
       discountPercent: data.discountPercent,
       discountAmount,
       total,
-      vendorCost: vendorCostAmount,
-      paymentMethod: data.paymentMethod,
+      vendorCost: subtotal,
+      paymentMethod: "cash",
       useCustomerDeposit: data.useCustomerDeposit,
       depositUsed,
       useAgentCredit: data.useAgentCredit,
@@ -700,7 +680,6 @@ export default function InvoicesPage() {
                   <TableRow>
                     <TableHead>Invoice #</TableHead>
                     <TableHead>Date</TableHead>
-                    <TableHead>Payment</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                     <TableHead>Created By</TableHead>
                     <TableHead>Status</TableHead>
@@ -709,7 +688,6 @@ export default function InvoicesPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredInvoices.map((invoice) => {
-                    const PaymentIcon = paymentMethodIcons[invoice.paymentMethod as keyof typeof paymentMethodIcons];
                     return (
                       <TableRow key={invoice.id} data-testid={`row-invoice-${invoice.id}`}>
                         <TableCell className="font-medium font-mono">
@@ -717,12 +695,6 @@ export default function InvoicesPage() {
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {format(new Date(invoice.createdAt), "MMM d, yyyy")}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <PaymentIcon className="w-4 h-4 text-muted-foreground" />
-                            <span className="capitalize text-sm">{invoice.paymentMethod}</span>
-                          </div>
                         </TableCell>
                         <TableCell className="text-right font-mono font-semibold">
                           {formatCurrency(invoice.subtotal - invoice.discountAmount)}
@@ -1026,7 +998,7 @@ export default function InvoicesPage() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => append({ sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", amount: 0, basicFare: 0, tax: 0 })}
+                    onClick={() => append({ sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", amount: 0, basicFare: 0 })}
                     data-testid="button-add-item"
                   >
                     <Plus className="w-4 h-4 mr-1" />
@@ -1122,7 +1094,7 @@ export default function InvoicesPage() {
                           )}
                         />
                       </div>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         <FormField
                           control={form.control}
                           name={`items.${index}.basicFare`}
@@ -1141,30 +1113,6 @@ export default function InvoicesPage() {
                                   name={field.name}
                                   ref={field.ref}
                                   data-testid={`input-item-basic-fare-${index}`}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name={`items.${index}.tax`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-xs">Tax</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  min={0}
-                                  step="0.01"
-                                  placeholder="0.00"
-                                  value={field.value || ''}
-                                  onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
-                                  onBlur={field.onBlur}
-                                  name={field.name}
-                                  ref={field.ref}
-                                  data-testid={`input-item-tax-${index}`}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -1201,70 +1149,6 @@ export default function InvoicesPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="paymentMethod"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Payment Method</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-payment-method">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="cash">
-                            <div className="flex items-center gap-2">
-                              <Banknote className="w-4 h-4" />
-                              Cash
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="card">
-                            <div className="flex items-center gap-2">
-                              <CreditCard className="w-4 h-4" />
-                              Card
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="credit">
-                            <div className="flex items-center gap-2">
-                              <Wallet className="w-4 h-4" />
-                              Credit
-                            </div>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="vendorCost"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Vendor Cost (Actual Cost) *</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          placeholder="Enter actual cost from vendor"
-                          value={field.value || ""}
-                          onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
-                          onBlur={field.onBlur}
-                          name={field.name}
-                          ref={field.ref}
-                          data-testid="input-vendor-cost"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
 
               {selectedCustomer && selectedCustomer.depositBalance > 0 && (
                 <FormField
@@ -1415,12 +1299,6 @@ export default function InvoicesPage() {
                         <span className="font-mono">-{formatCurrency(calculations.agentCreditUsed)}</span>
                       </div>
                     )}
-                    {calculations.vendorCost > 0 && (
-                      <div className="flex justify-between text-sm">
-                        <span>Vendor Cost</span>
-                        <span className="font-mono">{formatCurrency(calculations.vendorCost)}</span>
-                      </div>
-                    )}
                     {calculations.vendorBalanceDeducted > 0 && (
                       <div className="flex justify-between text-sm text-purple-600 dark:text-purple-400">
                         <span>Vendor Balance Deducted</span>
@@ -1431,12 +1309,6 @@ export default function InvoicesPage() {
                       <span>Total Due (Customer)</span>
                       <span className="font-mono">{formatCurrency(calculations.total)}</span>
                     </div>
-                    {calculations.vendorCost > 0 && (
-                      <div className="flex justify-between text-sm text-muted-foreground">
-                        <span>Profit Margin</span>
-                        <span className="font-mono">{formatCurrency(calculations.total - calculations.vendorCost)}</span>
-                      </div>
-                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -1506,10 +1378,6 @@ export default function InvoicesPage() {
                       {viewInvoice.status}
                     </Badge>
                   </div>
-                  <div className="flex items-center justify-end gap-3">
-                    <span className="text-muted-foreground text-xs font-medium">Payment:</span>
-                    <span className="font-semibold text-xs capitalize">{viewInvoice.paymentMethod}</span>
-                  </div>
                 </div>
               </div>
 
@@ -1539,7 +1407,6 @@ export default function InvoicesPage() {
                       <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide">PNR</TableHead>
                       <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide">TKT No</TableHead>
                       <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide text-right">Basic Fare</TableHead>
-                      <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide text-right">Tax</TableHead>
                       <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide text-right">Amount</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1553,7 +1420,6 @@ export default function InvoicesPage() {
                         <TableCell className="font-mono text-sm">{item.pnr || "-"}</TableCell>
                         <TableCell className="font-mono text-sm">{item.tktNo || "-"}</TableCell>
                         <TableCell className="text-right font-mono text-sm">{formatCurrency(item.basicFare || 0)}</TableCell>
-                        <TableCell className="text-right font-mono text-sm">{formatCurrency(item.tax || 0)}</TableCell>
                         <TableCell className="text-right font-mono text-sm font-semibold">{formatCurrency(item.amount)}</TableCell>
                       </TableRow>
                     ))}
