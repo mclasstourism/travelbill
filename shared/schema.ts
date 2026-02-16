@@ -427,6 +427,7 @@ export const cashReceiptsTable = pgTable("cash_receipts", {
   departureTime: varchar("departure_time", { length: 20 }).default(""),
   arrivalTime: varchar("arrival_time", { length: 20 }).default(""),
   basicFare: real("basic_fare").default(0),
+  items: jsonb("items").default([]),
   amount: real("amount").notNull(),
   paymentMethod: varchar("payment_method", { length: 20 }).notNull(),
   description: text("description").default(""),
@@ -446,6 +447,20 @@ export type ReceiptPaymentMethod = typeof receiptPaymentMethods[number];
 export const receiptSourceTypes = ["flight", "other"] as const;
 export type ReceiptSourceType = typeof receiptSourceTypes[number];
 
+export const insertCashReceiptItemSchema = z.object({
+  sector: z.string().min(1, "Sector is required"),
+  travelDate: z.string().min(1, "Travel date is required"),
+  airlinesFlightNo: z.string().optional().default(""),
+  pnr: z.string().optional().default(""),
+  tktNo: z.string().optional().default(""),
+  departureTime: z.string().optional().default(""),
+  arrivalTime: z.string().optional().default(""),
+  amount: z.coerce.number().min(0, "Amount must be positive"),
+  basicFare: z.coerce.number().min(0).default(0),
+});
+
+export type CashReceiptItem = z.infer<typeof insertCashReceiptItemSchema>;
+
 export const insertCashReceiptSchema = z.object({
   partyType: z.enum(receiptPartyTypes),
   partyId: z.string().min(1, "Party is required"),
@@ -459,6 +474,7 @@ export const insertCashReceiptSchema = z.object({
   departureTime: z.string().optional().or(z.literal("")),
   arrivalTime: z.string().optional().or(z.literal("")),
   basicFare: z.coerce.number().optional().default(0),
+  items: z.array(insertCashReceiptItemSchema).optional().default([]),
   amount: z.coerce.number().min(0.01, "Amount must be positive"),
   paymentMethod: z.enum(receiptPaymentMethods),
   description: z.string().optional().or(z.literal("")),

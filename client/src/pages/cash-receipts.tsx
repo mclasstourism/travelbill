@@ -43,8 +43,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Receipt, Search, Loader2, Eye, Printer, Calendar, Download, User } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { Label } from "@/components/ui/label";
+import { Plus, Receipt, Search, Loader2, Eye, Printer, Calendar, Download, User, Trash2 } from "lucide-react";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval, parseISO } from "date-fns";
 import { z } from "zod";
@@ -71,33 +72,30 @@ function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
+const receiptItemSchema = z.object({
+  sector: z.string().min(1, "Sector is required"),
+  travelDate: z.string().min(1, "Travel date is required"),
+  airlinesFlightNo: z.string().optional().default(""),
+  pnr: z.string().optional().default(""),
+  tktNo: z.string().optional().default(""),
+  departureTime: z.string().optional().default(""),
+  arrivalTime: z.string().optional().default(""),
+  amount: z.coerce.number().min(0, "Amount must be positive"),
+  basicFare: z.coerce.number().min(0).default(0),
+});
+
 const createReceiptSchema = z.object({
   partyType: z.enum(["customer", "agent", "vendor"]),
-  partyId: z.string().min(1, "Party is required"),
+  partyId: z.string().min(1, "Customer is required"),
   sourceType: z.enum(["flight", "other"]),
-  pnr: z.string().optional().or(z.literal("")),
-  serviceName: z.string().optional().or(z.literal("")),
-  sector: z.string().optional().or(z.literal("")),
-  travelDate: z.string().optional().or(z.literal("")),
-  airlinesFlightNo: z.string().optional().or(z.literal("")),
-  tktNo: z.string().optional().or(z.literal("")),
-  departureTime: z.string().optional().or(z.literal("")),
-  arrivalTime: z.string().optional().or(z.literal("")),
-  basicFare: z.coerce.number().optional().default(0),
-  amount: z.coerce.number().min(0.01, "Amount must be positive"),
+  items: z.array(receiptItemSchema).min(1, "At least one item is required"),
   paymentMethod: z.enum(["cash", "card", "cheque", "bank_transfer"]),
   description: z.string().optional().or(z.literal("")),
   referenceNumber: z.string().optional().or(z.literal("")),
-}).superRefine((data, ctx) => {
-  if (data.sourceType === "flight") {
-    if (!data.sector || data.sector.trim() === "") {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Sector is required", path: ["sector"] });
-    }
-    if (!data.travelDate || data.travelDate.trim() === "") {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Travel date is required", path: ["travelDate"] });
-    }
-  }
-});
+}).refine((data) => {
+  const total = data.items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  return total > 0;
+}, { message: "Total amount must be greater than zero", path: ["items"] });
 
 type CreateReceiptForm = z.infer<typeof createReceiptSchema>;
 
@@ -132,6 +130,12 @@ export default function CashReceiptsPage() {
   const [pinVerifiedUser, setPinVerifiedUser] = useState<{ userId: string; username: string } | null>(null);
   const [customerSearch, setCustomerSearch] = useState("");
   const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
+  const [quickCreateCustomer, setQuickCreateCustomer] = useState(false);
+  const [newCustomerName, setNewCustomerName] = useState("");
+  const [newCustomerPhone, setNewCustomerPhone] = useState("");
+  const [newCustomerEmail, setNewCustomerEmail] = useState("");
+  const [newCustomerCompany, setNewCustomerCompany] = useState("");
+  const [newCustomerAddress, setNewCustomerAddress] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [createdByFilter, setCreatedByFilter] = useState("all");
   const [selectedReceipt, setSelectedReceipt] = useState<CashReceipt | null>(null);
@@ -163,24 +167,22 @@ export default function CashReceiptsPage() {
       partyType: "customer",
       partyId: "",
       sourceType: "flight",
-      pnr: "",
-      serviceName: "",
-      sector: "",
-      travelDate: "",
-      airlinesFlightNo: "",
-      tktNo: "",
-      departureTime: "",
-      arrivalTime: "",
-      basicFare: 0,
-      amount: 0,
+      items: [{ sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", departureTime: "", arrivalTime: "", amount: 0, basicFare: 0 }],
       paymentMethod: "cash",
       description: "",
       referenceNumber: "",
     },
   });
 
-  const selectedPartyType = form.watch("partyType");
-  const selectedSourceType = form.watch("sourceType");
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "items",
+  });
+
+  const watchedItems = form.watch("items");
+  const formTotalAmount = useMemo(() => {
+    return (watchedItems || []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  }, [watchedItems]);
 
   const filteredCustomers = useMemo(() => {
     if (!customerSearch.trim()) return customers;
@@ -191,23 +193,47 @@ export default function CashReceiptsPage() {
     );
   }, [customers, customerSearch]);
 
-  const partyOptions = useMemo(() => {
-    switch (selectedPartyType) {
-      case "customer":
-        return customers.map(c => ({ id: c.id, name: c.name }));
-      case "agent":
-        return agents.map(a => ({ id: a.id, name: a.name }));
-      case "vendor":
-        return vendors.map(v => ({ id: v.id, name: v.name }));
-      default:
-        return [];
-    }
-  }, [selectedPartyType, customers, agents, vendors]);
+  const resetQuickCustomerFields = () => {
+    setNewCustomerName("");
+    setNewCustomerPhone("");
+    setNewCustomerEmail("");
+    setNewCustomerCompany("");
+    setNewCustomerAddress("");
+  };
+
+  const quickCreateCustomerMutation = useMutation({
+    mutationFn: async (data: { name: string; phone: string; email: string; company: string; address: string }) => {
+      const res = await apiRequest("POST", "/api/customers", data);
+      return res.json();
+    },
+    onSuccess: (newCustomer: Customer) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      form.setValue("partyId", newCustomer.id);
+      setQuickCreateCustomer(false);
+      resetQuickCustomerFields();
+      setCustomerSearch("");
+      toast({ title: "Customer created", description: `${newCustomer.name} has been added.` });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
 
   const createMutation = useMutation({
     mutationFn: async (data: CreateReceiptForm) => {
+      const amount = data.items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+      const firstItem = data.items[0] || {};
       const res = await apiRequest("POST", "/api/cash-receipts", {
         ...data,
+        amount,
+        sector: firstItem.sector || "",
+        travelDate: firstItem.travelDate || "",
+        airlinesFlightNo: firstItem.airlinesFlightNo || "",
+        pnr: firstItem.pnr || "",
+        tktNo: firstItem.tktNo || "",
+        departureTime: firstItem.departureTime || "",
+        arrivalTime: firstItem.arrivalTime || "",
+        basicFare: firstItem.basicFare || 0,
         issuedBy: pinVerifiedUser?.userId || user?.id || "",
         createdByName: pinVerifiedUser?.username || user?.username || "",
       });
@@ -220,6 +246,8 @@ export default function CashReceiptsPage() {
       form.reset();
       setCustomerSearch("");
       setIsCustomerDropdownOpen(false);
+      setQuickCreateCustomer(false);
+      resetQuickCustomerFields();
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to create receipt.", variant: "destructive" });
@@ -362,59 +390,38 @@ export default function CashReceiptsPage() {
             </tr>
           </thead>
           <tbody>
-            <tr style="background: #ffffff;">
-              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Source</td>
-              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500;">${receipt.sourceType === "flight" ? "Flight Details" : "Other Service"}</td>
-            </tr>
-            ${receipt.sourceType === "flight" && receipt.sector ? `
+            ${(() => {
+              const items = (receipt.items && Array.isArray(receipt.items) && (receipt.items as any[]).length > 0)
+                ? (receipt.items as any[])
+                : (receipt.sector ? [{
+                    sector: receipt.sector,
+                    travelDate: receipt.travelDate,
+                    airlinesFlightNo: receipt.airlinesFlightNo,
+                    pnr: receipt.pnr,
+                    tktNo: receipt.tktNo,
+                    departureTime: receipt.departureTime,
+                    arrivalTime: receipt.arrivalTime,
+                    basicFare: receipt.basicFare,
+                    amount: receipt.amount,
+                  }] : ((receipt as any).serviceName ? [{
+                    sector: (receipt as any).serviceName,
+                    amount: receipt.amount,
+                  }] : []));
+              return items.map((item: any, idx: number) => `
+                <tr style="background: #f0fdf4;">
+                  <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #1a5632; font-weight: 600;" colspan="2">Booking ${items.length > 1 ? idx + 1 : ''}</td>
+                </tr>
+                ${item.sector ? `<tr style="background: #ffffff;"><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Sector</td><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500;">${item.sector}</td></tr>` : ''}
+                ${item.travelDate ? `<tr style="background: #f8fafc;"><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Travel Date</td><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500;">${item.travelDate}</td></tr>` : ''}
+                ${item.airlinesFlightNo ? `<tr style="background: #ffffff;"><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Flight No</td><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500;">${item.airlinesFlightNo}</td></tr>` : ''}
+                ${item.pnr ? `<tr style="background: #f8fafc;"><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">PNR</td><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500; font-family: 'Courier New', monospace;">${item.pnr}</td></tr>` : ''}
+                ${item.tktNo ? `<tr style="background: #ffffff;"><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">TKT No</td><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500; font-family: 'Courier New', monospace;">${item.tktNo}</td></tr>` : ''}
+                ${(item.departureTime || item.arrivalTime) ? `<tr style="background: #f8fafc;"><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Departure / Arrival</td><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500;">${item.departureTime || "--"} / ${item.arrivalTime || "--"}</td></tr>` : ''}
+                ${item.basicFare > 0 ? `<tr style="background: #ffffff;"><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Basic Fare</td><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500; font-family: 'Courier New', monospace;">AED ${Number(item.basicFare).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td></tr>` : ''}
+                ${items.length > 1 ? `<tr style="background: #f8fafc;"><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Amount</td><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500; font-family: 'Courier New', monospace;">AED ${Number(item.amount || 0).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td></tr>` : ''}
+              `).join('');
+            })()}
             <tr style="background: #f8fafc;">
-              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Sector</td>
-              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500;">${receipt.sector}</td>
-            </tr>
-            ` : ""}
-            ${receipt.sourceType === "flight" && receipt.travelDate ? `
-            <tr style="background: #ffffff;">
-              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Travel Date</td>
-              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500;">${receipt.travelDate}</td>
-            </tr>
-            ` : ""}
-            ${receipt.sourceType === "flight" && receipt.airlinesFlightNo ? `
-            <tr style="background: #f8fafc;">
-              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Flight No</td>
-              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500;">${receipt.airlinesFlightNo}</td>
-            </tr>
-            ` : ""}
-            ${receipt.sourceType === "flight" && receipt.pnr ? `
-            <tr style="background: #ffffff;">
-              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">PNR</td>
-              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500; font-family: 'Courier New', monospace;">${receipt.pnr}</td>
-            </tr>
-            ` : ""}
-            ${receipt.sourceType === "flight" && receipt.tktNo ? `
-            <tr style="background: #f8fafc;">
-              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">TKT No</td>
-              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500; font-family: 'Courier New', monospace;">${receipt.tktNo}</td>
-            </tr>
-            ` : ""}
-            ${receipt.sourceType === "flight" && (receipt.departureTime || receipt.arrivalTime) ? `
-            <tr style="background: #ffffff;">
-              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Departure / Arrival</td>
-              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500;">${receipt.departureTime || "--"} / ${receipt.arrivalTime || "--"}</td>
-            </tr>
-            ` : ""}
-            ${receipt.sourceType === "flight" && receipt.basicFare ? `
-            <tr style="background: #f8fafc;">
-              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Basic Fare</td>
-              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500; font-family: 'Courier New', monospace;">AED ${receipt.basicFare.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
-            </tr>
-            ` : ""}
-            ${receipt.sourceType === "other" && receipt.serviceName ? `
-            <tr style="background: #f8fafc;">
-              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Service</td>
-              <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500;">${receipt.serviceName}</td>
-            </tr>
-            ` : ""}
-            <tr style="background: ${receipt.sourceType === "flight" && receipt.pnr ? "#ffffff" : "#f8fafc"};">
               <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Payment Method</td>
               <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500;">${getPaymentMethodLabel(receipt.paymentMethod)}</td>
             </tr>
@@ -745,58 +752,79 @@ export default function CashReceiptsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border-b">
-                      <td className="px-3 py-2 text-muted-foreground">Source</td>
-                      <td className="px-3 py-2 text-right font-medium" data-testid="text-receipt-source-type">{selectedReceipt.sourceType === "flight" ? "Flight Details" : "Other Service"}</td>
-                    </tr>
-                    {selectedReceipt.sourceType === "flight" && selectedReceipt.sector && (
-                      <tr className="border-b bg-muted/30">
-                        <td className="px-3 py-2 text-muted-foreground">Sector</td>
-                        <td className="px-3 py-2 text-right font-medium" data-testid="text-receipt-sector">{selectedReceipt.sector}</td>
-                      </tr>
-                    )}
-                    {selectedReceipt.sourceType === "flight" && selectedReceipt.travelDate && (
-                      <tr className="border-b">
-                        <td className="px-3 py-2 text-muted-foreground">Travel Date</td>
-                        <td className="px-3 py-2 text-right font-medium" data-testid="text-receipt-travel-date">{selectedReceipt.travelDate}</td>
-                      </tr>
-                    )}
-                    {selectedReceipt.sourceType === "flight" && selectedReceipt.airlinesFlightNo && (
-                      <tr className="border-b bg-muted/30">
-                        <td className="px-3 py-2 text-muted-foreground">Flight No</td>
-                        <td className="px-3 py-2 text-right font-medium" data-testid="text-receipt-airlines">{selectedReceipt.airlinesFlightNo}</td>
-                      </tr>
-                    )}
-                    {selectedReceipt.sourceType === "flight" && selectedReceipt.pnr && (
-                      <tr className="border-b">
-                        <td className="px-3 py-2 text-muted-foreground">PNR</td>
-                        <td className="px-3 py-2 text-right font-mono font-medium" data-testid="text-receipt-pnr">{selectedReceipt.pnr}</td>
-                      </tr>
-                    )}
-                    {selectedReceipt.sourceType === "flight" && selectedReceipt.tktNo && (
-                      <tr className="border-b bg-muted/30">
-                        <td className="px-3 py-2 text-muted-foreground">TKT No</td>
-                        <td className="px-3 py-2 text-right font-mono font-medium" data-testid="text-receipt-tkt-no">{selectedReceipt.tktNo}</td>
-                      </tr>
-                    )}
-                    {selectedReceipt.sourceType === "flight" && (selectedReceipt.departureTime || selectedReceipt.arrivalTime) && (
-                      <tr className="border-b">
-                        <td className="px-3 py-2 text-muted-foreground">Departure / Arrival</td>
-                        <td className="px-3 py-2 text-right font-medium" data-testid="text-receipt-times">{selectedReceipt.departureTime || "--"} / {selectedReceipt.arrivalTime || "--"}</td>
-                      </tr>
-                    )}
-                    {selectedReceipt.sourceType === "flight" && selectedReceipt.basicFare ? (
-                      <tr className="border-b bg-muted/30">
-                        <td className="px-3 py-2 text-muted-foreground">Basic Fare</td>
-                        <td className="px-3 py-2 text-right font-mono font-medium" data-testid="text-receipt-basic-fare">{formatCurrency(selectedReceipt.basicFare)}</td>
-                      </tr>
-                    ) : null}
-                    {selectedReceipt.sourceType === "other" && selectedReceipt.serviceName && (
-                      <tr className="border-b bg-muted/30">
-                        <td className="px-3 py-2 text-muted-foreground">Service</td>
-                        <td className="px-3 py-2 text-right font-medium" data-testid="text-receipt-service-name">{selectedReceipt.serviceName}</td>
-                      </tr>
-                    )}
+                    {(() => {
+                      const items = (selectedReceipt.items && Array.isArray(selectedReceipt.items) && (selectedReceipt.items as any[]).length > 0)
+                        ? (selectedReceipt.items as any[])
+                        : (selectedReceipt.sector ? [{
+                            sector: selectedReceipt.sector,
+                            travelDate: selectedReceipt.travelDate,
+                            airlinesFlightNo: selectedReceipt.airlinesFlightNo,
+                            pnr: selectedReceipt.pnr,
+                            tktNo: selectedReceipt.tktNo,
+                            departureTime: selectedReceipt.departureTime,
+                            arrivalTime: selectedReceipt.arrivalTime,
+                            basicFare: selectedReceipt.basicFare,
+                            amount: selectedReceipt.amount,
+                          }] : ((selectedReceipt as any).serviceName ? [{
+                            sector: (selectedReceipt as any).serviceName,
+                            amount: selectedReceipt.amount,
+                          }] : []));
+                      return items.map((item: any, idx: number) => (
+                        <>
+                          <tr className="border-b bg-muted/30" key={`header-${idx}`}>
+                            <td className="px-3 py-2 text-muted-foreground font-semibold" colSpan={2}>Booking {items.length > 1 ? idx + 1 : ''}</td>
+                          </tr>
+                          {item.sector && (
+                            <tr className="border-b" key={`sector-${idx}`}>
+                              <td className="px-3 py-2 text-muted-foreground">Sector</td>
+                              <td className="px-3 py-2 text-right font-medium">{item.sector}</td>
+                            </tr>
+                          )}
+                          {item.travelDate && (
+                            <tr className="border-b" key={`date-${idx}`}>
+                              <td className="px-3 py-2 text-muted-foreground">Travel Date</td>
+                              <td className="px-3 py-2 text-right font-medium">{item.travelDate}</td>
+                            </tr>
+                          )}
+                          {item.airlinesFlightNo && (
+                            <tr className="border-b" key={`flight-${idx}`}>
+                              <td className="px-3 py-2 text-muted-foreground">Flight No</td>
+                              <td className="px-3 py-2 text-right font-medium">{item.airlinesFlightNo}</td>
+                            </tr>
+                          )}
+                          {item.pnr && (
+                            <tr className="border-b" key={`pnr-${idx}`}>
+                              <td className="px-3 py-2 text-muted-foreground">PNR</td>
+                              <td className="px-3 py-2 text-right font-mono font-medium">{item.pnr}</td>
+                            </tr>
+                          )}
+                          {item.tktNo && (
+                            <tr className="border-b" key={`tkt-${idx}`}>
+                              <td className="px-3 py-2 text-muted-foreground">TKT No</td>
+                              <td className="px-3 py-2 text-right font-mono font-medium">{item.tktNo}</td>
+                            </tr>
+                          )}
+                          {(item.departureTime || item.arrivalTime) && (
+                            <tr className="border-b" key={`times-${idx}`}>
+                              <td className="px-3 py-2 text-muted-foreground">Departure / Arrival</td>
+                              <td className="px-3 py-2 text-right font-medium">{item.departureTime || "--"} / {item.arrivalTime || "--"}</td>
+                            </tr>
+                          )}
+                          {item.basicFare > 0 && (
+                            <tr className="border-b" key={`fare-${idx}`}>
+                              <td className="px-3 py-2 text-muted-foreground">Basic Fare</td>
+                              <td className="px-3 py-2 text-right font-mono font-medium">{formatCurrency(item.basicFare)}</td>
+                            </tr>
+                          )}
+                          {items.length > 1 && (
+                            <tr className="border-b" key={`amount-${idx}`}>
+                              <td className="px-3 py-2 text-muted-foreground">Amount</td>
+                              <td className="px-3 py-2 text-right font-mono font-medium">{formatCurrency(item.amount || 0)}</td>
+                            </tr>
+                          )}
+                        </>
+                      ));
+                    })()}
                     <tr className="border-b">
                       <td className="px-3 py-2 text-muted-foreground">Payment Method</td>
                       <td className="px-3 py-2 text-right font-medium" data-testid="text-receipt-payment-method">{getPaymentMethodLabel(selectedReceipt.paymentMethod)}</td>
@@ -859,7 +887,7 @@ export default function CashReceiptsPage() {
       </Dialog>
 
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create Cash Receipt</DialogTitle>
             <DialogDescription>Record a payment received from a customer.</DialogDescription>
@@ -903,6 +931,17 @@ export default function CashReceiptsPage() {
                         </div>
                         {isCustomerDropdownOpen && (
                           <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md max-h-48 overflow-y-auto">
+                            <div
+                              className="px-3 py-2 text-sm cursor-pointer font-medium text-[hsl(var(--primary))] hover-elevate"
+                              data-testid="button-quick-create-customer"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => {
+                                setQuickCreateCustomer(true);
+                                setIsCustomerDropdownOpen(false);
+                              }}
+                            >
+                              <Plus className="w-3 h-3 inline mr-1" /> Create New Customer
+                            </div>
                             {filteredCustomers.length > 0 ? (
                               filteredCustomers.map((c) => (
                                 <div
@@ -931,134 +970,242 @@ export default function CashReceiptsPage() {
                 }}
               />
 
-              <div className="border border-dashed rounded-md p-4 space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Flight Details</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <FormField
-                      control={form.control}
-                      name="sector"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Sector *</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="e.g. DXB-LHR" data-testid="input-sector" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="travelDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Travel Date *</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} data-testid="input-travel-date" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+              {quickCreateCustomer && (
+                <div className="p-4 rounded-md border border-dashed border-[hsl(var(--primary))] bg-muted/30 space-y-3">
+                  <h4 className="font-medium text-sm">Quick Create Customer</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Name *</Label>
+                      <Input
+                        placeholder="Enter name"
+                        value={newCustomerName}
+                        onChange={(e) => setNewCustomerName(e.target.value)}
+                        data-testid="input-quick-customer-name"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Phone *</Label>
+                      <Input
+                        placeholder="Enter phone"
+                        value={newCustomerPhone}
+                        onChange={(e) => setNewCustomerPhone(e.target.value)}
+                        data-testid="input-quick-customer-phone"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Email</Label>
+                      <Input
+                        type="email"
+                        placeholder="Enter email"
+                        value={newCustomerEmail}
+                        onChange={(e) => setNewCustomerEmail(e.target.value)}
+                        data-testid="input-quick-customer-email"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Company</Label>
+                      <Input
+                        placeholder="Enter company"
+                        value={newCustomerCompany}
+                        onChange={(e) => setNewCustomerCompany(e.target.value)}
+                        data-testid="input-quick-customer-company"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Address</Label>
+                    <Input
+                      placeholder="Enter address"
+                      value={newCustomerAddress}
+                      onChange={(e) => setNewCustomerAddress(e.target.value)}
+                      data-testid="input-quick-customer-address"
                     />
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    <FormField
-                      control={form.control}
-                      name="airlinesFlightNo"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Flight No</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="e.g. EK202" data-testid="input-airlines-flight-no" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="pnr"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>PNR</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="PNR" data-testid="input-pnr" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="tktNo"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>TKT No</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="Ticket No" data-testid="input-tkt-no" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <FormField
-                      control={form.control}
-                      name="departureTime"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Departure Time</FormLabel>
-                          <FormControl>
-                            <Input type="time" {...field} data-testid="input-departure-time" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="arrivalTime"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Arrival Time</FormLabel>
-                          <FormControl>
-                            <Input type="time" {...field} data-testid="input-arrival-time" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <FormField
-                      control={form.control}
-                      name="basicFare"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Basic Fare</FormLabel>
-                          <FormControl>
-                            <Input type="number" step="0.01" min="0" {...field} data-testid="input-basic-fare" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="amount"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Amount (AED) *</FormLabel>
-                          <FormControl>
-                            <Input type="number" step="0.01" min="0.01" {...field} data-testid="input-flight-amount" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  <div className="flex gap-2 justify-end">
+                    <Button type="button" variant="ghost" size="sm" onClick={() => { setQuickCreateCustomer(false); resetQuickCustomerFields(); }} data-testid="button-cancel-quick-customer">
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={!newCustomerName || !newCustomerPhone || quickCreateCustomerMutation.isPending}
+                      onClick={() => {
+                        quickCreateCustomerMutation.mutate({ name: newCustomerName, phone: newCustomerPhone, email: newCustomerEmail, company: newCustomerCompany, address: newCustomerAddress });
+                      }}
+                      data-testid="button-save-quick-customer"
+                    >
+                      {quickCreateCustomerMutation.isPending ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : null}
+                      Create
+                    </Button>
                   </div>
                 </div>
+              )}
+
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <p className="text-sm font-semibold">Line Items</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => append({ sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", departureTime: "", arrivalTime: "", amount: 0, basicFare: 0 })}
+                  data-testid="button-add-item"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Item
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                {fields.map((field, index) => (
+                  <div key={field.id} className="p-3 rounded-md bg-muted/50 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Item {index + 1}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => fields.length > 1 && remove(index)}
+                        disabled={fields.length <= 1}
+                        data-testid={`button-remove-item-${index}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <FormField
+                        control={form.control}
+                        name={`items.${index}.sector`}
+                        render={({ field: f }) => (
+                          <FormItem>
+                            <FormLabel>Sector *</FormLabel>
+                            <FormControl>
+                              <Input {...f} placeholder="e.g. DXB-LHR" data-testid={`input-sector-${index}`} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`items.${index}.travelDate`}
+                        render={({ field: f }) => (
+                          <FormItem>
+                            <FormLabel>Travel Date *</FormLabel>
+                            <FormControl>
+                              <Input type="date" {...f} data-testid={`input-travel-date-${index}`} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <FormField
+                        control={form.control}
+                        name={`items.${index}.airlinesFlightNo`}
+                        render={({ field: f }) => (
+                          <FormItem>
+                            <FormLabel>Flight No</FormLabel>
+                            <FormControl>
+                              <Input {...f} placeholder="e.g. EK202" data-testid={`input-flight-no-${index}`} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`items.${index}.pnr`}
+                        render={({ field: f }) => (
+                          <FormItem>
+                            <FormLabel>PNR</FormLabel>
+                            <FormControl>
+                              <Input {...f} placeholder="PNR" data-testid={`input-pnr-${index}`} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`items.${index}.tktNo`}
+                        render={({ field: f }) => (
+                          <FormItem>
+                            <FormLabel>TKT No</FormLabel>
+                            <FormControl>
+                              <Input {...f} placeholder="Ticket No" data-testid={`input-tkt-no-${index}`} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <FormField
+                        control={form.control}
+                        name={`items.${index}.departureTime`}
+                        render={({ field: f }) => (
+                          <FormItem>
+                            <FormLabel>Departure Time</FormLabel>
+                            <FormControl>
+                              <Input type="time" {...f} data-testid={`input-departure-${index}`} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`items.${index}.arrivalTime`}
+                        render={({ field: f }) => (
+                          <FormItem>
+                            <FormLabel>Arrival Time</FormLabel>
+                            <FormControl>
+                              <Input type="time" {...f} data-testid={`input-arrival-${index}`} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <FormField
+                        control={form.control}
+                        name={`items.${index}.basicFare`}
+                        render={({ field: f }) => (
+                          <FormItem>
+                            <FormLabel>Basic Fare</FormLabel>
+                            <FormControl>
+                              <Input type="number" step="0.01" min="0" {...f} data-testid={`input-basic-fare-${index}`} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`items.${index}.amount`}
+                        render={({ field: f }) => (
+                          <FormItem>
+                            <FormLabel>Amount (AED) *</FormLabel>
+                            <FormControl>
+                              <Input type="number" step="0.01" min="0" {...f} data-testid={`input-amount-${index}`} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-between gap-2 p-3 rounded-md bg-muted/30 flex-wrap">
+                <span className="text-sm font-medium">Total Amount</span>
+                <span className="text-sm font-bold font-mono">{formatCurrency(formTotalAmount)}</span>
+              </div>
 
               <FormField
                 control={form.control}
