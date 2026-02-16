@@ -582,79 +582,6 @@ export default function ReportsPage() {
     );
   };
 
-  const renderTransactionFilters = () => {
-    if (activeTab === "invoices") return null;
-
-    return (
-      <div className="flex flex-wrap items-end gap-4 mt-4">
-        <div className="space-y-2 flex-1 min-w-[200px]">
-          <Label>Search Description</Label>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search transactions..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-              data-testid="input-search"
-            />
-          </div>
-        </div>
-
-        {activeTab === "customer_transactions" && (
-          <div className="space-y-2">
-            <Label>Customer</Label>
-            <Select value={customerFilter} onValueChange={setCustomerFilter}>
-              <SelectTrigger className="w-48" data-testid="select-customer-filter">
-                <SelectValue placeholder="All Customers" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Customers</SelectItem>
-                {customers.map(c => (
-                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        {activeTab === "agent_transactions" && (
-          <div className="space-y-2">
-            <Label>Agent</Label>
-            <Select value={agentFilter} onValueChange={setAgentFilter}>
-              <SelectTrigger className="w-48" data-testid="select-agent-filter">
-                <SelectValue placeholder="All Agents" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Agents</SelectItem>
-                {agents.map(a => (
-                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        {activeTab === "vendor_transactions" && (
-          <div className="space-y-2">
-            <Label>Vendor</Label>
-            <Select value={vendorFilter} onValueChange={setVendorFilter}>
-              <SelectTrigger className="w-48" data-testid="select-vendor-filter">
-                <SelectValue placeholder="All Vendors" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Vendors</SelectItem>
-                {vendors.map(v => (
-                  <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -674,63 +601,107 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            Date Filter
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap items-end gap-4">
-            <div className="space-y-2">
-              <Label>Date Range</Label>
-              <Select value={dateRange} onValueChange={(v: DateRange) => setDateRange(v)}>
-                <SelectTrigger className="w-40" data-testid="select-date-range">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="this_week">This Week</SelectItem>
-                  <SelectItem value="this_month">This Month</SelectItem>
-                  <SelectItem value="this_year">This Year</SelectItem>
-                  <SelectItem value="custom">Custom Range</SelectItem>
-                </SelectContent>
-              </Select>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <Calendar className="w-4 h-4" />
+          <span>Date Filter</span>
+        </div>
+        <Select value={dateRange} onValueChange={(v: DateRange) => setDateRange(v)}>
+          <SelectTrigger className="w-36" data-testid="select-date-range">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="today">Today</SelectItem>
+            <SelectItem value="this_week">This Week</SelectItem>
+            <SelectItem value="this_month">This Month</SelectItem>
+            <SelectItem value="this_year">This Year</SelectItem>
+            <SelectItem value="custom">Custom Range</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {dateRange === "custom" && (
+          <>
+            <Input
+              type="date"
+              value={customStartDate}
+              onChange={(e) => setCustomStartDate(e.target.value)}
+              className="w-36"
+              data-testid="input-start-date"
+            />
+            <span className="text-sm text-muted-foreground">to</span>
+            <Input
+              type="date"
+              value={customEndDate}
+              onChange={(e) => setCustomEndDate(e.target.value)}
+              className="w-36"
+              data-testid="input-end-date"
+            />
+          </>
+        )}
+
+        {dateFilter && (
+          <span className="text-sm text-muted-foreground">
+            Showing: {format(dateFilter.start, "MMM d, yyyy")} - {format(dateFilter.end, "MMM d, yyyy")}
+          </span>
+        )}
+
+        {activeTab !== "invoices" && (
+          <>
+            <div className="relative flex-1 min-w-[180px] max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+                data-testid="input-search"
+              />
             </div>
 
-            {dateRange === "custom" && (
-              <>
-                <div className="space-y-2">
-                  <Label>Start Date</Label>
-                  <Input
-                    type="date"
-                    value={customStartDate}
-                    onChange={(e) => setCustomStartDate(e.target.value)}
-                    data-testid="input-start-date"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>End Date</Label>
-                  <Input
-                    type="date"
-                    value={customEndDate}
-                    onChange={(e) => setCustomEndDate(e.target.value)}
-                    data-testid="input-end-date"
-                  />
-                </div>
-              </>
+            {activeTab === "customer_transactions" && (
+              <Select value={customerFilter} onValueChange={setCustomerFilter}>
+                <SelectTrigger className="w-44" data-testid="select-customer-filter">
+                  <SelectValue placeholder="All Customers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Customers</SelectItem>
+                  {customers.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
 
-            {dateFilter && (
-              <div className="text-sm text-muted-foreground">
-                Showing: {format(dateFilter.start, "MMM d, yyyy")} - {format(dateFilter.end, "MMM d, yyyy")}
-              </div>
+            {activeTab === "agent_transactions" && (
+              <Select value={agentFilter} onValueChange={setAgentFilter}>
+                <SelectTrigger className="w-44" data-testid="select-agent-filter">
+                  <SelectValue placeholder="All Agents" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Agents</SelectItem>
+                  {agents.map(a => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
-          </div>
-          {renderTransactionFilters()}
-        </CardContent>
-      </Card>
+
+            {activeTab === "vendor_transactions" && (
+              <Select value={vendorFilter} onValueChange={setVendorFilter}>
+                <SelectTrigger className="w-44" data-testid="select-vendor-filter">
+                  <SelectValue placeholder="All Vendors" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Vendors</SelectItem>
+                  {vendors.map(v => (
+                    <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </>
+        )}
+      </div>
 
       {renderSummaryCards()}
 
