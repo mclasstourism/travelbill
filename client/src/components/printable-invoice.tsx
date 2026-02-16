@@ -123,6 +123,8 @@ export const PrintableInvoice = forwardRef<HTMLDivElement, PrintableInvoiceProps
               <th className="border border-gray-800 p-2 text-left">Flight</th>
               <th className="border border-gray-800 p-2 text-left">PNR</th>
               <th className="border border-gray-800 p-2 text-left">TKT No</th>
+              <th className="border border-gray-800 p-2 text-left">Dep</th>
+              <th className="border border-gray-800 p-2 text-left">Arr</th>
               <th className="border border-gray-800 p-2 text-right">Basic Fare</th>
               <th className="border border-gray-800 p-2 text-right">Amount</th>
             </tr>
@@ -136,6 +138,8 @@ export const PrintableInvoice = forwardRef<HTMLDivElement, PrintableInvoiceProps
                 <td className="border border-gray-300 p-2">{item.airlinesFlightNo || "-"}</td>
                 <td className="border border-gray-300 p-2 font-mono">{item.pnr || "-"}</td>
                 <td className="border border-gray-300 p-2 font-mono">{item.tktNo || "-"}</td>
+                <td className="border border-gray-300 p-2">{item.departureTime || "-"}</td>
+                <td className="border border-gray-300 p-2">{item.arrivalTime || "-"}</td>
                 <td className="border border-gray-300 p-2 text-right font-mono">{formatCurrency(item.basicFare || 0)}</td>
                 <td className="border border-gray-300 p-2 text-right font-mono font-semibold">{formatCurrency(item.amount || 0)}</td>
               </tr>

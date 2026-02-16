@@ -244,6 +244,8 @@ export const insertInvoiceItemSchema = z.object({
   airlinesFlightNo: z.string().optional().default(""),
   pnr: z.string().optional().default(""),
   tktNo: z.string().optional().default(""),
+  departureTime: z.string().optional().default(""),
+  arrivalTime: z.string().optional().default(""),
   amount: z.coerce.number().min(0, "Amount must be positive"),
   basicFare: z.coerce.number().min(0).default(0),
 });

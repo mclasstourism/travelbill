@@ -111,6 +111,8 @@ const createInvoiceFormSchema = z.object({
     airlinesFlightNo: z.string().default(""),
     pnr: z.string().default(""),
     tktNo: z.string().default(""),
+    departureTime: z.string().default(""),
+    arrivalTime: z.string().default(""),
     amount: z.coerce.number().min(0, "Amount must be positive"),
     basicFare: z.coerce.number().min(0).default(0),
   })).min(1, "At least one item is required"),
@@ -256,6 +258,8 @@ export default function InvoicesPage() {
               <th style="text-align: center; padding: 10px 8px; background: #1a5632; color: white; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">FLIGHT</th>
               <th style="text-align: center; padding: 10px 8px; background: #1a5632; color: white; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">PNR</th>
               <th style="text-align: center; padding: 10px 8px; background: #1a5632; color: white; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">TKT NO</th>
+              <th style="text-align: center; padding: 10px 8px; background: #1a5632; color: white; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">DEP</th>
+              <th style="text-align: center; padding: 10px 8px; background: #1a5632; color: white; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">ARR</th>
               <th style="text-align: right; padding: 10px 8px; background: #1a5632; color: white; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">SUB TOTAL</th>
             </tr>
           </thead>
@@ -267,6 +271,8 @@ export default function InvoicesPage() {
                 <td style="text-align: center; padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">${item.airlinesFlightNo || '-'}</td>
                 <td style="text-align: center; padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">${item.pnr || '-'}</td>
                 <td style="text-align: center; padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">${item.tktNo || '-'}</td>
+                <td style="text-align: center; padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">${item.departureTime || '-'}</td>
+                <td style="text-align: center; padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">${item.arrivalTime || '-'}</td>
                 <td style="text-align: right; padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-family: 'Courier New', monospace; font-weight: 600;">${(item.amount || 0).toLocaleString("en-AE", { minimumFractionDigits: 2 })} <span style="font-size: 10px; color: #64748b;">AED</span></td>
               </tr>
             `).join('')}
@@ -371,7 +377,7 @@ export default function InvoicesPage() {
       customerType: "customer",
       customerId: "",
       vendorId: "",
-      items: [{ sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", amount: 0, basicFare: 0 }],
+      items: [{ sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", departureTime: "", arrivalTime: "", amount: 0, basicFare: 0 }],
       discountPercent: 0,
       useCustomerDeposit: false,
       useAgentCredit: false,
@@ -543,7 +549,7 @@ export default function InvoicesPage() {
       customerType: "customer",
       customerId: "",
       vendorId: "",
-      items: [{ sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", amount: 0, basicFare: 0 }],
+      items: [{ sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", departureTime: "", arrivalTime: "", amount: 0, basicFare: 0 }],
       discountPercent: 0,
       useCustomerDeposit: false,
       useAgentCredit: false,
@@ -998,7 +1004,7 @@ export default function InvoicesPage() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => append({ sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", amount: 0, basicFare: 0 })}
+                    onClick={() => append({ sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", departureTime: "", arrivalTime: "", amount: 0, basicFare: 0 })}
                     data-testid="button-add-item"
                   >
                     <Plus className="w-4 h-4 mr-1" />
@@ -1088,6 +1094,34 @@ export default function InvoicesPage() {
                               <FormLabel className="text-xs">TKT No</FormLabel>
                               <FormControl>
                                 <Input placeholder="Ticket No" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} name={field.name} ref={field.ref} data-testid={`input-item-tkt-${index}`} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <FormField
+                          control={form.control}
+                          name={`items.${index}.departureTime`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">Departure Time</FormLabel>
+                              <FormControl>
+                                <Input type="time" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} name={field.name} ref={field.ref} data-testid={`input-item-departure-time-${index}`} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name={`items.${index}.arrivalTime`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">Arrival Time</FormLabel>
+                              <FormControl>
+                                <Input type="time" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} name={field.name} ref={field.ref} data-testid={`input-item-arrival-time-${index}`} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -1406,6 +1440,8 @@ export default function InvoicesPage() {
                       <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide">Flight</TableHead>
                       <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide">PNR</TableHead>
                       <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide">TKT No</TableHead>
+                      <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide">Dep</TableHead>
+                      <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide">Arr</TableHead>
                       <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide text-right">Basic Fare</TableHead>
                       <TableHead className="text-white font-semibold text-[11px] uppercase tracking-wide text-right">Amount</TableHead>
                     </TableRow>
@@ -1419,6 +1455,8 @@ export default function InvoicesPage() {
                         <TableCell className="text-sm">{item.airlinesFlightNo || "-"}</TableCell>
                         <TableCell className="font-mono text-sm">{item.pnr || "-"}</TableCell>
                         <TableCell className="font-mono text-sm">{item.tktNo || "-"}</TableCell>
+                        <TableCell className="text-sm">{item.departureTime || "-"}</TableCell>
+                        <TableCell className="text-sm">{item.arrivalTime || "-"}</TableCell>
                         <TableCell className="text-right font-mono text-sm">{formatCurrency(item.basicFare || 0)}</TableCell>
                         <TableCell className="text-right font-mono text-sm font-semibold">{formatCurrency(item.amount)}</TableCell>
                       </TableRow>
