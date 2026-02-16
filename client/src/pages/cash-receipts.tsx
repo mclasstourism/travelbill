@@ -130,6 +130,7 @@ export default function CashReceiptsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
   const [pinVerifiedUser, setPinVerifiedUser] = useState<{ userId: string; username: string } | null>(null);
+  const [customerSearch, setCustomerSearch] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [createdByFilter, setCreatedByFilter] = useState("all");
   const [selectedReceipt, setSelectedReceipt] = useState<CashReceipt | null>(null);
@@ -180,6 +181,15 @@ export default function CashReceiptsPage() {
   const selectedPartyType = form.watch("partyType");
   const selectedSourceType = form.watch("sourceType");
 
+  const filteredCustomers = useMemo(() => {
+    if (!customerSearch.trim()) return customers;
+    const q = customerSearch.toLowerCase();
+    return customers.filter(c =>
+      c.name.toLowerCase().includes(q) ||
+      (c.phone && c.phone.toLowerCase().includes(q))
+    );
+  }, [customers, customerSearch]);
+
   const partyOptions = useMemo(() => {
     switch (selectedPartyType) {
       case "customer":
@@ -207,6 +217,7 @@ export default function CashReceiptsPage() {
       toast({ title: "Receipt Created", description: `Receipt ${receipt.receiptNumber} has been created.` });
       setIsCreateOpen(false);
       form.reset();
+      setCustomerSearch("");
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to create receipt.", variant: "destructive" });
@@ -849,57 +860,41 @@ export default function CashReceiptsPage() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Create Cash Receipt</DialogTitle>
-            <DialogDescription>Record a payment received from a customer, agent, or vendor.</DialogDescription>
+            <DialogDescription>Record a payment received from a customer.</DialogDescription>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="partyType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Received From</FormLabel>
-                    <Select
-                      onValueChange={(v) => {
-                        field.onChange(v);
-                        form.setValue("partyId", "");
-                      }}
-                      value={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger data-testid="select-party-type">
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="customer">Customer</SelectItem>
-                        <SelectItem value="agent">Agent</SelectItem>
-                        <SelectItem value="vendor">Vendor</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
                 name="partyId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{selectedPartyType === "customer" ? "Customer" : selectedPartyType === "agent" ? "Agent" : "Vendor"}</FormLabel>
+                    <FormLabel>Customer</FormLabel>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search by name or phone..."
+                        value={customerSearch}
+                        onChange={(e) => setCustomerSearch(e.target.value)}
+                        className="pl-9 mb-2"
+                        data-testid="input-customer-search"
+                      />
+                    </div>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger data-testid="select-party">
-                          <SelectValue placeholder={`Select ${selectedPartyType}`} />
+                          <SelectValue placeholder="Select customer" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {partyOptions.map((option) => (
-                          <SelectItem key={option.id} value={option.id}>
-                            {option.name}
+                        {filteredCustomers.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name}{c.phone ? ` (${c.phone})` : ''}
                           </SelectItem>
                         ))}
+                        {filteredCustomers.length === 0 && (
+                          <div className="px-2 py-3 text-sm text-muted-foreground text-center">No customers found</div>
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -907,47 +902,7 @@ export default function CashReceiptsPage() {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="sourceType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Type of Source</FormLabel>
-                    <Select
-                      onValueChange={(v) => {
-                        field.onChange(v);
-                        if (v === "flight") {
-                          form.setValue("serviceName", "");
-                        } else {
-                          form.setValue("pnr", "");
-                          form.setValue("sector", "");
-                          form.setValue("travelDate", "");
-                          form.setValue("airlinesFlightNo", "");
-                          form.setValue("tktNo", "");
-                          form.setValue("departureTime", "");
-                          form.setValue("arrivalTime", "");
-                          form.setValue("basicFare", 0);
-                        }
-                      }}
-                      value={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger data-testid="select-source-type">
-                          <SelectValue placeholder="Select source type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="flight">Flight Details</SelectItem>
-                        <SelectItem value="other">Any Other Service</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {selectedSourceType === "flight" && (
-                <div className="border border-dashed rounded-md p-4 space-y-3">
+              <div className="border border-dashed rounded-md p-4 space-y-3">
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Flight Details</p>
                   <div className="grid grid-cols-2 gap-3">
                     <FormField
@@ -1075,39 +1030,6 @@ export default function CashReceiptsPage() {
                     />
                   </div>
                 </div>
-              )}
-
-              {selectedSourceType === "other" && (
-                <FormField
-                  control={form.control}
-                  name="serviceName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Service Name</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Enter service name" data-testid="input-service-name" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              {selectedSourceType !== "flight" && (
-                <FormField
-                  control={form.control}
-                  name="amount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Amount (AED)</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" min="0.01" {...field} data-testid="input-amount" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
 
               <FormField
                 control={form.control}
