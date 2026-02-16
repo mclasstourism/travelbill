@@ -1016,23 +1016,25 @@ export default function InvoicesPage() {
                       </div>
                     ))}
                   </div>
-                  <div>
-                    <Label className="text-xs">Phone *</Label>
-                    <Input
-                      placeholder="+1 (555) 123-4567"
-                      value={newVendorPhone}
-                      onChange={(e) => setNewVendorPhone(e.target.value)}
-                      data-testid="input-quick-vendor-phone"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Address</Label>
-                    <Input
-                      placeholder="Business address"
-                      value={newVendorAddress}
-                      onChange={(e) => setNewVendorAddress(e.target.value)}
-                      data-testid="input-quick-vendor-address"
-                    />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Phone *</Label>
+                      <Input
+                        placeholder="+1 (555) 123-4567"
+                        value={newVendorPhone}
+                        onChange={(e) => setNewVendorPhone(e.target.value)}
+                        data-testid="input-quick-vendor-phone"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Address</Label>
+                      <Input
+                        placeholder="Business address"
+                        value={newVendorAddress}
+                        onChange={(e) => setNewVendorAddress(e.target.value)}
+                        data-testid="input-quick-vendor-address"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
