@@ -146,6 +146,7 @@ export default function InvoicesPage() {
   const [pinVerifiedUser, setPinVerifiedUser] = useState<{ userId: string; username: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [createdByFilter, setCreatedByFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [dateRange, setDateRange] = useState<"all" | "today" | "this_month" | "this_year" | "custom">("all");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
@@ -694,8 +695,12 @@ export default function InvoicesPage() {
       filtered = filtered.filter(i => i.createdByName === createdByFilter);
     }
 
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(i => i.status === statusFilter);
+    }
+
     return filtered;
-  }, [invoices, searchQuery, dateRange, customStartDate, customEndDate, createdByFilter]);
+  }, [invoices, searchQuery, dateRange, customStartDate, customEndDate, createdByFilter, statusFilter]);
 
   const handleCreateClick = () => {
     setIsPinDialogOpen(true);
@@ -822,6 +827,17 @@ export default function InvoicesPage() {
                 </SelectContent>
               </Select>
             )}
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[160px]" data-testid="select-status-filter">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="issued">Issued</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+                <SelectItem value="refunded">Refunded</SelectItem>
+              </SelectContent>
+            </Select>
             <Select value={dateRange} onValueChange={(v) => setDateRange(v as typeof dateRange)}>
               <SelectTrigger className="w-[180px]" data-testid="select-date-range">
                 <Calendar className="w-4 h-4 mr-2" />
