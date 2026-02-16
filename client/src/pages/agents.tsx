@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -133,6 +134,8 @@ export default function AgentsPage() {
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [deletingAgent, setDeletingAgent] = useState<Agent | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [balanceFilter, setBalanceFilter] = useState("all");
+  const [companyFilter, setCompanyFilter] = useState("all");
   const [expandedAgent, setExpandedAgent] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -255,11 +258,21 @@ export default function AgentsPage() {
     },
   });
 
-  const filteredAgents = agents.filter((agent) =>
-    agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    agent.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    agent.phone?.includes(searchQuery)
-  );
+  const uniqueCompanies = Array.from(new Set(agents.map(a => a.company).filter(Boolean))) as string[];
+
+  const filteredAgents = agents.filter((agent) => {
+    const matchesSearch = searchQuery === "" ||
+      agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      agent.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      agent.phone?.includes(searchQuery);
+    const matchesBalance = balanceFilter === "all" ||
+      (balanceFilter === "has_deposit" && (agent.depositBalance ?? 0) > 0) ||
+      (balanceFilter === "no_deposit" && (agent.depositBalance ?? 0) === 0) ||
+      (balanceFilter === "has_credit" && (agent.creditBalance ?? 0) > 0) ||
+      (balanceFilter === "no_credit" && (agent.creditBalance ?? 0) === 0);
+    const matchesCompany = companyFilter === "all" || agent.company === companyFilter;
+    return matchesSearch && matchesBalance && matchesCompany;
+  });
 
   const onSubmit = (data: InsertAgent) => {
     createMutation.mutate(data);
@@ -301,8 +314,8 @@ export default function AgentsPage() {
 
       <Card>
         <CardHeader className="pb-4">
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-sm">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search agents..."
@@ -312,6 +325,31 @@ export default function AgentsPage() {
                 data-testid="input-search-agents"
               />
             </div>
+            <Select value={balanceFilter} onValueChange={setBalanceFilter}>
+              <SelectTrigger className="w-[160px]" data-testid="select-balance-filter">
+                <SelectValue placeholder="Balance" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Balances</SelectItem>
+                <SelectItem value="has_deposit">Has Deposit</SelectItem>
+                <SelectItem value="no_deposit">No Deposit</SelectItem>
+                <SelectItem value="has_credit">Has Credit</SelectItem>
+                <SelectItem value="no_credit">No Credit</SelectItem>
+              </SelectContent>
+            </Select>
+            {uniqueCompanies.length > 0 && (
+              <Select value={companyFilter} onValueChange={setCompanyFilter}>
+                <SelectTrigger className="w-[160px]" data-testid="select-company-filter">
+                  <SelectValue placeholder="Company" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Companies</SelectItem>
+                  {uniqueCompanies.map((company) => (
+                    <SelectItem key={company} value={company}>{company}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </CardHeader>
         <CardContent>

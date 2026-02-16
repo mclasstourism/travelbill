@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -133,6 +134,8 @@ export default function VendorsPage() {
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
   const [deletingVendor, setDeletingVendor] = useState<Vendor | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [balanceFilter, setBalanceFilter] = useState("all");
+  const [airlinesFilter, setAirlinesFilter] = useState("all");
   const [emails, setEmails] = useState<string[]>([""]);
   const [editEmails, setEditEmails] = useState<string[]>([""]);
   const [expandedVendor, setExpandedVendor] = useState<string | null>(null);
@@ -271,11 +274,25 @@ export default function VendorsPage() {
     },
   });
 
-  const filteredVendors = vendors.filter((vendor) =>
-    vendor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    vendor.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    vendor.phone?.includes(searchQuery)
-  );
+  const allAirlineNames = vendors.flatMap((v) => {
+    return (v.airlines || []).map(a => a.name);
+  });
+  const uniqueAirlines = Array.from(new Set(allAirlineNames.filter(Boolean)));
+
+  const filteredVendors = vendors.filter((vendor) => {
+    const matchesSearch = searchQuery === "" ||
+      vendor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      vendor.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      vendor.phone?.includes(searchQuery);
+    const matchesBalance = balanceFilter === "all" ||
+      (balanceFilter === "has_deposit" && (vendor.depositBalance ?? 0) > 0) ||
+      (balanceFilter === "no_deposit" && (vendor.depositBalance ?? 0) === 0) ||
+      (balanceFilter === "has_credit" && (vendor.creditBalance ?? 0) > 0) ||
+      (balanceFilter === "no_credit" && (vendor.creditBalance ?? 0) === 0);
+    const matchesAirlines = airlinesFilter === "all" ||
+      (vendor.airlines || []).some(a => a.name === airlinesFilter);
+    return matchesSearch && matchesBalance && matchesAirlines;
+  });
 
   const onSubmit = (data: InsertVendor) => {
     const joinedEmails = emails.map(e => e.trim()).filter(Boolean).join(", ");
@@ -321,8 +338,8 @@ export default function VendorsPage() {
 
       <Card>
         <CardHeader className="pb-4">
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-sm">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search vendors..."
@@ -332,6 +349,31 @@ export default function VendorsPage() {
                 data-testid="input-search-vendors"
               />
             </div>
+            <Select value={balanceFilter} onValueChange={setBalanceFilter}>
+              <SelectTrigger className="w-[160px]" data-testid="select-balance-filter">
+                <SelectValue placeholder="Balance" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Balances</SelectItem>
+                <SelectItem value="has_deposit">Has Deposit</SelectItem>
+                <SelectItem value="no_deposit">No Deposit</SelectItem>
+                <SelectItem value="has_credit">Has Credit</SelectItem>
+                <SelectItem value="no_credit">No Credit</SelectItem>
+              </SelectContent>
+            </Select>
+            {uniqueAirlines.length > 0 && (
+              <Select value={airlinesFilter} onValueChange={setAirlinesFilter}>
+                <SelectTrigger className="w-[160px]" data-testid="select-airlines-filter">
+                  <SelectValue placeholder="Airlines" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Airlines</SelectItem>
+                  {uniqueAirlines.map((airline) => (
+                    <SelectItem key={airline} value={airline}>{airline}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </CardHeader>
         <CardContent>
