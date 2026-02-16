@@ -131,6 +131,7 @@ export default function CashReceiptsPage() {
   const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
   const [pinVerifiedUser, setPinVerifiedUser] = useState<{ userId: string; username: string } | null>(null);
   const [customerSearch, setCustomerSearch] = useState("");
+  const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [createdByFilter, setCreatedByFilter] = useState("all");
   const [selectedReceipt, setSelectedReceipt] = useState<CashReceipt | null>(null);
@@ -218,6 +219,7 @@ export default function CashReceiptsPage() {
       setIsCreateOpen(false);
       form.reset();
       setCustomerSearch("");
+      setIsCustomerDropdownOpen(false);
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to create receipt.", variant: "destructive" });
@@ -867,39 +869,66 @@ export default function CashReceiptsPage() {
               <FormField
                 control={form.control}
                 name="partyId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Customer</FormLabel>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search by name or phone..."
-                        value={customerSearch}
-                        onChange={(e) => setCustomerSearch(e.target.value)}
-                        className="pl-9 mb-2"
-                        data-testid="input-customer-search"
-                      />
-                    </div>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger data-testid="select-party">
-                          <SelectValue placeholder="Select customer" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {filteredCustomers.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.name}{c.phone ? ` (${c.phone})` : ''}
-                          </SelectItem>
-                        ))}
-                        {filteredCustomers.length === 0 && (
-                          <div className="px-2 py-3 text-sm text-muted-foreground text-center">No customers found</div>
+                render={({ field }) => {
+                  const selectedCustomer = customers.find(c => c.id === field.value);
+                  return (
+                    <FormItem>
+                      <FormLabel>Customer</FormLabel>
+                      <div className="relative">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            placeholder="Search by name or phone..."
+                            value={customerSearch || (selectedCustomer ? `${selectedCustomer.name}${selectedCustomer.phone ? ` (${selectedCustomer.phone})` : ''}` : '')}
+                            onChange={(e) => {
+                              setCustomerSearch(e.target.value);
+                              setIsCustomerDropdownOpen(true);
+                              if (!e.target.value) {
+                                field.onChange("");
+                              }
+                            }}
+                            onFocus={() => {
+                              setIsCustomerDropdownOpen(true);
+                              if (selectedCustomer) {
+                                setCustomerSearch("");
+                              }
+                            }}
+                            onBlur={() => {
+                              setTimeout(() => setIsCustomerDropdownOpen(false), 150);
+                            }}
+                            className="pl-9"
+                            data-testid="input-customer-search"
+                            autoComplete="off"
+                          />
+                        </div>
+                        {isCustomerDropdownOpen && (
+                          <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md max-h-48 overflow-y-auto">
+                            {filteredCustomers.length > 0 ? (
+                              filteredCustomers.map((c) => (
+                                <div
+                                  key={c.id}
+                                  className="px-3 py-2 text-sm cursor-pointer hover-elevate"
+                                  data-testid={`customer-option-${c.id}`}
+                                  onMouseDown={(e) => e.preventDefault()}
+                                  onClick={() => {
+                                    field.onChange(c.id);
+                                    setCustomerSearch("");
+                                    setIsCustomerDropdownOpen(false);
+                                  }}
+                                >
+                                  {c.name}{c.phone ? ` (${c.phone})` : ''}
+                                </div>
+                              ))
+                            ) : (
+                              <div className="px-3 py-3 text-sm text-muted-foreground text-center">No customers found</div>
+                            )}
+                          </div>
                         )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               <div className="border border-dashed rounded-md p-4 space-y-3">
