@@ -14,6 +14,8 @@ MVP fully implemented with:
 - Customer deposit management with transaction history
 - Vendor credit/deposit transaction tracking
 - Cash receipt creation and printing with party selection, payment method, reference tracking
+- Invoice cancellation with automatic balance refunds (deposit, credit, vendor balance)
+- Invoice refund processing with PIN verification, payment method tracking, and audit trail
 - All currency displays in AED
 
 ## Architecture

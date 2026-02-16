@@ -79,6 +79,11 @@ export const invoicesTable = pgTable("invoices", {
   createdByName: varchar("created_by_name", { length: 255 }).default(""),
   status: varchar("status", { length: 20 }).default("issued"),
   paidAmount: real("paid_amount").default(0),
+  refundAmount: real("refund_amount").default(0),
+  refundMethod: varchar("refund_method", { length: 20 }),
+  refundDate: varchar("refund_date", { length: 20 }),
+  refundNotes: text("refund_notes").default(""),
+  refundedBy: varchar("refunded_by", { length: 255 }).default(""),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -234,7 +239,7 @@ export const paymentMethods = ["cash", "card", "credit"] as const;
 export type PaymentMethod = typeof paymentMethods[number];
 
 // Invoice status
-export const invoiceStatuses = ["draft", "issued", "paid", "partial", "cancelled"] as const;
+export const invoiceStatuses = ["draft", "issued", "paid", "partial", "cancelled", "refunded"] as const;
 export type InvoiceStatus = typeof invoiceStatuses[number];
 
 // Invoice line items
@@ -292,6 +297,11 @@ export type Invoice = InsertInvoice & {
   createdAt: string;
   paidAmount: number;
   createdByName: string;
+  refundAmount: number;
+  refundMethod: string | null;
+  refundDate: string | null;
+  refundNotes: string;
+  refundedBy: string;
 };
 
 // Tickets (for travel tickets)

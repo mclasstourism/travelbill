@@ -511,6 +511,41 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/invoices/:id/refund", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const invoice = await storage.getInvoice(id);
+      if (!invoice) {
+        res.status(404).json({ error: "Invoice not found" });
+        return;
+      }
+      if (invoice.status !== "cancelled") {
+        res.status(400).json({ error: "Only cancelled invoices can be refunded" });
+        return;
+      }
+      const { refundMethod, refundNotes, refundedBy } = req.body;
+      if (!refundMethod || !refundedBy) {
+        res.status(400).json({ error: "Refund method and refunded by are required" });
+        return;
+      }
+      const cashCardRefund = invoice.total - (invoice.depositUsed || 0) - (invoice.agentCreditUsed || 0);
+      const refundAmount = Math.max(0, cashCardRefund);
+      if (refundAmount <= 0) {
+        const refunded = await storage.processRefund(id, { refundAmount: 0, refundMethod, refundNotes: refundNotes || "", refundedBy });
+        res.json(refunded);
+        return;
+      }
+      const refunded = await storage.processRefund(id, { refundAmount, refundMethod, refundNotes: refundNotes || "", refundedBy });
+      if (!refunded) {
+        res.status(500).json({ error: "Failed to process refund" });
+        return;
+      }
+      res.json(refunded);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to process refund" });
+    }
+  });
+
   // Tickets
   app.get("/api/tickets", async (req, res) => {
     try {

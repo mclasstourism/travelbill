@@ -72,6 +72,7 @@ export interface IStorage {
   createInvoice(invoice: InsertInvoice): Promise<Invoice>;
   updateInvoice(id: string, updates: Partial<Invoice>): Promise<Invoice | undefined>;
   cancelInvoice(id: string): Promise<Invoice | undefined>;
+  processRefund(id: string, refundData: { refundAmount: number; refundMethod: string; refundNotes: string; refundedBy: string }): Promise<Invoice | undefined>;
 
   // Tickets
   getTickets(): Promise<Ticket[]>;
@@ -425,6 +426,11 @@ export class MemStorage implements IStorage {
       status: "issued",
       createdAt: new Date().toISOString(),
       paidAmount: 0,
+      refundAmount: 0,
+      refundMethod: null,
+      refundDate: null,
+      refundNotes: "",
+      refundedBy: "",
     };
     this.invoices.set(id, newInvoice);
 
@@ -487,6 +493,24 @@ export class MemStorage implements IStorage {
     const invoice = this.invoices.get(id);
     if (!invoice) return undefined;
     const updated = { ...invoice, status: "cancelled" as const };
+    this.invoices.set(id, updated);
+    return updated;
+  }
+
+  async processRefund(id: string, refundData: { refundAmount: number; refundMethod: string; refundNotes: string; refundedBy: string }): Promise<Invoice | undefined> {
+    const invoice = this.invoices.get(id);
+    if (!invoice) return undefined;
+    if (invoice.status !== "cancelled") return undefined;
+    if (refundData.refundAmount <= 0) return undefined;
+    const updated: Invoice = {
+      ...invoice,
+      status: "refunded" as const,
+      refundAmount: refundData.refundAmount,
+      refundMethod: refundData.refundMethod,
+      refundDate: new Date().toISOString().split("T")[0],
+      refundNotes: refundData.refundNotes,
+      refundedBy: refundData.refundedBy,
+    };
     this.invoices.set(id, updated);
     return updated;
   }

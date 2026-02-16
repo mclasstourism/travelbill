@@ -426,6 +426,11 @@ export class PgStorage implements IStorage {
       createdByName: row.createdByName || "",
       status: (row.status as any) || "issued",
       paidAmount: row.paidAmount || 0,
+      refundAmount: row.refundAmount || 0,
+      refundMethod: row.refundMethod || null,
+      refundDate: row.refundDate || null,
+      refundNotes: row.refundNotes || "",
+      refundedBy: row.refundedBy || "",
       createdAt: row.createdAt?.toISOString() || new Date().toISOString(),
     };
   }
@@ -686,6 +691,29 @@ export class PgStorage implements IStorage {
     // Update invoice status to cancelled
     const result = await db.update(schema.invoicesTable)
       .set({ status: "cancelled" })
+      .where(eq(schema.invoicesTable.id, id))
+      .returning();
+    if (result.length === 0) return undefined;
+    return this.mapInvoice(result[0]);
+  }
+
+  async processRefund(id: string, refundData: { refundAmount: number; refundMethod: string; refundNotes: string; refundedBy: string }): Promise<Invoice | undefined> {
+    const invoice = await this.getInvoice(id);
+    if (!invoice) return undefined;
+    if (invoice.status !== "cancelled") return undefined;
+    if (refundData.refundAmount < 0) return undefined;
+
+    const refundDate = new Date().toISOString().split("T")[0];
+
+    const result = await db.update(schema.invoicesTable)
+      .set({
+        status: "refunded",
+        refundAmount: refundData.refundAmount,
+        refundMethod: refundData.refundMethod,
+        refundDate: refundDate,
+        refundNotes: refundData.refundNotes,
+        refundedBy: refundData.refundedBy,
+      })
       .where(eq(schema.invoicesTable.id, id))
       .returning();
     if (result.length === 0) return undefined;

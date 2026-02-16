@@ -66,6 +66,7 @@ import {
   User,
   Calendar,
   XCircle,
+  RotateCcw,
 } from "lucide-react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -108,6 +109,8 @@ function getStatusBadgeVariant(status: string): "default" | "secondary" | "destr
       return "secondary";
     case "cancelled":
       return "destructive";
+    case "refunded":
+      return "outline";
     default:
       return "outline";
   }
@@ -148,6 +151,12 @@ export default function InvoicesPage() {
   const [customEndDate, setCustomEndDate] = useState("");
   const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
   const [cancelInvoice, setCancelInvoice] = useState<Invoice | null>(null);
+  const [refundInvoice, setRefundInvoice] = useState<Invoice | null>(null);
+  const [refundMethod, setRefundMethod] = useState("cash");
+  const [refundNotes, setRefundNotes] = useState("");
+  const [isRefundPinDialogOpen, setIsRefundPinDialogOpen] = useState(false);
+  const [pendingRefundInvoice, setPendingRefundInvoice] = useState<Invoice | null>(null);
+  const [refundVerifiedUser, setRefundVerifiedUser] = useState<{ userId: string; username: string } | null>(null);
   const [quickCreateCustomer, setQuickCreateCustomer] = useState(false);
   const [quickCreateVendor, setQuickCreateVendor] = useState(false);
   const [newCustomerName, setNewCustomerName] = useState("");
@@ -525,6 +534,31 @@ export default function InvoicesPage() {
     },
   });
 
+  const refundMutation = useMutation({
+    mutationFn: async ({ invoiceId, data }: { invoiceId: string; data: { refundAmount: number; refundMethod: string; refundNotes: string; refundedBy: string } }) => {
+      const res = await apiRequest("POST", `/api/invoices/${invoiceId}/refund`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/metrics"] });
+      setRefundInvoice(null);
+      setRefundMethod("cash");
+      setRefundNotes("");
+      toast({
+        title: "Refund processed",
+        description: "The refund has been recorded successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to process refund",
+        variant: "destructive",
+      });
+    },
+  });
+
   const resetQuickCustomerFields = () => {
     setNewCustomerName("");
     setNewCustomerPhone("");
@@ -853,7 +887,7 @@ export default function InvoicesPage() {
                             >
                               <Download className="w-4 h-4" />
                             </Button>
-                            {invoice.status !== "cancelled" && (
+                            {invoice.status !== "cancelled" && invoice.status !== "refunded" && (
                               <Button
                                 size="icon"
                                 variant="ghost"
@@ -861,6 +895,19 @@ export default function InvoicesPage() {
                                 data-testid={`button-cancel-invoice-${invoice.id}`}
                               >
                                 <XCircle className="w-4 h-4 text-destructive" />
+                              </Button>
+                            )}
+                            {invoice.status === "cancelled" && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => {
+                                  setPendingRefundInvoice(invoice);
+                                  setIsRefundPinDialogOpen(true);
+                                }}
+                                data-testid={`button-refund-invoice-${invoice.id}`}
+                              >
+                                <RotateCcw className="w-4 h-4 text-blue-500" />
                               </Button>
                             )}
                           </div>
@@ -1853,6 +1900,116 @@ export default function InvoicesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!refundInvoice} onOpenChange={(open) => !open && setRefundInvoice(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Process Refund - {refundInvoice?.invoiceNumber}</DialogTitle>
+            <DialogDescription>
+              Record the refund payment details for this cancelled invoice.
+            </DialogDescription>
+          </DialogHeader>
+          {refundInvoice && (
+            <div className="space-y-4">
+              <div className="p-3 rounded-md border space-y-1">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Invoice Total</span>
+                  <span className="font-mono font-medium">{formatCurrency(refundInvoice.total)}</span>
+                </div>
+                {refundInvoice.depositUsed > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Deposit Used (already refunded)</span>
+                    <span className="font-mono">{formatCurrency(refundInvoice.depositUsed)}</span>
+                  </div>
+                )}
+                {refundInvoice.agentCreditUsed > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Credit Used (already refunded)</span>
+                    <span className="font-mono">{formatCurrency(refundInvoice.agentCreditUsed)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm font-medium border-t pt-1">
+                  <span>Cash/Card Refund Amount</span>
+                  <span className="font-mono">{formatCurrency(refundInvoice.total - refundInvoice.depositUsed - refundInvoice.agentCreditUsed)}</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Refund Method</label>
+                <Select value={refundMethod} onValueChange={setRefundMethod}>
+                  <SelectTrigger data-testid="select-refund-method">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="card">Card</SelectItem>
+                    <SelectItem value="cheque">Cheque</SelectItem>
+                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Notes (optional)</label>
+                <Textarea
+                  value={refundNotes}
+                  onChange={(e) => setRefundNotes(e.target.value)}
+                  placeholder="Enter any refund notes..."
+                  className="resize-none"
+                  data-testid="input-refund-notes"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setRefundInvoice(null)} data-testid="button-refund-cancel">
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (!refundInvoice || !refundVerifiedUser) return;
+                    const refundAmount = refundInvoice.total - refundInvoice.depositUsed - refundInvoice.agentCreditUsed;
+                    refundMutation.mutate({
+                      invoiceId: refundInvoice.id,
+                      data: {
+                        refundAmount,
+                        refundMethod,
+                        refundNotes,
+                        refundedBy: refundVerifiedUser.username,
+                      },
+                    });
+                  }}
+                  disabled={refundMutation.isPending}
+                  data-testid="button-refund-confirm"
+                >
+                  {refundMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                  )}
+                  Process Refund
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <PinDialog
+        open={isRefundPinDialogOpen}
+        onOpenChange={setIsRefundPinDialogOpen}
+        onVerified={(result) => {
+          setRefundVerifiedUser({ userId: result.userId, username: result.username });
+          setIsRefundPinDialogOpen(false);
+          if (pendingRefundInvoice) {
+            setRefundInvoice(pendingRefundInvoice);
+            setRefundMethod("cash");
+            setRefundNotes("");
+            setPendingRefundInvoice(null);
+          }
+        }}
+        title="Enter PIN to Process Refund"
+        description="Enter your PIN code to process this refund. Your name will be recorded on this entry."
+      />
     </div>
   );
 }
