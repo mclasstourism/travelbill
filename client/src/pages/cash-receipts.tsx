@@ -1213,28 +1213,52 @@ export default function CashReceiptsPage() {
                       <FormField
                         control={form.control}
                         name={`items.${index}.departureTime`}
-                        render={({ field: f }) => (
-                          <FormItem>
-                            <FormLabel>Departure Time</FormLabel>
-                            <FormControl>
-                              <Input type="time" step="300" {...f} data-testid={`input-departure-${index}`} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                        render={({ field: f }) => {
+                          const parts = (f.value || "").split(":");
+                          const hour = parts[0] || "";
+                          const minute = parts[1] || "";
+                          return (
+                            <FormItem>
+                              <FormLabel>Departure Time</FormLabel>
+                              <div className="flex gap-1">
+                                <Select value={hour} onValueChange={(h) => f.onChange(`${h}:${minute || "00"}`)}>
+                                  <SelectTrigger className="flex-1" data-testid={`select-dep-hour-${index}`}><SelectValue placeholder="HH" /></SelectTrigger>
+                                  <SelectContent>{Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0")).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                </Select>
+                                <Select value={minute} onValueChange={(m) => f.onChange(`${hour || "00"}:${m}`)}>
+                                  <SelectTrigger className="flex-1" data-testid={`select-dep-min-${index}`}><SelectValue placeholder="MM" /></SelectTrigger>
+                                  <SelectContent>{["00","05","10","15","20","25","30","35","40","45","50","55"].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                                </Select>
+                              </div>
+                              <FormMessage />
+                            </FormItem>
+                          );
+                        }}
                       />
                       <FormField
                         control={form.control}
                         name={`items.${index}.arrivalTime`}
-                        render={({ field: f }) => (
-                          <FormItem>
-                            <FormLabel>Arrival Time</FormLabel>
-                            <FormControl>
-                              <Input type="time" step="300" {...f} data-testid={`input-arrival-${index}`} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                        render={({ field: f }) => {
+                          const parts = (f.value || "").split(":");
+                          const hour = parts[0] || "";
+                          const minute = parts[1] || "";
+                          return (
+                            <FormItem>
+                              <FormLabel>Arrival Time</FormLabel>
+                              <div className="flex gap-1">
+                                <Select value={hour} onValueChange={(h) => f.onChange(`${h}:${minute || "00"}`)}>
+                                  <SelectTrigger className="flex-1" data-testid={`select-arr-hour-${index}`}><SelectValue placeholder="HH" /></SelectTrigger>
+                                  <SelectContent>{Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0")).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                </Select>
+                                <Select value={minute} onValueChange={(m) => f.onChange(`${hour || "00"}:${m}`)}>
+                                  <SelectTrigger className="flex-1" data-testid={`select-arr-min-${index}`}><SelectValue placeholder="MM" /></SelectTrigger>
+                                  <SelectContent>{["00","05","10","15","20","25","30","35","40","45","50","55"].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                                </Select>
+                              </div>
+                              <FormMessage />
+                            </FormItem>
+                          );
+                        }}
                       />
                     </div>
                     <FormField

@@ -1494,28 +1494,52 @@ export default function InvoicesPage() {
                         <FormField
                           control={form.control}
                           name={`items.${index}.departureTime`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-xs">Departure Time</FormLabel>
-                              <FormControl>
-                                <Input type="time" step="300" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} name={field.name} ref={field.ref} data-testid={`input-item-departure-time-${index}`} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                          render={({ field }) => {
+                            const parts = (field.value || "").split(":");
+                            const hour = parts[0] || "";
+                            const minute = parts[1] || "";
+                            return (
+                              <FormItem>
+                                <FormLabel className="text-xs">Departure Time</FormLabel>
+                                <div className="flex gap-1">
+                                  <Select value={hour} onValueChange={(h) => field.onChange(`${h}:${minute || "00"}`)}>
+                                    <SelectTrigger className="flex-1" data-testid={`select-dep-hour-${index}`}><SelectValue placeholder="HH" /></SelectTrigger>
+                                    <SelectContent>{Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0")).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                  </Select>
+                                  <Select value={minute} onValueChange={(m) => field.onChange(`${hour || "00"}:${m}`)}>
+                                    <SelectTrigger className="flex-1" data-testid={`select-dep-min-${index}`}><SelectValue placeholder="MM" /></SelectTrigger>
+                                    <SelectContent>{["00","05","10","15","20","25","30","35","40","45","50","55"].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                                  </Select>
+                                </div>
+                                <FormMessage />
+                              </FormItem>
+                            );
+                          }}
                         />
                         <FormField
                           control={form.control}
                           name={`items.${index}.arrivalTime`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-xs">Arrival Time</FormLabel>
-                              <FormControl>
-                                <Input type="time" step="300" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} name={field.name} ref={field.ref} data-testid={`input-item-arrival-time-${index}`} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                          render={({ field }) => {
+                            const parts = (field.value || "").split(":");
+                            const hour = parts[0] || "";
+                            const minute = parts[1] || "";
+                            return (
+                              <FormItem>
+                                <FormLabel className="text-xs">Arrival Time</FormLabel>
+                                <div className="flex gap-1">
+                                  <Select value={hour} onValueChange={(h) => field.onChange(`${h}:${minute || "00"}`)}>
+                                    <SelectTrigger className="flex-1" data-testid={`select-arr-hour-${index}`}><SelectValue placeholder="HH" /></SelectTrigger>
+                                    <SelectContent>{Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0")).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                  </Select>
+                                  <Select value={minute} onValueChange={(m) => field.onChange(`${hour || "00"}:${m}`)}>
+                                    <SelectTrigger className="flex-1" data-testid={`select-arr-min-${index}`}><SelectValue placeholder="MM" /></SelectTrigger>
+                                    <SelectContent>{["00","05","10","15","20","25","30","35","40","45","50","55"].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                                  </Select>
+                                </div>
+                                <FormMessage />
+                              </FormItem>
+                            );
+                          }}
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-2">
