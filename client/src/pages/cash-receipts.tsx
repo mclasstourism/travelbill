@@ -81,7 +81,6 @@ const receiptItemSchema = z.object({
   departureTime: z.string().optional().default(""),
   arrivalTime: z.string().optional().default(""),
   amount: z.coerce.number().min(0, "Amount must be positive"),
-  basicFare: z.coerce.number().min(0).default(0),
 });
 
 const createReceiptSchema = z.object({
@@ -89,13 +88,17 @@ const createReceiptSchema = z.object({
   partyId: z.string().min(1, "Customer is required"),
   sourceType: z.enum(["flight", "other"]),
   items: z.array(receiptItemSchema).min(1, "At least one item is required"),
+  receivedAmount: z.coerce.number().min(0, "Received amount must be positive"),
   paymentMethod: z.enum(["cash", "card", "cheque", "bank_transfer"]),
   description: z.string().optional().or(z.literal("")),
   referenceNumber: z.string().optional().or(z.literal("")),
 }).refine((data) => {
   const total = data.items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
   return total > 0;
-}, { message: "Total amount must be greater than zero", path: ["items"] });
+}, { message: "Total amount must be greater than zero", path: ["items"] }).refine((data) => {
+  const total = data.items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  return data.receivedAmount <= total;
+}, { message: "Received amount cannot exceed total amount", path: ["receivedAmount"] });
 
 type CreateReceiptForm = z.infer<typeof createReceiptSchema>;
 
@@ -167,7 +170,8 @@ export default function CashReceiptsPage() {
       partyType: "customer",
       partyId: "",
       sourceType: "flight",
-      items: [{ sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", departureTime: "", arrivalTime: "", amount: 0, basicFare: 0 }],
+      items: [{ sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", departureTime: "", arrivalTime: "", amount: 0 }],
+      receivedAmount: 0,
       paymentMethod: "cash",
       description: "",
       referenceNumber: "",
@@ -221,11 +225,15 @@ export default function CashReceiptsPage() {
 
   const createMutation = useMutation({
     mutationFn: async (data: CreateReceiptForm) => {
-      const amount = data.items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+      const totalAmount = data.items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+      const receivedAmount = Number(data.receivedAmount) || 0;
       const firstItem = data.items[0] || {};
       const res = await apiRequest("POST", "/api/cash-receipts", {
         ...data,
-        amount,
+        amount: receivedAmount,
+        totalAmount,
+        receivedAmount,
+        dueAmount: totalAmount - receivedAmount,
         sector: firstItem.sector || "",
         travelDate: firstItem.travelDate || "",
         airlinesFlightNo: firstItem.airlinesFlightNo || "",
@@ -233,7 +241,7 @@ export default function CashReceiptsPage() {
         tktNo: firstItem.tktNo || "",
         departureTime: firstItem.departureTime || "",
         arrivalTime: firstItem.arrivalTime || "",
-        basicFare: firstItem.basicFare || 0,
+        basicFare: 0,
         issuedBy: pinVerifiedUser?.userId || user?.id || "",
         createdByName: pinVerifiedUser?.username || user?.username || "",
       });
@@ -401,7 +409,6 @@ export default function CashReceiptsPage() {
                     tktNo: receipt.tktNo,
                     departureTime: receipt.departureTime,
                     arrivalTime: receipt.arrivalTime,
-                    basicFare: receipt.basicFare,
                     amount: receipt.amount,
                   }] : ((receipt as any).serviceName ? [{
                     sector: (receipt as any).serviceName,
@@ -417,7 +424,6 @@ export default function CashReceiptsPage() {
                 ${item.pnr ? `<tr style="background: #f8fafc;"><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">PNR</td><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500; font-family: 'Courier New', monospace;">${item.pnr}</td></tr>` : ''}
                 ${item.tktNo ? `<tr style="background: #ffffff;"><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">TKT No</td><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500; font-family: 'Courier New', monospace;">${item.tktNo}</td></tr>` : ''}
                 ${(item.departureTime || item.arrivalTime) ? `<tr style="background: #f8fafc;"><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Departure / Arrival</td><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500;">${item.departureTime || "--"} / ${item.arrivalTime || "--"}</td></tr>` : ''}
-                ${item.basicFare > 0 ? `<tr style="background: #ffffff;"><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Basic Fare</td><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500; font-family: 'Courier New', monospace;">AED ${Number(item.basicFare).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td></tr>` : ''}
                 ${items.length > 1 ? `<tr style="background: #f8fafc;"><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Amount</td><td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500; font-family: 'Courier New', monospace;">AED ${Number(item.amount || 0).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td></tr>` : ''}
               `).join('');
             })()}
@@ -447,12 +453,29 @@ export default function CashReceiptsPage() {
               <tr>
                 <td colspan="2" style="padding: 0;"><div style="height: 2px; background: linear-gradient(to right, #1a5632, #22c55e); margin: 0 0 8px 0; border-radius: 1px;"></div></td>
               </tr>
+              ${(receipt.totalAmount || 0) > 0 && (receipt.totalAmount || 0) !== receipt.amount ? `
+              <tr>
+                <td style="padding: 4px 0; font-size: 13px; color: #64748b;">Total Amount</td>
+                <td style="padding: 4px 0; text-align: right; font-family: 'Courier New', monospace; font-size: 14px; font-weight: 600;">${"AED " + (receipt.totalAmount || receipt.amount).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+              </tr>
+              <tr>
+                <td style="padding: 4px 0; font-weight: 700; font-size: 16px; color: #1a5632;">Received</td>
+                <td style="padding: 4px 0; text-align: right; font-family: 'Courier New', monospace; font-size: 18px; font-weight: 800; color: #1a5632;">AED ${(receipt.receivedAmount || receipt.amount).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+              </tr>
+              ${(receipt.dueAmount || 0) > 0 ? `
+              <tr>
+                <td style="padding: 4px 0; font-size: 13px; color: #dc2626; font-weight: 600;">Due Amount</td>
+                <td style="padding: 4px 0; text-align: right; font-family: 'Courier New', monospace; font-size: 14px; font-weight: 700; color: #dc2626;">AED ${(receipt.dueAmount || 0).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+              </tr>
+              ` : ''}
+              ` : `
               <tr>
                 <td style="padding: 8px 0; font-weight: 700; font-size: 16px; color: #1a5632;">Amount Received</td>
                 <td style="padding: 8px 0; text-align: right; font-family: 'Courier New', monospace; font-size: 18px; font-weight: 800; color: #1a5632;">AED ${receipt.amount.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
               </tr>
+              `}
             </table>
-            <p style="text-align: right; font-size: 11px; color: #94a3b8; margin: 2px 0 0 0; font-style: italic;">${numberToWords(receipt.amount)}</p>
+            <p style="text-align: right; font-size: 11px; color: #94a3b8; margin: 2px 0 0 0; font-style: italic;">${numberToWords(receipt.receivedAmount || receipt.amount)}</p>
           </div>
         </div>
 
@@ -672,8 +695,11 @@ export default function CashReceiptsPage() {
                       <TableCell>
                         <Badge variant="secondary">{getPaymentMethodLabel(receipt.paymentMethod)}</Badge>
                       </TableCell>
-                      <TableCell className="text-right font-mono font-medium text-[hsl(var(--primary))]" data-testid={`text-amount-${receipt.id}`}>
-                        {formatCurrency(receipt.amount)}
+                      <TableCell className="text-right" data-testid={`text-amount-${receipt.id}`}>
+                        <span className="font-mono font-medium text-[hsl(var(--primary))]">{formatCurrency(receipt.amount)}</span>
+                        {(receipt.dueAmount || 0) > 0 && (
+                          <span className="block text-xs font-mono text-destructive">Due: {formatCurrency(receipt.dueAmount || 0)}</span>
+                        )}
                       </TableCell>
                       <TableCell data-testid={`text-created-by-receipt-${receipt.id}`}>
                         {receipt.createdByName ? (
@@ -763,7 +789,6 @@ export default function CashReceiptsPage() {
                             tktNo: selectedReceipt.tktNo,
                             departureTime: selectedReceipt.departureTime,
                             arrivalTime: selectedReceipt.arrivalTime,
-                            basicFare: selectedReceipt.basicFare,
                             amount: selectedReceipt.amount,
                           }] : ((selectedReceipt as any).serviceName ? [{
                             sector: (selectedReceipt as any).serviceName,
@@ -810,12 +835,6 @@ export default function CashReceiptsPage() {
                               <td className="px-3 py-2 text-right font-medium">{item.departureTime || "--"} / {item.arrivalTime || "--"}</td>
                             </tr>
                           )}
-                          {item.basicFare > 0 && (
-                            <tr className="border-b" key={`fare-${idx}`}>
-                              <td className="px-3 py-2 text-muted-foreground">Basic Fare</td>
-                              <td className="px-3 py-2 text-right font-mono font-medium">{formatCurrency(item.basicFare)}</td>
-                            </tr>
-                          )}
                           {items.length > 1 && (
                             <tr className="border-b" key={`amount-${idx}`}>
                               <td className="px-3 py-2 text-muted-foreground">Amount</td>
@@ -849,11 +868,30 @@ export default function CashReceiptsPage() {
               <div className="flex justify-end mb-4">
                 <div className="w-80">
                   <div className="h-[2px] bg-gradient-to-r from-[#1a5632] to-green-400 rounded mb-2" />
-                  <div className="flex justify-between py-2">
-                    <span className="font-bold text-base text-[#1a5632]">Amount Received</span>
-                    <span className="font-mono font-extrabold text-lg text-[#1a5632]" data-testid="text-receipt-amount">{formatCurrency(selectedReceipt.amount)}</span>
-                  </div>
-                  <p className="text-right text-[11px] text-muted-foreground italic">{numberToWords(selectedReceipt.amount)}</p>
+                  {(selectedReceipt.totalAmount || 0) > 0 && (selectedReceipt.totalAmount || 0) !== selectedReceipt.amount ? (
+                    <>
+                      <div className="flex justify-between py-1">
+                        <span className="text-sm text-muted-foreground">Total Amount</span>
+                        <span className="font-mono font-semibold text-sm" data-testid="text-receipt-total">{formatCurrency(selectedReceipt.totalAmount || selectedReceipt.amount)}</span>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span className="font-bold text-base text-[#1a5632]">Received</span>
+                        <span className="font-mono font-extrabold text-lg text-[#1a5632]" data-testid="text-receipt-amount">{formatCurrency(selectedReceipt.receivedAmount || selectedReceipt.amount)}</span>
+                      </div>
+                      {(selectedReceipt.dueAmount || 0) > 0 && (
+                        <div className="flex justify-between py-1">
+                          <span className="text-sm font-semibold text-destructive">Due Amount</span>
+                          <span className="font-mono font-bold text-sm text-destructive" data-testid="text-receipt-due">{formatCurrency(selectedReceipt.dueAmount || 0)}</span>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="flex justify-between py-2">
+                      <span className="font-bold text-base text-[#1a5632]">Amount Received</span>
+                      <span className="font-mono font-extrabold text-lg text-[#1a5632]" data-testid="text-receipt-amount">{formatCurrency(selectedReceipt.amount)}</span>
+                    </div>
+                  )}
+                  <p className="text-right text-[11px] text-muted-foreground italic">{numberToWords(selectedReceipt.receivedAmount || selectedReceipt.amount)}</p>
                 </div>
               </div>
 
@@ -1049,7 +1087,7 @@ export default function CashReceiptsPage() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => append({ sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", departureTime: "", arrivalTime: "", amount: 0, basicFare: 0 })}
+                  onClick={() => append({ sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", departureTime: "", arrivalTime: "", amount: 0 })}
                   data-testid="button-add-item"
                 >
                   <Plus className="w-4 h-4 mr-1" />
@@ -1170,41 +1208,58 @@ export default function CashReceiptsPage() {
                         )}
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <FormField
-                        control={form.control}
-                        name={`items.${index}.basicFare`}
-                        render={({ field: f }) => (
-                          <FormItem>
-                            <FormLabel>Basic Fare</FormLabel>
-                            <FormControl>
-                              <Input type="number" step="0.01" min="0" {...f} data-testid={`input-basic-fare-${index}`} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`items.${index}.amount`}
-                        render={({ field: f }) => (
-                          <FormItem>
-                            <FormLabel>Amount (AED) *</FormLabel>
-                            <FormControl>
-                              <Input type="number" step="0.01" min="0" {...f} data-testid={`input-amount-${index}`} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                    <FormField
+                      control={form.control}
+                      name={`items.${index}.amount`}
+                      render={({ field: f }) => (
+                        <FormItem>
+                          <FormLabel>Amount (AED) *</FormLabel>
+                          <FormControl>
+                            <Input type="number" step="0.01" min="0" {...f} data-testid={`input-amount-${index}`} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 ))}
               </div>
 
-              <div className="flex items-center justify-between gap-2 p-3 rounded-md bg-muted/30 flex-wrap">
-                <span className="text-sm font-medium">Total Amount</span>
-                <span className="text-sm font-bold font-mono">{formatCurrency(formTotalAmount)}</span>
+              <div className="p-3 rounded-md bg-muted/30 space-y-2">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <span className="text-sm font-medium">Total Amount</span>
+                  <span className="text-sm font-bold font-mono">{formatCurrency(formTotalAmount)}</span>
+                </div>
+                <FormField
+                  control={form.control}
+                  name="receivedAmount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <FormLabel className="text-sm font-medium">Received Amount (AED) *</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            className="w-40 text-right font-mono"
+                            {...field}
+                            data-testid="input-received-amount"
+                          />
+                        </FormControl>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {formTotalAmount > 0 && Number(form.watch("receivedAmount") || 0) < formTotalAmount && (
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t flex-wrap">
+                    <span className="text-sm font-medium text-destructive">Due Amount</span>
+                    <span className="text-sm font-bold font-mono text-destructive">
+                      {formatCurrency(formTotalAmount - Number(form.watch("receivedAmount") || 0))}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <FormField
@@ -1268,7 +1323,8 @@ export default function CashReceiptsPage() {
             partyType: "customer",
             partyId: "",
             sourceType: "flight",
-            items: [{ sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", departureTime: "", arrivalTime: "", amount: 0, basicFare: 0 }],
+            items: [{ sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", departureTime: "", arrivalTime: "", amount: 0 }],
+            receivedAmount: 0,
             paymentMethod: "cash",
             description: "",
             referenceNumber: "",

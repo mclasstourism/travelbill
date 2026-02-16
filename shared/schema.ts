@@ -429,6 +429,9 @@ export const cashReceiptsTable = pgTable("cash_receipts", {
   basicFare: real("basic_fare").default(0),
   items: jsonb("items").default([]),
   amount: real("amount").notNull(),
+  totalAmount: real("total_amount").default(0),
+  receivedAmount: real("received_amount").default(0),
+  dueAmount: real("due_amount").default(0),
   paymentMethod: varchar("payment_method", { length: 20 }).notNull(),
   description: text("description").default(""),
   referenceNumber: varchar("reference_number", { length: 100 }).default(""),
@@ -456,7 +459,6 @@ export const insertCashReceiptItemSchema = z.object({
   departureTime: z.string().optional().default(""),
   arrivalTime: z.string().optional().default(""),
   amount: z.coerce.number().min(0, "Amount must be positive"),
-  basicFare: z.coerce.number().min(0).default(0),
 });
 
 export type CashReceiptItem = z.infer<typeof insertCashReceiptItemSchema>;
@@ -475,7 +477,10 @@ export const insertCashReceiptSchema = z.object({
   arrivalTime: z.string().optional().or(z.literal("")),
   basicFare: z.coerce.number().optional().default(0),
   items: z.array(insertCashReceiptItemSchema).optional().default([]),
-  amount: z.coerce.number().min(0.01, "Amount must be positive"),
+  amount: z.coerce.number().min(0, "Amount must be positive"),
+  totalAmount: z.coerce.number().optional().default(0),
+  receivedAmount: z.coerce.number().optional().default(0),
+  dueAmount: z.coerce.number().optional().default(0),
   paymentMethod: z.enum(receiptPaymentMethods),
   description: z.string().optional().or(z.literal("")),
   referenceNumber: z.string().optional().or(z.literal("")),
