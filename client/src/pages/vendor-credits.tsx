@@ -617,7 +617,12 @@ export default function VendorCreditsPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredVendors.map((vendor) => (
-                    <TableRow key={vendor.id} data-testid={`row-vendor-${vendor.id}`}>
+                    <TableRow
+                      key={vendor.id}
+                      data-testid={`row-vendor-${vendor.id}`}
+                      className="cursor-pointer"
+                      onClick={() => handleViewHistory(vendor)}
+                    >
                       <TableCell className="font-medium">{vendor.name}</TableCell>
                       <TableCell className="text-muted-foreground">{vendor.phone || "-"}</TableCell>
                       <TableCell className="text-right font-mono font-semibold text-green-700 dark:text-green-400">
@@ -628,13 +633,12 @@ export default function VendorCreditsPage() {
                       </TableCell>
                       <TableCell>
                         <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleViewHistory(vendor)}
+                          size="icon"
+                          variant="ghost"
+                          onClick={(e) => { e.stopPropagation(); handleViewHistory(vendor); }}
                           data-testid={`button-view-history-${vendor.id}`}
                         >
-                          <Eye className="w-4 h-4 mr-1" />
-                          History
+                          <Eye className="w-4 h-4" />
                         </Button>
                       </TableCell>
                     </TableRow>
