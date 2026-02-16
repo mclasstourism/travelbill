@@ -1360,7 +1360,7 @@ export default function InvoicesPage() {
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label>Line Items</Label>
+                  <Label>Flight Items</Label>
                   <Button
                     type="button"
                     variant="outline"

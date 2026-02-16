@@ -1082,7 +1082,7 @@ export default function CashReceiptsPage() {
               )}
 
               <div className="flex items-center justify-between gap-2 flex-wrap">
-                <p className="text-sm font-semibold">Line Items</p>
+                <p className="text-sm font-semibold">Flight Items</p>
                 <Button
                   type="button"
                   variant="outline"
