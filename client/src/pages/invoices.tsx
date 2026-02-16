@@ -121,6 +121,7 @@ const createInvoiceFormSchema = z.object({
   customerId: z.string().min(1, "Customer/Agent is required"),
   vendorId: z.string().min(1, "Vendor is required"),
   items: z.array(z.object({
+    tripType: z.enum(["one_way", "round_trip"]).default("one_way"),
     sector: z.string().min(1, "Sector is required"),
     travelDate: z.string().default(""),
     airlinesFlightNo: z.string().default(""),
@@ -433,7 +434,7 @@ export default function InvoicesPage() {
       customerType: "customer",
       customerId: "",
       vendorId: "",
-      items: [{ sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", departureTime: "", arrivalTime: "", amount: 0, basicFare: 0 }],
+      items: [{ tripType: "one_way" as const, sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", departureTime: "", arrivalTime: "", amount: 0, basicFare: 0 }],
       discountPercent: 0,
       useCustomerDeposit: false,
       useAgentCredit: false,
@@ -712,7 +713,7 @@ export default function InvoicesPage() {
       customerType: "customer",
       customerId: "",
       vendorId: "",
-      items: [{ sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", departureTime: "", arrivalTime: "", amount: 0, basicFare: 0 }],
+      items: [{ tripType: "one_way" as const, sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", departureTime: "", arrivalTime: "", amount: 0, basicFare: 0 }],
       discountPercent: 0,
       useCustomerDeposit: false,
       useAgentCredit: false,
@@ -1365,7 +1366,7 @@ export default function InvoicesPage() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => append({ sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", departureTime: "", arrivalTime: "", amount: 0, basicFare: 0 })}
+                    onClick={() => append({ tripType: "one_way" as const, sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", departureTime: "", arrivalTime: "", amount: 0, basicFare: 0 })}
                     data-testid="button-add-item"
                   >
                     <Plus className="w-4 h-4 mr-1" />
@@ -1392,6 +1393,34 @@ export default function InvoicesPage() {
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
+                      <FormField
+                        control={form.control}
+                        name={`items.${index}.tripType`}
+                        render={({ field: f }) => (
+                          <FormItem>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                type="button"
+                                variant={f.value === "one_way" ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => f.onChange("one_way")}
+                                data-testid={`button-one-way-${index}`}
+                              >
+                                One-Way
+                              </Button>
+                              <Button
+                                type="button"
+                                variant={f.value === "round_trip" ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => f.onChange("round_trip")}
+                                data-testid={`button-round-trip-${index}`}
+                              >
+                                Round-Trip
+                              </Button>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
                       <div className="grid grid-cols-2 gap-2">
                         <FormField
                           control={form.control}
