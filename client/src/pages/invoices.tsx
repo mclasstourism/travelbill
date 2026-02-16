@@ -54,10 +54,11 @@ import {
   Download,
   Eye,
   User,
+  Calendar,
 } from "lucide-react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format } from "date-fns";
+import { format, parseISO, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { z } from "zod";
 import {
   insertInvoiceSchema,
@@ -131,6 +132,9 @@ export default function InvoicesPage() {
   const [pinVerifiedUser, setPinVerifiedUser] = useState<{ userId: string; username: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [createdByFilter, setCreatedByFilter] = useState("all");
+  const [dateRange, setDateRange] = useState<"all" | "today" | "this_month" | "this_year" | "custom">("all");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
   const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
   const [quickCreateCustomer, setQuickCreateCustomer] = useState(false);
   const [quickCreateVendor, setQuickCreateVendor] = useState(false);
@@ -552,11 +556,47 @@ export default function InvoicesPage() {
     return Array.from(names).sort();
   }, [invoices]);
 
-  const filteredInvoices = invoices.filter((invoice) => {
-    if (!invoice.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-    if (createdByFilter !== "all" && invoice.createdByName !== createdByFilter) return false;
-    return true;
-  });
+  const filteredInvoices = useMemo(() => {
+    let filtered = invoices;
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(i =>
+        i.invoiceNumber.toLowerCase().includes(q)
+      );
+    }
+
+    if (dateRange !== "all") {
+      const now = new Date();
+      filtered = filtered.filter(i => {
+        const date = parseISO(i.createdAt);
+        switch (dateRange) {
+          case "today":
+            return isWithinInterval(date, { start: startOfDay(now), end: endOfDay(now) });
+          case "this_month":
+            return isWithinInterval(date, { start: startOfMonth(now), end: endOfMonth(now) });
+          case "this_year":
+            return isWithinInterval(date, { start: startOfYear(now), end: endOfYear(now) });
+          case "custom":
+            if (customStartDate && customEndDate) {
+              return isWithinInterval(date, {
+                start: startOfDay(parseISO(customStartDate)),
+                end: endOfDay(parseISO(customEndDate)),
+              });
+            }
+            return true;
+          default:
+            return true;
+        }
+      });
+    }
+
+    if (createdByFilter !== "all") {
+      filtered = filtered.filter(i => i.createdByName === createdByFilter);
+    }
+
+    return filtered;
+  }, [invoices, searchQuery, dateRange, customStartDate, customEndDate, createdByFilter]);
 
   const handleCreateClick = () => {
     setIsPinDialogOpen(true);
@@ -652,10 +692,10 @@ export default function InvoicesPage() {
       </div>
 
       <Card>
-        <CardHeader className="pb-4">
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <CardContent className="pt-5 pb-4 px-5">
+          <div className="flex flex-col sm:flex-row gap-3 mb-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search invoices..."
                 value={searchQuery}
@@ -683,9 +723,27 @@ export default function InvoicesPage() {
                 </SelectContent>
               </Select>
             )}
+            <Select value={dateRange} onValueChange={(v) => setDateRange(v as typeof dateRange)}>
+              <SelectTrigger className="w-[180px]" data-testid="select-date-range">
+                <Calendar className="w-4 h-4 mr-2" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Time</SelectItem>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="this_month">This Month</SelectItem>
+                <SelectItem value="this_year">This Year</SelectItem>
+                <SelectItem value="custom">Custom Range</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </CardHeader>
-        <CardContent>
+
+          {dateRange === "custom" && (
+            <div className="flex gap-3 mb-4">
+              <Input type="date" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} data-testid="input-start-date" />
+              <Input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} data-testid="input-end-date" />
+            </div>
+          )}
           {isLoading ? (
             <div className="space-y-4">
               {Array(5).fill(0).map((_, i) => (
