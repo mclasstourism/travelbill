@@ -1217,7 +1217,7 @@ export default function CashReceiptsPage() {
                           <FormItem>
                             <FormLabel>Departure Time</FormLabel>
                             <FormControl>
-                              <Input type="time" {...f} data-testid={`input-departure-${index}`} />
+                              <Input type="time" step="300" {...f} data-testid={`input-departure-${index}`} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -1230,7 +1230,7 @@ export default function CashReceiptsPage() {
                           <FormItem>
                             <FormLabel>Arrival Time</FormLabel>
                             <FormControl>
-                              <Input type="time" {...f} data-testid={`input-arrival-${index}`} />
+                              <Input type="time" step="300" {...f} data-testid={`input-arrival-${index}`} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>

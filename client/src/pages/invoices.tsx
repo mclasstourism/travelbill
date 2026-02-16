@@ -1498,7 +1498,7 @@ export default function InvoicesPage() {
                             <FormItem>
                               <FormLabel className="text-xs">Departure Time</FormLabel>
                               <FormControl>
-                                <Input type="time" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} name={field.name} ref={field.ref} data-testid={`input-item-departure-time-${index}`} />
+                                <Input type="time" step="300" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} name={field.name} ref={field.ref} data-testid={`input-item-departure-time-${index}`} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -1511,7 +1511,7 @@ export default function InvoicesPage() {
                             <FormItem>
                               <FormLabel className="text-xs">Arrival Time</FormLabel>
                               <FormControl>
-                                <Input type="time" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} name={field.name} ref={field.ref} data-testid={`input-item-arrival-time-${index}`} />
+                                <Input type="time" step="300" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} name={field.name} ref={field.ref} data-testid={`input-item-arrival-time-${index}`} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
