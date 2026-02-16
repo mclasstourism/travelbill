@@ -38,6 +38,7 @@ import {
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from "date-fns";
 import type { Invoice, Ticket, Customer, Vendor, Agent } from "@shared/schema";
 import { numberToWords } from "@/lib/number-to-words";
+import mcLogo from "@assets/final-logo_1771172687891.png";
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("en-AE", {
@@ -156,7 +157,24 @@ export default function ReportsPage() {
     };
   }, [filteredTickets]);
 
-  const handlePrint = () => {
+  const toBase64 = (src: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        canvas.getContext("2d")?.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL("image/png"));
+      };
+      img.onerror = () => resolve(src);
+      img.src = src;
+    });
+  };
+
+  const handlePrint = async () => {
+    const logoDataUrl = await toBase64(mcLogo);
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
@@ -185,50 +203,86 @@ export default function ReportsPage() {
       </tr>
     `).join("");
 
+    const invoiceTotalWords = numberToWords(invoiceTotals.total);
+    const ticketTotalWords = numberToWords(ticketTotals.total);
+    const paidWords = numberToWords(invoiceTotals.paid);
+    const pendingWords = numberToWords(invoiceTotals.pending);
+
     const printContent = `
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Report - ${dateRangeText}</title>
+          <title>Transaction Report - ${dateRangeText}</title>
           <style>
-            body { font-family: Arial, sans-serif; padding: 20px; max-width: 1000px; margin: 0 auto; }
-            h1 { text-align: center; margin-bottom: 5px; }
+            body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; max-width: 1000px; margin: 0 auto; color: #1e293b; }
             h2 { margin-top: 30px; border-bottom: 2px solid #333; padding-bottom: 8px; }
-            .date-range { text-align: center; color: #666; margin-bottom: 20px; }
+            .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0; }
+            .header-logo { flex-shrink: 0; }
+            .header-logo img { height: 65px; }
+            .header-info { text-align: right; }
+            .header-info p { margin: 2px 0; font-size: 12px; color: #64748b; }
+            .header-divider { height: 3px; background: linear-gradient(to right, #1a5632, #22c55e, #1a5632); margin: 14px 0 10px 0; border-radius: 2px; }
+            .report-title { text-align: center; font-size: 22px; font-weight: 700; color: #1a5632; margin: 10px 0 4px 0; letter-spacing: 1px; }
+            .date-range { text-align: center; color: #666; margin-bottom: 20px; font-size: 13px; }
             .summary-box { background: #f9fafb; border: 1px solid #e5e7eb; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
             .summary-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
             .summary-label { font-weight: 500; }
             .summary-value { font-family: monospace; font-weight: bold; }
+            .amount-words { font-size: 11px; color: #64748b; font-style: italic; font-family: 'Segoe UI', Arial, sans-serif; }
             table { width: 100%; border-collapse: collapse; margin-top: 10px; }
             th { background: #f3f4f6; padding: 10px 8px; text-align: left; border-bottom: 2px solid #d1d5db; font-weight: 600; }
             th.right { text-align: right; }
             .total-row { font-weight: bold; background: #f9fafb; }
             .total-row td { padding: 12px 8px; border-top: 2px solid #333; }
+            .total-words { font-size: 11px; color: #64748b; font-style: italic; font-weight: normal; display: block; margin-top: 2px; }
             .no-data { text-align: center; padding: 20px; color: #666; }
             @media print { body { padding: 0; } }
           </style>
         </head>
         <body>
-          <h1>MCT - Tourism Organizers</h1>
-          <h2 style="text-align: center; border: none;">Transaction Report</h2>
+          <div class="header">
+            <div class="header-logo">
+              <img src="${logoDataUrl}" alt="MCT - Tourism Organizers" />
+            </div>
+            <div class="header-info">
+              <p style="font-size: 14px; font-weight: 600; color: #1e293b;">MCT - Tourism Organizers</p>
+              <p>Travel & Tourism Services</p>
+              <p>Phone: +971 XX XXX XXXX</p>
+              <p>Email: info@mct-tourism.com</p>
+            </div>
+          </div>
+          <div class="header-divider"></div>
+          <p class="report-title">TRANSACTION REPORT</p>
           <p class="date-range">${dateRangeText}</p>
 
           <div class="summary-box">
             <div class="summary-row">
               <span class="summary-label">Total Invoices:</span>
-              <span class="summary-value">${invoiceTotals.count} (${formatCurrency(invoiceTotals.total)})</span>
+              <span>
+                <span class="summary-value">${invoiceTotals.count} (${formatCurrency(invoiceTotals.total)})</span>
+                <br/><span class="amount-words">${invoiceTotalWords}</span>
+              </span>
             </div>
             <div class="summary-row">
               <span class="summary-label">Paid Amount:</span>
-              <span class="summary-value" style="color: green;">${formatCurrency(invoiceTotals.paid)}</span>
+              <span>
+                <span class="summary-value" style="color: green;">${formatCurrency(invoiceTotals.paid)}</span>
+                <br/><span class="amount-words">${paidWords}</span>
+              </span>
             </div>
             <div class="summary-row">
               <span class="summary-label">Pending Amount:</span>
-              <span class="summary-value" style="color: #d97706;">${formatCurrency(invoiceTotals.pending)}</span>
+              <span>
+                <span class="summary-value" style="color: #d97706;">${formatCurrency(invoiceTotals.pending)}</span>
+                <br/><span class="amount-words">${pendingWords}</span>
+              </span>
             </div>
             <div class="summary-row">
               <span class="summary-label">Total Tickets:</span>
-              <span class="summary-value">${ticketTotals.count} (${formatCurrency(ticketTotals.total)})</span>
+              <span>
+                <span class="summary-value">${ticketTotals.count} (${formatCurrency(ticketTotals.total)})</span>
+                <br/><span class="amount-words">${ticketTotalWords}</span>
+              </span>
             </div>
           </div>
 
@@ -248,7 +302,10 @@ export default function ReportsPage() {
                 ${invoiceRows}
                 <tr class="total-row">
                   <td colspan="3">Total</td>
-                  <td style="text-align: right; font-family: monospace;">${formatCurrency(invoiceTotals.total)}</td>
+                  <td style="text-align: right; font-family: monospace;">
+                    ${formatCurrency(invoiceTotals.total)}
+                    <span class="total-words">${invoiceTotalWords}</span>
+                  </td>
                   <td></td>
                 </tr>
               </tbody>
@@ -272,7 +329,10 @@ export default function ReportsPage() {
                 ${ticketRows}
                 <tr class="total-row">
                   <td colspan="4">Total</td>
-                  <td style="text-align: right; font-family: monospace;">${formatCurrency(ticketTotals.total)}</td>
+                  <td style="text-align: right; font-family: monospace;">
+                    ${formatCurrency(ticketTotals.total)}
+                    <span class="total-words">${ticketTotalWords}</span>
+                  </td>
                   <td></td>
                 </tr>
               </tbody>
