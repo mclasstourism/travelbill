@@ -254,6 +254,7 @@ export default function CashReceiptsPage() {
       setIsCreateOpen(false);
       form.reset();
       setCustomerSearch("");
+      setSearchQuery("");
       setIsCustomerDropdownOpen(false);
       setQuickCreateCustomer(false);
       resetQuickCustomerFields();
