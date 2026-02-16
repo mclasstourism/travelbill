@@ -66,9 +66,6 @@ const financeItems = [
 
 const reportItems = [
   { title: "Reports", url: "/reports", icon: BarChart3 },
-  { title: "Customer Report", url: "/reports/customers", icon: Users },
-  { title: "Agent Report", url: "/reports/agents", icon: Briefcase },
-  { title: "Vendor Report", url: "/reports/vendors", icon: Building2 },
 ];
 
 const settingsItems = [

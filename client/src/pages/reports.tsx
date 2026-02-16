@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,13 +29,18 @@ import {
 } from "@/components/ui/tabs";
 import {
   FileText,
-  Ticket as TicketIcon,
   Calendar,
   Download,
   Printer,
+  Users,
+  Briefcase,
+  Building2,
+  Search,
+  ArrowUpCircle,
+  ArrowDownCircle,
 } from "lucide-react";
-import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from "date-fns";
-import type { Invoice, Ticket, Customer, Vendor, Agent } from "@shared/schema";
+import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval, parseISO } from "date-fns";
+import type { Invoice, Customer, Vendor, Agent, DepositTransaction, AgentTransaction, VendorTransaction } from "@shared/schema";
 import { numberToWords } from "@/lib/number-to-words";
 import mcLogo from "@assets/final-logo_1771172687891.png";
 
@@ -63,20 +67,20 @@ function getStatusBadgeVariant(status: string): "default" | "secondary" | "destr
   }
 }
 
-type DateRange = "today" | "this_week" | "this_month" | "custom";
+type DateRange = "today" | "this_week" | "this_month" | "this_year" | "custom";
 
 export default function ReportsPage() {
   const [dateRange, setDateRange] = useState<DateRange>("today");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
   const [activeTab, setActiveTab] = useState("invoices");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [customerFilter, setCustomerFilter] = useState("all");
+  const [agentFilter, setAgentFilter] = useState("all");
+  const [vendorFilter, setVendorFilter] = useState("all");
 
   const { data: invoices = [], isLoading: isLoadingInvoices } = useQuery<Invoice[]>({
     queryKey: ["/api/invoices"],
-  });
-
-  const { data: tickets = [], isLoading: isLoadingTickets } = useQuery<Ticket[]>({
-    queryKey: ["/api/tickets"],
   });
 
   const { data: customers = [] } = useQuery<Customer[]>({
@@ -91,18 +95,48 @@ export default function ReportsPage() {
     queryKey: ["/api/agents"],
   });
 
+  const { data: depositTransactions = [], isLoading: isLoadingDeposits } = useQuery<DepositTransaction[]>({
+    queryKey: ["/api/deposit-transactions"],
+  });
+
+  const { data: agentTransactions = [], isLoading: isLoadingAgentTx } = useQuery<AgentTransaction[]>({
+    queryKey: ["/api/agent-transactions"],
+  });
+
+  const { data: vendorTransactions = [], isLoading: isLoadingVendorTx } = useQuery<VendorTransaction[]>({
+    queryKey: ["/api/vendor-transactions"],
+  });
+
+  const customerMap = useMemo(() => {
+    const map = new Map<string, Customer>();
+    customers.forEach((c) => map.set(c.id, c));
+    return map;
+  }, [customers]);
+
+  const agentMap = useMemo(() => {
+    const map = new Map<string, Agent>();
+    agents.forEach((a) => map.set(a.id, a));
+    return map;
+  }, [agents]);
+
+  const vendorMap = useMemo(() => {
+    const map = new Map<string, Vendor>();
+    vendors.forEach((v) => map.set(v.id, v));
+    return map;
+  }, [vendors]);
+
   const getPartyName = (invoice: Invoice) => {
     if (invoice.customerType === "agent") {
-      return agents.find(a => a.id === invoice.customerId)?.name || "Unknown";
+      return agentMap.get(invoice.customerId)?.name || "Unknown";
     }
-    return customers.find(c => c.id === invoice.customerId)?.name || "Unknown";
+    return customerMap.get(invoice.customerId)?.name || "Unknown";
   };
-  const getCustomerName = (id: string) => customers.find(c => c.id === id)?.name || "Unknown";
-  const getVendorName = (id: string) => vendors.find(v => v.id === id)?.name || "Unknown";
+  const getCustomerName = (id: string) => customerMap.get(id)?.name || "Unknown";
+  const getAgentName = (id: string) => agentMap.get(id)?.name || "Unknown";
+  const getVendorName = (id: string) => vendorMap.get(id)?.name || "Unknown";
 
   const dateFilter = useMemo(() => {
     const now = new Date();
-    
     switch (dateRange) {
       case "today":
         return { start: startOfDay(now), end: endOfDay(now) };
@@ -110,12 +144,11 @@ export default function ReportsPage() {
         return { start: startOfWeek(now, { weekStartsOn: 0 }), end: endOfWeek(now, { weekStartsOn: 0 }) };
       case "this_month":
         return { start: startOfMonth(now), end: endOfMonth(now) };
+      case "this_year":
+        return { start: startOfYear(now), end: endOfYear(now) };
       case "custom":
         if (customStartDate && customEndDate) {
-          return { 
-            start: startOfDay(parseISO(customStartDate)), 
-            end: endOfDay(parseISO(customEndDate)) 
-          };
+          return { start: startOfDay(parseISO(customStartDate)), end: endOfDay(parseISO(customEndDate)) };
         }
         return null;
       default:
@@ -123,24 +156,59 @@ export default function ReportsPage() {
     }
   }, [dateRange, customStartDate, customEndDate]);
 
-  const filteredInvoices = useMemo(() => {
-    if (!dateFilter) return invoices;
-    return invoices.filter(invoice => {
-      const createdAt = new Date(invoice.createdAt);
-      return isWithinInterval(createdAt, { start: dateFilter.start, end: dateFilter.end });
+  const filterByDate = <T extends { createdAt: string }>(items: T[]) => {
+    if (!dateFilter) return items;
+    return items.filter(item => {
+      const d = new Date(item.createdAt);
+      return isWithinInterval(d, { start: dateFilter.start, end: dateFilter.end });
     });
-  }, [invoices, dateFilter]);
+  };
 
-  const filteredTickets = useMemo(() => {
-    if (!dateFilter) return tickets;
-    return tickets.filter(ticket => {
-      const createdAt = new Date(ticket.createdAt);
-      return isWithinInterval(createdAt, { start: dateFilter.start, end: dateFilter.end });
-    });
-  }, [tickets, dateFilter]);
+  const filteredInvoices = useMemo(() => filterByDate(invoices), [invoices, dateFilter]);
+
+  const filteredDepositTx = useMemo(() => {
+    let filtered = filterByDate(depositTransactions).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    if (searchQuery && activeTab === "customer_transactions") {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(tx => tx.description.toLowerCase().includes(q));
+    }
+    if (customerFilter !== "all") {
+      filtered = filtered.filter(tx => tx.customerId === customerFilter);
+    }
+    return filtered;
+  }, [depositTransactions, dateFilter, searchQuery, customerFilter, activeTab]);
+
+  const filteredAgentTx = useMemo(() => {
+    let filtered = filterByDate(agentTransactions).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    if (searchQuery && activeTab === "agent_transactions") {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(tx => tx.description.toLowerCase().includes(q));
+    }
+    if (agentFilter !== "all") {
+      filtered = filtered.filter(tx => tx.agentId === agentFilter);
+    }
+    return filtered;
+  }, [agentTransactions, dateFilter, searchQuery, agentFilter, activeTab]);
+
+  const filteredVendorTx = useMemo(() => {
+    let filtered = filterByDate(vendorTransactions).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    if (searchQuery && activeTab === "vendor_transactions") {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(tx => tx.description.toLowerCase().includes(q));
+    }
+    if (vendorFilter !== "all") {
+      filtered = filtered.filter(tx => tx.vendorId === vendorFilter);
+    }
+    return filtered;
+  }, [vendorTransactions, dateFilter, searchQuery, vendorFilter, activeTab]);
 
   const invoiceTotals = useMemo(() => {
-    // Use subtotal - discountAmount to match displayed amount in the table
     const getInvoiceAmount = (inv: Invoice) => inv.subtotal - inv.discountAmount;
     return {
       count: filteredInvoices.length,
@@ -150,12 +218,23 @@ export default function ReportsPage() {
     };
   }, [filteredInvoices]);
 
-  const ticketTotals = useMemo(() => {
-    return {
-      count: filteredTickets.length,
-      total: filteredTickets.reduce((sum, t) => sum + t.faceValue, 0),
-    };
-  }, [filteredTickets]);
+  const depositTotals = useMemo(() => ({
+    count: filteredDepositTx.length,
+    credits: filteredDepositTx.filter(tx => tx.type === "credit").reduce((s, tx) => s + tx.amount, 0),
+    debits: filteredDepositTx.filter(tx => tx.type === "debit").reduce((s, tx) => s + tx.amount, 0),
+  }), [filteredDepositTx]);
+
+  const agentTxTotals = useMemo(() => ({
+    count: filteredAgentTx.length,
+    credits: filteredAgentTx.filter(tx => tx.type === "credit").reduce((s, tx) => s + tx.amount, 0),
+    debits: filteredAgentTx.filter(tx => tx.type === "debit").reduce((s, tx) => s + tx.amount, 0),
+  }), [filteredAgentTx]);
+
+  const vendorTxTotals = useMemo(() => ({
+    count: filteredVendorTx.length,
+    credits: filteredVendorTx.filter(tx => tx.type === "credit").reduce((s, tx) => s + tx.amount, 0),
+    debits: filteredVendorTx.filter(tx => tx.type === "debit").reduce((s, tx) => s + tx.amount, 0),
+  }), [filteredVendorTx]);
 
   const toBase64 = (src: string): Promise<string> => {
     return new Promise((resolve) => {
@@ -182,42 +261,120 @@ export default function ReportsPage() {
       ? `${format(dateFilter.start, "MMM d, yyyy")} - ${format(dateFilter.end, "MMM d, yyyy")}`
       : "All Time";
 
-    const invoiceRows = filteredInvoices.map(invoice => `
-      <tr>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${invoice.invoiceNumber}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${format(new Date(invoice.createdAt), "MMM d, yyyy")}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${getPartyName(invoice)}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right; font-family: monospace;">${formatCurrency(invoice.subtotal - invoice.discountAmount)}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${invoice.status}</td>
-      </tr>
-    `).join("");
+    let reportTitle = "TRANSACTION REPORT";
+    let tableHtml = "";
+    let summaryHtml = "";
 
-    const ticketRows = filteredTickets.map(ticket => `
-      <tr>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${ticket.ticketNumber}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${format(new Date(ticket.createdAt), "MMM d, yyyy")}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${ticket.passengerName}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${ticket.route}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right; font-family: monospace;">${formatCurrency(ticket.faceValue)}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${ticket.status}</td>
-      </tr>
-    `).join("");
+    if (activeTab === "invoices") {
+      reportTitle = "INVOICE REPORT";
+      const invoiceTotalWords = numberToWords(invoiceTotals.total);
+      const paidWords = numberToWords(invoiceTotals.paid);
+      const pendingWords = numberToWords(invoiceTotals.pending);
 
-    const invoiceTotalWords = numberToWords(invoiceTotals.total);
-    const ticketTotalWords = numberToWords(ticketTotals.total);
-    const paidWords = numberToWords(invoiceTotals.paid);
-    const pendingWords = numberToWords(invoiceTotals.pending);
+      summaryHtml = `
+        <div class="summary-box">
+          <div class="summary-row"><span class="summary-label">Total Invoices:</span><span><span class="summary-value">${invoiceTotals.count} (${formatCurrency(invoiceTotals.total)})</span><br/><span class="amount-words">${invoiceTotalWords}</span></span></div>
+          <div class="summary-row"><span class="summary-label">Paid Amount:</span><span><span class="summary-value" style="color: green;">${formatCurrency(invoiceTotals.paid)}</span><br/><span class="amount-words">${paidWords}</span></span></div>
+          <div class="summary-row"><span class="summary-label">Pending Amount:</span><span><span class="summary-value" style="color: #d97706;">${formatCurrency(invoiceTotals.pending)}</span><br/><span class="amount-words">${pendingWords}</span></span></div>
+        </div>
+      `;
+
+      const rows = filteredInvoices.map(inv => `
+        <tr>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${inv.invoiceNumber}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${format(new Date(inv.createdAt), "MMM d, yyyy")}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${getPartyName(inv)}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${getVendorName(inv.vendorId)}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right; font-family: monospace;">${formatCurrency(inv.subtotal - inv.discountAmount)}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${inv.status}</td>
+        </tr>
+      `).join("");
+
+      tableHtml = filteredInvoices.length > 0 ? `
+        <table><thead><tr><th>Invoice #</th><th>Date</th><th>Customer</th><th>Vendor</th><th class="right">Amount</th><th>Status</th></tr></thead>
+        <tbody>${rows}<tr class="total-row"><td colspan="4">Total</td><td style="text-align: right; font-family: monospace;">${formatCurrency(invoiceTotals.total)}<span class="total-words">${invoiceTotalWords}</span></td><td></td></tr></tbody></table>
+      ` : '<p class="no-data">No invoices found</p>';
+    } else if (activeTab === "customer_transactions") {
+      reportTitle = "CUSTOMER TRANSACTION REPORT";
+      summaryHtml = `
+        <div class="summary-box">
+          <div class="summary-row"><span class="summary-label">Total Transactions:</span><span class="summary-value">${depositTotals.count}</span></div>
+          <div class="summary-row"><span class="summary-label">Total Credits:</span><span class="summary-value" style="color: green;">${formatCurrency(depositTotals.credits)}</span></div>
+          <div class="summary-row"><span class="summary-label">Total Debits:</span><span class="summary-value" style="color: red;">${formatCurrency(depositTotals.debits)}</span></div>
+        </div>
+      `;
+      const rows = filteredDepositTx.map(tx => `
+        <tr>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${format(new Date(tx.createdAt), "MMM d, yyyy HH:mm")}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${getCustomerName(tx.customerId)}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${tx.description}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${tx.type === "credit" ? "Deposit Added" : "Deposit Used"}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right; font-family: monospace; color: ${tx.type === "credit" ? "green" : "red"};">${tx.type === "credit" ? "+" : "-"}${formatCurrency(tx.amount)}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right; font-family: monospace;">${formatCurrency(tx.balanceAfter)}</td>
+        </tr>
+      `).join("");
+      tableHtml = filteredDepositTx.length > 0 ? `
+        <table><thead><tr><th>Date</th><th>Customer</th><th>Description</th><th>Type</th><th class="right">Amount</th><th class="right">Balance</th></tr></thead>
+        <tbody>${rows}</tbody></table>
+      ` : '<p class="no-data">No transactions found</p>';
+    } else if (activeTab === "agent_transactions") {
+      reportTitle = "AGENT TRANSACTION REPORT";
+      summaryHtml = `
+        <div class="summary-box">
+          <div class="summary-row"><span class="summary-label">Total Transactions:</span><span class="summary-value">${agentTxTotals.count}</span></div>
+          <div class="summary-row"><span class="summary-label">Total Credits:</span><span class="summary-value" style="color: green;">${formatCurrency(agentTxTotals.credits)}</span></div>
+          <div class="summary-row"><span class="summary-label">Total Debits:</span><span class="summary-value" style="color: red;">${formatCurrency(agentTxTotals.debits)}</span></div>
+        </div>
+      `;
+      const rows = filteredAgentTx.map(tx => `
+        <tr>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${format(new Date(tx.createdAt), "MMM d, yyyy HH:mm")}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${getAgentName(tx.agentId)}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${tx.description}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${tx.transactionType === "credit" ? "Credit" : "Deposit"}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${tx.type === "credit" ? "Added" : "Used"}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right; font-family: monospace; color: ${tx.type === "credit" ? "green" : "red"};">${tx.type === "credit" ? "+" : "-"}${formatCurrency(tx.amount)}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right; font-family: monospace;">${formatCurrency(tx.balanceAfter)}</td>
+        </tr>
+      `).join("");
+      tableHtml = filteredAgentTx.length > 0 ? `
+        <table><thead><tr><th>Date</th><th>Agent</th><th>Description</th><th>Category</th><th>Type</th><th class="right">Amount</th><th class="right">Balance</th></tr></thead>
+        <tbody>${rows}</tbody></table>
+      ` : '<p class="no-data">No transactions found</p>';
+    } else if (activeTab === "vendor_transactions") {
+      reportTitle = "VENDOR TRANSACTION REPORT";
+      summaryHtml = `
+        <div class="summary-box">
+          <div class="summary-row"><span class="summary-label">Total Transactions:</span><span class="summary-value">${vendorTxTotals.count}</span></div>
+          <div class="summary-row"><span class="summary-label">Total Credits:</span><span class="summary-value" style="color: green;">${formatCurrency(vendorTxTotals.credits)}</span></div>
+          <div class="summary-row"><span class="summary-label">Total Debits:</span><span class="summary-value" style="color: red;">${formatCurrency(vendorTxTotals.debits)}</span></div>
+        </div>
+      `;
+      const rows = filteredVendorTx.map(tx => `
+        <tr>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${format(new Date(tx.createdAt), "MMM d, yyyy HH:mm")}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${getVendorName(tx.vendorId)}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${tx.description}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${tx.transactionType === "credit" ? "Credit" : "Deposit"}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${tx.type === "credit" ? "Added" : "Used"}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right; font-family: monospace; color: ${tx.type === "credit" ? "green" : "red"};">${tx.type === "credit" ? "+" : "-"}${formatCurrency(tx.amount)}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right; font-family: monospace;">${formatCurrency(tx.balanceAfter)}</td>
+        </tr>
+      `).join("");
+      tableHtml = filteredVendorTx.length > 0 ? `
+        <table><thead><tr><th>Date</th><th>Vendor</th><th>Description</th><th>Category</th><th>Type</th><th class="right">Amount</th><th class="right">Balance</th></tr></thead>
+        <tbody>${rows}</tbody></table>
+      ` : '<p class="no-data">No transactions found</p>';
+    }
 
     const printContent = `
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Transaction Report - ${dateRangeText}</title>
+          <title>${reportTitle} - ${dateRangeText}</title>
           <style>
             body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; max-width: 1000px; margin: 0 auto; color: #1e293b; }
-            h2 { margin-top: 30px; border-bottom: 2px solid #333; padding-bottom: 8px; }
             .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0; }
-            .header-logo { flex-shrink: 0; }
             .header-logo img { height: 65px; }
             .header-info { text-align: right; }
             .header-info p { margin: 2px 0; font-size: 12px; color: #64748b; }
@@ -228,7 +385,7 @@ export default function ReportsPage() {
             .summary-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
             .summary-label { font-weight: 500; }
             .summary-value { font-family: monospace; font-weight: bold; }
-            .amount-words { font-size: 11px; color: #64748b; font-style: italic; font-family: 'Segoe UI', Arial, sans-serif; }
+            .amount-words { font-size: 11px; color: #64748b; font-style: italic; }
             table { width: 100%; border-collapse: collapse; margin-top: 10px; }
             th { background: #f3f4f6; padding: 10px 8px; text-align: left; border-bottom: 2px solid #d1d5db; font-weight: 600; }
             th.right { text-align: right; }
@@ -241,9 +398,7 @@ export default function ReportsPage() {
         </head>
         <body>
           <div class="header">
-            <div class="header-logo">
-              <img src="${logoDataUrl}" alt="MCT - Tourism Organizers" />
-            </div>
+            <div class="header-logo"><img src="${logoDataUrl}" alt="MCT - Tourism Organizers" /></div>
             <div class="header-info">
               <p>Phone: 025 640 224 | 050 222 1042</p>
               <p>www.middleclass.ae | sales@middleclass.ae</p>
@@ -252,93 +407,10 @@ export default function ReportsPage() {
             </div>
           </div>
           <div class="header-divider"></div>
-          <p class="report-title">TRANSACTION REPORT</p>
+          <p class="report-title">${reportTitle}</p>
           <p class="date-range">${dateRangeText}</p>
-
-          <div class="summary-box">
-            <div class="summary-row">
-              <span class="summary-label">Total Invoices:</span>
-              <span>
-                <span class="summary-value">${invoiceTotals.count} (${formatCurrency(invoiceTotals.total)})</span>
-                <br/><span class="amount-words">${invoiceTotalWords}</span>
-              </span>
-            </div>
-            <div class="summary-row">
-              <span class="summary-label">Paid Amount:</span>
-              <span>
-                <span class="summary-value" style="color: green;">${formatCurrency(invoiceTotals.paid)}</span>
-                <br/><span class="amount-words">${paidWords}</span>
-              </span>
-            </div>
-            <div class="summary-row">
-              <span class="summary-label">Pending Amount:</span>
-              <span>
-                <span class="summary-value" style="color: #d97706;">${formatCurrency(invoiceTotals.pending)}</span>
-                <br/><span class="amount-words">${pendingWords}</span>
-              </span>
-            </div>
-            <div class="summary-row">
-              <span class="summary-label">Total Tickets:</span>
-              <span>
-                <span class="summary-value">${ticketTotals.count} (${formatCurrency(ticketTotals.total)})</span>
-                <br/><span class="amount-words">${ticketTotalWords}</span>
-              </span>
-            </div>
-          </div>
-
-          <h2>Invoices (${filteredInvoices.length})</h2>
-          ${filteredInvoices.length > 0 ? `
-            <table>
-              <thead>
-                <tr>
-                  <th>Invoice #</th>
-                  <th>Date</th>
-                  <th>Customer</th>
-                  <th class="right">Amount</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${invoiceRows}
-                <tr class="total-row">
-                  <td colspan="3">Total</td>
-                  <td style="text-align: right; font-family: monospace;">
-                    ${formatCurrency(invoiceTotals.total)}
-                    <span class="total-words">${invoiceTotalWords}</span>
-                  </td>
-                  <td></td>
-                </tr>
-              </tbody>
-            </table>
-          ` : '<p class="no-data">No invoices in this date range</p>'}
-
-          <h2>Tickets (${filteredTickets.length})</h2>
-          ${filteredTickets.length > 0 ? `
-            <table>
-              <thead>
-                <tr>
-                  <th>Ticket #</th>
-                  <th>Date</th>
-                  <th>Passenger</th>
-                  <th>Route</th>
-                  <th class="right">Value</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${ticketRows}
-                <tr class="total-row">
-                  <td colspan="4">Total</td>
-                  <td style="text-align: right; font-family: monospace;">
-                    ${formatCurrency(ticketTotals.total)}
-                    <span class="total-words">${ticketTotalWords}</span>
-                  </td>
-                  <td></td>
-                </tr>
-              </tbody>
-            </table>
-          ` : '<p class="no-data">No tickets in this date range</p>'}
-
+          ${summaryHtml}
+          ${tableHtml}
           <p style="text-align: center; margin-top: 30px; color: #666; font-size: 12px;">
             Generated on ${format(new Date(), "MMMM d, yyyy 'at' h:mm a")}
           </p>
@@ -348,26 +420,258 @@ export default function ReportsPage() {
 
     printWindow.document.write(printContent);
     printWindow.document.close();
-    printWindow.onload = () => {
-      printWindow.print();
-    };
+    printWindow.onload = () => { printWindow.print(); };
   };
 
-  const isLoading = isLoadingInvoices || isLoadingTickets;
+  const handleExportExcel = () => {
+    const dateRangeText = dateFilter
+      ? `${format(dateFilter.start, "yyyy-MM-dd")} to ${format(dateFilter.end, "yyyy-MM-dd")}`
+      : "All Time";
+
+    let csvContent = "";
+    let filename = "";
+
+    if (activeTab === "invoices") {
+      filename = `invoice_report_${format(new Date(), "yyyyMMdd")}.csv`;
+      const headers = ["Invoice #", "Date", "Customer", "Vendor", "Amount", "Status"];
+      const rows = filteredInvoices.map(inv => [
+        inv.invoiceNumber,
+        format(new Date(inv.createdAt), "yyyy-MM-dd"),
+        `"${getPartyName(inv)}"`,
+        `"${getVendorName(inv.vendorId)}"`,
+        inv.subtotal - inv.discountAmount,
+        inv.status,
+      ]);
+      csvContent = [
+        ["Invoice Report"], [`Date Range: ${dateRangeText}`], [`Total: ${invoiceTotals.count}`], [],
+        headers, ...rows
+      ].map(r => r.join(",")).join("\n");
+    } else if (activeTab === "customer_transactions") {
+      filename = `customer_transaction_report_${format(new Date(), "yyyyMMdd")}.csv`;
+      const headers = ["Date", "Customer", "Description", "Type", "Amount", "Balance After"];
+      const rows = filteredDepositTx.map(tx => [
+        format(new Date(tx.createdAt), "yyyy-MM-dd HH:mm"),
+        `"${getCustomerName(tx.customerId)}"`,
+        `"${tx.description.replace(/"/g, '""')}"`,
+        tx.type === "credit" ? "Deposit Added" : "Deposit Used",
+        tx.type === "credit" ? tx.amount : -tx.amount,
+        tx.balanceAfter,
+      ]);
+      csvContent = [
+        ["Customer Transaction Report"], [`Date Range: ${dateRangeText}`], [`Total: ${depositTotals.count}`], [],
+        headers, ...rows
+      ].map(r => r.join(",")).join("\n");
+    } else if (activeTab === "agent_transactions") {
+      filename = `agent_transaction_report_${format(new Date(), "yyyyMMdd")}.csv`;
+      const headers = ["Date", "Agent", "Description", "Category", "Type", "Amount", "Balance After"];
+      const rows = filteredAgentTx.map(tx => [
+        format(new Date(tx.createdAt), "yyyy-MM-dd HH:mm"),
+        `"${getAgentName(tx.agentId)}"`,
+        `"${tx.description.replace(/"/g, '""')}"`,
+        tx.transactionType === "credit" ? "Credit" : "Deposit",
+        tx.type === "credit" ? "Added" : "Used",
+        tx.type === "credit" ? tx.amount : -tx.amount,
+        tx.balanceAfter,
+      ]);
+      csvContent = [
+        ["Agent Transaction Report"], [`Date Range: ${dateRangeText}`], [`Total: ${agentTxTotals.count}`], [],
+        headers, ...rows
+      ].map(r => r.join(",")).join("\n");
+    } else if (activeTab === "vendor_transactions") {
+      filename = `vendor_transaction_report_${format(new Date(), "yyyyMMdd")}.csv`;
+      const headers = ["Date", "Vendor", "Description", "Category", "Type", "Amount", "Balance After"];
+      const rows = filteredVendorTx.map(tx => [
+        format(new Date(tx.createdAt), "yyyy-MM-dd HH:mm"),
+        `"${getVendorName(tx.vendorId)}"`,
+        `"${tx.description.replace(/"/g, '""')}"`,
+        tx.transactionType === "credit" ? "Credit" : "Deposit",
+        tx.type === "credit" ? "Added" : "Used",
+        tx.type === "credit" ? tx.amount : -tx.amount,
+        tx.balanceAfter,
+      ]);
+      csvContent = [
+        ["Vendor Transaction Report"], [`Date Range: ${dateRangeText}`], [`Total: ${vendorTxTotals.count}`], [],
+        headers, ...rows
+      ].map(r => r.join(",")).join("\n");
+    }
+
+    if (csvContent) {
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+    }
+  };
+
+  const isLoading = isLoadingInvoices || isLoadingDeposits || isLoadingAgentTx || isLoadingVendorTx;
+
+  const renderSummaryCards = () => {
+    if (activeTab === "invoices") {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="overflow-visible">
+            <CardContent className="pt-5 pb-4 px-5">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">Total Invoices</p>
+              <div className="text-xl font-bold" data-testid="text-invoice-count">{invoiceTotals.count}</div>
+              <p className="text-xs text-muted-foreground font-mono">{formatCurrency(invoiceTotals.total)}</p>
+            </CardContent>
+          </Card>
+          <Card className="overflow-visible">
+            <CardContent className="pt-5 pb-4 px-5">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">Paid Amount</p>
+              <div className="text-xl font-bold text-green-600 dark:text-green-400 font-mono" data-testid="text-paid-amount">{formatCurrency(invoiceTotals.paid)}</div>
+            </CardContent>
+          </Card>
+          <Card className="overflow-visible">
+            <CardContent className="pt-5 pb-4 px-5">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">Pending Amount</p>
+              <div className="text-xl font-bold text-amber-600 dark:text-amber-400 font-mono" data-testid="text-pending-amount">{formatCurrency(invoiceTotals.pending)}</div>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
+    const totals = activeTab === "customer_transactions" ? depositTotals
+      : activeTab === "agent_transactions" ? agentTxTotals
+      : vendorTxTotals;
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="overflow-visible">
+          <CardContent className="pt-5 pb-4 px-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">Total Transactions</p>
+                <div className="text-xl font-bold font-mono" data-testid="text-total-transactions">{totals.count}</div>
+              </div>
+              <div className="flex-shrink-0 w-9 h-9 rounded-full bg-[hsl(var(--primary)/0.1)] flex items-center justify-center">
+                <Calendar className="h-4 w-4 text-[hsl(var(--primary))]" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="overflow-visible">
+          <CardContent className="pt-5 pb-4 px-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">Total Credits</p>
+                <div className="text-xl font-bold font-mono text-green-600 dark:text-green-400" data-testid="text-total-credits">{formatCurrency(totals.credits)}</div>
+              </div>
+              <div className="flex-shrink-0 w-9 h-9 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                <ArrowUpCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="overflow-visible">
+          <CardContent className="pt-5 pb-4 px-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">Total Debits</p>
+                <div className="text-xl font-bold font-mono text-red-600 dark:text-red-400" data-testid="text-total-debits">{formatCurrency(totals.debits)}</div>
+              </div>
+              <div className="flex-shrink-0 w-9 h-9 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <ArrowDownCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
+  const renderTransactionFilters = () => {
+    if (activeTab === "invoices") return null;
+
+    return (
+      <div className="flex flex-wrap items-end gap-4 mt-4">
+        <div className="space-y-2 flex-1 min-w-[200px]">
+          <Label>Search Description</Label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search transactions..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+              data-testid="input-search"
+            />
+          </div>
+        </div>
+
+        {activeTab === "customer_transactions" && (
+          <div className="space-y-2">
+            <Label>Customer</Label>
+            <Select value={customerFilter} onValueChange={setCustomerFilter}>
+              <SelectTrigger className="w-48" data-testid="select-customer-filter">
+                <SelectValue placeholder="All Customers" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Customers</SelectItem>
+                {customers.map(c => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {activeTab === "agent_transactions" && (
+          <div className="space-y-2">
+            <Label>Agent</Label>
+            <Select value={agentFilter} onValueChange={setAgentFilter}>
+              <SelectTrigger className="w-48" data-testid="select-agent-filter">
+                <SelectValue placeholder="All Agents" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Agents</SelectItem>
+                {agents.map(a => (
+                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {activeTab === "vendor_transactions" && (
+          <div className="space-y-2">
+            <Label>Vendor</Label>
+            <Select value={vendorFilter} onValueChange={setVendorFilter}>
+              <SelectTrigger className="w-48" data-testid="select-vendor-filter">
+                <SelectValue placeholder="All Vendors" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Vendors</SelectItem>
+                {vendors.map(v => (
+                  <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-2">
-          <div>
-            <h1 className="text-2xl font-semibold" data-testid="text-reports-title">Reports</h1>
-            <p className="text-sm text-muted-foreground">View and filter transaction records by date</p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-semibold" data-testid="text-reports-title">Reports</h1>
+          <p className="text-sm text-muted-foreground">View and filter transaction records by date</p>
         </div>
-        <Button onClick={handlePrint} variant="outline" data-testid="button-print-report">
-          <Printer className="w-4 h-4 mr-2" />
-          Print Report
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleExportExcel} variant="outline" data-testid="button-export-excel">
+            <Download className="w-4 h-4 mr-2" />
+            Excel
+          </Button>
+          <Button onClick={handlePrint} variant="outline" data-testid="button-print-report">
+            <Printer className="w-4 h-4 mr-2" />
+            Print PDF
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -389,6 +693,7 @@ export default function ReportsPage() {
                   <SelectItem value="today">Today</SelectItem>
                   <SelectItem value="this_week">This Week</SelectItem>
                   <SelectItem value="this_month">This Month</SelectItem>
+                  <SelectItem value="this_year">This Year</SelectItem>
                   <SelectItem value="custom">Custom Range</SelectItem>
                 </SelectContent>
               </Select>
@@ -423,59 +728,29 @@ export default function ReportsPage() {
               </div>
             )}
           </div>
+          {renderTransactionFilters()}
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Invoices</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold">{invoiceTotals.count}</div>
-            <p className="text-xs text-muted-foreground">{formatCurrency(invoiceTotals.total)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Paid Amount</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold text-green-600 dark:text-green-400 font-mono">
-              {formatCurrency(invoiceTotals.paid)}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Pending Amount</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold text-amber-600 dark:text-amber-400 font-mono">
-              {formatCurrency(invoiceTotals.pending)}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Tickets</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold">{ticketTotals.count}</div>
-            <p className="text-xs text-muted-foreground">{formatCurrency(ticketTotals.total)}</p>
-          </CardContent>
-        </Card>
-      </div>
+      {renderSummaryCards()}
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
+      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setSearchQuery(""); }}>
+        <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="invoices" data-testid="tab-invoices">
             <FileText className="w-4 h-4 mr-2" />
             Invoices ({filteredInvoices.length})
           </TabsTrigger>
-          <TabsTrigger value="tickets" data-testid="tab-tickets">
-            <TicketIcon className="w-4 h-4 mr-2" />
-            Tickets ({filteredTickets.length})
+          <TabsTrigger value="customer_transactions" data-testid="tab-customer-transactions">
+            <Users className="w-4 h-4 mr-2" />
+            Customer ({filteredDepositTx.length})
+          </TabsTrigger>
+          <TabsTrigger value="agent_transactions" data-testid="tab-agent-transactions">
+            <Briefcase className="w-4 h-4 mr-2" />
+            Agent ({filteredAgentTx.length})
+          </TabsTrigger>
+          <TabsTrigger value="vendor_transactions" data-testid="tab-vendor-transactions">
+            <Building2 className="w-4 h-4 mr-2" />
+            Vendor ({filteredVendorTx.length})
           </TabsTrigger>
         </TabsList>
 
@@ -483,11 +758,7 @@ export default function ReportsPage() {
           <Card>
             <CardContent className="pt-6">
               {isLoading ? (
-                <div className="space-y-4">
-                  {Array(5).fill(0).map((_, i) => (
-                    <Skeleton key={i} className="h-16 w-full" />
-                  ))}
-                </div>
+                <div className="space-y-4">{Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}</div>
               ) : filteredInvoices.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -511,25 +782,71 @@ export default function ReportsPage() {
                     <TableBody>
                       {filteredInvoices.map((invoice) => (
                         <TableRow key={invoice.id} data-testid={`row-report-invoice-${invoice.id}`}>
-                          <TableCell className="font-medium font-mono">
-                            {invoice.invoiceNumber}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {format(new Date(invoice.createdAt), "MMM d, yyyy")}
-                          </TableCell>
+                          <TableCell className="font-medium font-mono">{invoice.invoiceNumber}</TableCell>
+                          <TableCell className="text-muted-foreground">{format(new Date(invoice.createdAt), "MMM d, yyyy")}</TableCell>
                           <TableCell>{getPartyName(invoice)}</TableCell>
                           <TableCell>{getVendorName(invoice.vendorId)}</TableCell>
-                          <TableCell className="text-right font-mono font-semibold">
-                            {formatCurrency(invoice.subtotal - invoice.discountAmount)}
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground max-w-xs">
-                            {numberToWords(invoice.subtotal - invoice.discountAmount)}
-                          </TableCell>
+                          <TableCell className="text-right font-mono font-semibold">{formatCurrency(invoice.subtotal - invoice.discountAmount)}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground max-w-xs">{numberToWords(invoice.subtotal - invoice.discountAmount)}</TableCell>
+                          <TableCell><Badge variant={getStatusBadgeVariant(invoice.status)}>{invoice.status}</Badge></TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          <Card className="mt-4">
+            <CardHeader><CardTitle className="text-lg">Summary</CardTitle></CardHeader>
+            <CardContent className="space-y-2">
+              <div className="flex justify-between gap-4 flex-wrap"><span>Total Invoice Amount:</span><span className="font-mono font-semibold">{formatCurrency(invoiceTotals.total)}</span></div>
+              <div className="text-sm text-muted-foreground">{numberToWords(invoiceTotals.total)}</div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="customer_transactions" className="mt-4">
+          <Card>
+            <CardContent className="pt-6">
+              {isLoading ? (
+                <div className="space-y-4">{Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}</div>
+              ) : filteredDepositTx.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No customer transactions found</p>
+                  <p className="text-sm">Adjust filters or date range</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                        <TableHead className="text-right">Balance After</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredDepositTx.map((tx) => (
+                        <TableRow key={tx.id} data-testid={`row-deposit-tx-${tx.id}`}>
+                          <TableCell className="font-mono text-sm">{format(new Date(tx.createdAt), "dd/MM/yyyy HH:mm")}</TableCell>
+                          <TableCell className="font-medium">{getCustomerName(tx.customerId)}</TableCell>
+                          <TableCell>{tx.description}</TableCell>
                           <TableCell>
-                            <Badge variant={getStatusBadgeVariant(invoice.status)}>
-                              {invoice.status}
-                            </Badge>
+                            {tx.type === "credit" ? (
+                              <Badge variant="default"><ArrowUpCircle className="w-3 h-3 mr-1" />Deposit Added</Badge>
+                            ) : (
+                              <Badge variant="destructive"><ArrowDownCircle className="w-3 h-3 mr-1" />Deposit Used</Badge>
+                            )}
                           </TableCell>
+                          <TableCell className={`text-right font-mono font-semibold ${tx.type === "credit" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                            {tx.type === "credit" ? "+" : "-"}{formatCurrency(tx.amount)}
+                          </TableCell>
+                          <TableCell className="text-right font-mono font-semibold">{formatCurrency(tx.balanceAfter)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -540,57 +857,102 @@ export default function ReportsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="tickets" className="mt-4">
+        <TabsContent value="agent_transactions" className="mt-4">
           <Card>
             <CardContent className="pt-6">
               {isLoading ? (
-                <div className="space-y-4">
-                  {Array(5).fill(0).map((_, i) => (
-                    <Skeleton key={i} className="h-16 w-full" />
-                  ))}
-                </div>
-              ) : filteredTickets.length === 0 ? (
+                <div className="space-y-4">{Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}</div>
+              ) : filteredAgentTx.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
-                  <TicketIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-medium">No tickets found</p>
-                  <p className="text-sm">No tickets match the selected date range</p>
+                  <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No agent transactions found</p>
+                  <p className="text-sm">Adjust filters or date range</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Ticket #</TableHead>
                         <TableHead>Date</TableHead>
-                        <TableHead>Passenger</TableHead>
-                        <TableHead>Route</TableHead>
-                        <TableHead className="text-right">Value</TableHead>
-                        <TableHead>Amount in Words</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead>Agent</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                        <TableHead className="text-right">Balance After</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredTickets.map((ticket) => (
-                        <TableRow key={ticket.id} data-testid={`row-report-ticket-${ticket.id}`}>
-                          <TableCell className="font-medium font-mono">
-                            {ticket.ticketNumber}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {format(new Date(ticket.createdAt), "MMM d, yyyy")}
-                          </TableCell>
-                          <TableCell>{ticket.passengerName}</TableCell>
-                          <TableCell>{ticket.route}</TableCell>
-                          <TableCell className="text-right font-mono font-semibold">
-                            {formatCurrency(ticket.faceValue)}
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground max-w-xs">
-                            {numberToWords(ticket.faceValue)}
-                          </TableCell>
+                      {filteredAgentTx.map((tx) => (
+                        <TableRow key={tx.id} data-testid={`row-agent-tx-${tx.id}`}>
+                          <TableCell className="font-mono text-sm">{format(new Date(tx.createdAt), "dd/MM/yyyy HH:mm")}</TableCell>
+                          <TableCell className="font-medium">{getAgentName(tx.agentId)}</TableCell>
+                          <TableCell>{tx.description}</TableCell>
+                          <TableCell><Badge variant="outline">{tx.transactionType === "credit" ? "Credit" : "Deposit"}</Badge></TableCell>
                           <TableCell>
-                            <Badge variant={getStatusBadgeVariant(ticket.status)}>
-                              {ticket.status}
-                            </Badge>
+                            {tx.type === "credit" ? (
+                              <Badge variant="default"><ArrowUpCircle className="w-3 h-3 mr-1" />Added</Badge>
+                            ) : (
+                              <Badge variant="destructive"><ArrowDownCircle className="w-3 h-3 mr-1" />Used</Badge>
+                            )}
                           </TableCell>
+                          <TableCell className={`text-right font-mono font-semibold ${tx.type === "credit" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                            {tx.type === "credit" ? "+" : "-"}{formatCurrency(tx.amount)}
+                          </TableCell>
+                          <TableCell className="text-right font-mono font-semibold">{formatCurrency(tx.balanceAfter)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="vendor_transactions" className="mt-4">
+          <Card>
+            <CardContent className="pt-6">
+              {isLoading ? (
+                <div className="space-y-4">{Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}</div>
+              ) : filteredVendorTx.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Building2 className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No vendor transactions found</p>
+                  <p className="text-sm">Adjust filters or date range</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Vendor</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                        <TableHead className="text-right">Balance After</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredVendorTx.map((tx) => (
+                        <TableRow key={tx.id} data-testid={`row-vendor-tx-${tx.id}`}>
+                          <TableCell className="font-mono text-sm">{format(new Date(tx.createdAt), "dd/MM/yyyy HH:mm")}</TableCell>
+                          <TableCell className="font-medium">{getVendorName(tx.vendorId)}</TableCell>
+                          <TableCell>{tx.description}</TableCell>
+                          <TableCell><Badge variant="outline">{tx.transactionType === "credit" ? "Credit" : "Deposit"}</Badge></TableCell>
+                          <TableCell>
+                            {tx.type === "credit" ? (
+                              <Badge variant="default"><ArrowUpCircle className="w-3 h-3 mr-1" />Added</Badge>
+                            ) : (
+                              <Badge variant="destructive"><ArrowDownCircle className="w-3 h-3 mr-1" />Used</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className={`text-right font-mono font-semibold ${tx.type === "credit" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                            {tx.type === "credit" ? "+" : "-"}{formatCurrency(tx.amount)}
+                          </TableCell>
+                          <TableCell className="text-right font-mono font-semibold">{formatCurrency(tx.balanceAfter)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -601,28 +963,6 @@ export default function ReportsPage() {
           </Card>
         </TabsContent>
       </Tabs>
-
-      <Card className="print:block">
-        <CardHeader>
-          <CardTitle className="text-lg">Summary</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="flex justify-between">
-            <span>Total Invoice Amount:</span>
-            <span className="font-mono font-semibold">{formatCurrency(invoiceTotals.total)}</span>
-          </div>
-          <div className="text-sm text-muted-foreground">
-            {numberToWords(invoiceTotals.total)}
-          </div>
-          <div className="flex justify-between pt-2">
-            <span>Total Ticket Value:</span>
-            <span className="font-mono font-semibold">{formatCurrency(ticketTotals.total)}</span>
-          </div>
-          <div className="text-sm text-muted-foreground">
-            {numberToWords(ticketTotals.total)}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
