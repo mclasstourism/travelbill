@@ -1,4 +1,16 @@
 import { useState, useMemo } from "react";
+
+const nameColors = [
+  "#6366f1", "#8b5cf6", "#d946ef", "#ec4899", "#f43f5e",
+  "#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6",
+  "#06b6d4", "#3b82f6", "#2563eb", "#7c3aed", "#c026d3",
+];
+function getNameColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return nameColors[Math.abs(hash) % nameColors.length];
+}
+
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -554,8 +566,12 @@ export default function CashReceiptsPage() {
                       <TableCell className="text-right font-mono font-medium text-[hsl(var(--primary))]" data-testid={`text-amount-${receipt.id}`}>
                         {formatCurrency(receipt.amount)}
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm" data-testid={`text-created-by-receipt-${receipt.id}`}>
-                        {receipt.createdByName || "—"}
+                      <TableCell data-testid={`text-created-by-receipt-${receipt.id}`}>
+                        {receipt.createdByName ? (
+                          <Badge variant="outline" className="text-xs font-medium" style={{ backgroundColor: getNameColor(receipt.createdByName), color: '#fff', borderColor: 'transparent' }}>
+                            {receipt.createdByName}
+                          </Badge>
+                        ) : "—"}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">

@@ -1,4 +1,16 @@
 import { useState, useMemo } from "react";
+
+const nameColors = [
+  "#6366f1", "#8b5cf6", "#d946ef", "#ec4899", "#f43f5e",
+  "#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6",
+  "#06b6d4", "#3b82f6", "#2563eb", "#7c3aed", "#c026d3",
+];
+function getNameColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return nameColors[Math.abs(hash) % nameColors.length];
+}
+
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -444,8 +456,12 @@ export default function TicketsPage() {
                       <TableCell className="text-right font-mono font-semibold">
                         {formatCurrency(ticket.faceValue)}
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm" data-testid={`text-created-by-ticket-${ticket.id}`}>
-                        {ticket.createdByName || "—"}
+                      <TableCell data-testid={`text-created-by-ticket-${ticket.id}`}>
+                        {ticket.createdByName ? (
+                          <Badge variant="outline" className="text-xs font-medium" style={{ backgroundColor: getNameColor(ticket.createdByName), color: '#fff', borderColor: 'transparent' }}>
+                            {ticket.createdByName}
+                          </Badge>
+                        ) : "—"}
                       </TableCell>
                       <TableCell>
                         <Badge variant={getStatusBadgeVariant(ticket.status)}>
