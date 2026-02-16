@@ -314,7 +314,7 @@ export default function InvoicesPage() {
         <!-- Totals Section -->
         <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
           <div style="width: 380px;">
-            <div style="background: rgba(26, 86, 50, 0.75); color: white; text-align: center; padding: 6px 16px 10px 16px; border-radius: 0; font-size: 14px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px;">Invoice Summary</div>
+            <div style="background: #1a5632; color: white; text-align: center; padding: 6px 16px 10px 16px; border-radius: 0; font-size: 14px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px;">Invoice Summary</div>
             <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
               <tr>
                 <td style="padding: 8px 10px; font-weight: 600;">Sub Total:</td>
@@ -387,7 +387,7 @@ export default function InvoicesPage() {
         <!-- Created By & Authorised Sign -->
         <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 120px;">
           <div>
-            ${invoice.createdByName ? `<p style="margin: 0; font-size: 12px; color: #64748b;">Created by: <strong style="color: #1e293b;">${invoice.createdByName}</strong></p>` : ""}
+            ${invoice.createdByName ? `<p style="margin: 0; font-size: 12px; color: #64748b;">Created by: <strong style="color: #1e293b; text-transform: capitalize;">${invoice.createdByName}</strong></p>` : ""}
           </div>
           <div style="text-align: center;">
             <div style="width: 180px; border-bottom: 1px solid #374151; margin-bottom: 6px;"></div>
