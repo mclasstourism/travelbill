@@ -61,7 +61,6 @@ const addTransactionFormSchema = z.object({
   transactionType: z.enum(["credit", "deposit"]),
   amount: z.coerce.number().min(0.01, "Amount must be positive"),
   description: z.string().optional(),
-  paymentMethod: z.enum(["cash", "cheque", "bank_transfer"]),
 });
 
 type AddTransactionForm = z.infer<typeof addTransactionFormSchema>;
@@ -90,7 +89,6 @@ export default function VendorCreditsPage() {
       transactionType: "deposit",
       amount: 0,
       description: "",
-      paymentMethod: "cash",
     },
   });
 
@@ -721,29 +719,6 @@ export default function VendorCreditsPage() {
                         data-testid="input-amount"
                       />
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="paymentMethod"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Payment Method *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger data-testid="select-payment-method">
-                          <SelectValue placeholder="Select method" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="cash">Cash</SelectItem>
-                        <SelectItem value="cheque">Cheque</SelectItem>
-                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                      </SelectContent>
-                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
