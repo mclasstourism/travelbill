@@ -187,7 +187,7 @@ export default function CashReceiptsPage() {
   const watchedItems = form.watch("items");
   const formTotalAmount = useMemo(() => {
     return (watchedItems || []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-  }, [watchedItems]);
+  }, [JSON.stringify(watchedItems?.map(i => i.amount))]);
 
   const filteredCustomers = useMemo(() => {
     if (!customerSearch.trim()) return customers;
