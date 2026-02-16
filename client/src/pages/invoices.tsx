@@ -54,7 +54,6 @@ import {
   Download,
   Eye,
   User,
-  X,
 } from "lucide-react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -142,10 +141,9 @@ export default function InvoicesPage() {
   const [newCustomerAddress, setNewCustomerAddress] = useState("");
   const [newVendorName, setNewVendorName] = useState("");
   const [newVendorPhone, setNewVendorPhone] = useState("");
-  const [newVendorEmail, setNewVendorEmail] = useState("");
+  const [newVendorEmails, setNewVendorEmails] = useState<string[]>([""]);
   const [newVendorAddress, setNewVendorAddress] = useState("");
-  const [newVendorAirlines, setNewVendorAirlines] = useState<string[]>([]);
-  const [newAirlineInput, setNewAirlineInput] = useState("");
+  const [newVendorAirlines, setNewVendorAirlines] = useState<{ name: string; code: string }[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -527,14 +525,13 @@ export default function InvoicesPage() {
   const resetQuickVendorFields = () => {
     setNewVendorName("");
     setNewVendorPhone("");
-    setNewVendorEmail("");
+    setNewVendorEmails([""]);
     setNewVendorAddress("");
     setNewVendorAirlines([]);
-    setNewAirlineInput("");
   };
 
   const quickCreateVendorMutation = useMutation({
-    mutationFn: async (data: { name: string; phone: string; email: string; address: string; airlines: string[] }) => {
+    mutationFn: async (data: { name: string; phone: string; email: string; address: string; airlines: { name: string; code: string }[] }) => {
       const res = await apiRequest("POST", "/api/vendors", data);
       return res.json();
     },
@@ -970,98 +967,126 @@ export default function InvoicesPage() {
               {quickCreateVendor && (
                 <div className="p-4 rounded-md border border-dashed border-[hsl(var(--primary))] bg-muted/30 space-y-3">
                   <h4 className="font-medium text-sm">Quick Create Vendor</h4>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label className="text-xs">Name *</Label>
-                      <Input
-                        placeholder="Vendor/Supplier name"
-                        value={newVendorName}
-                        onChange={(e) => setNewVendorName(e.target.value)}
-                        data-testid="input-quick-vendor-name"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Phone</Label>
-                      <Input
-                        placeholder="Enter phone"
-                        value={newVendorPhone}
-                        onChange={(e) => setNewVendorPhone(e.target.value)}
-                        data-testid="input-quick-vendor-phone"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label className="text-xs">Email</Label>
-                      <Input
-                        type="email"
-                        placeholder="email@example.com"
-                        value={newVendorEmail}
-                        onChange={(e) => setNewVendorEmail(e.target.value)}
-                        data-testid="input-quick-vendor-email"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Address</Label>
-                      <Input
-                        placeholder="Business address"
-                        value={newVendorAddress}
-                        onChange={(e) => setNewVendorAddress(e.target.value)}
-                        data-testid="input-quick-vendor-address"
-                      />
-                    </div>
-                  </div>
                   <div>
-                    <Label className="text-xs">Airlines</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Add airline name"
-                        value={newAirlineInput}
-                        onChange={(e) => setNewAirlineInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && newAirlineInput.trim()) {
-                            e.preventDefault();
-                            setNewVendorAirlines(prev => [...prev, newAirlineInput.trim()]);
-                            setNewAirlineInput("");
-                          }
-                        }}
-                        data-testid="input-quick-vendor-airline"
-                      />
+                    <Label className="text-xs">Name *</Label>
+                    <Input
+                      placeholder="Vendor/Supplier name"
+                      value={newVendorName}
+                      onChange={(e) => setNewVendorName(e.target.value)}
+                      data-testid="input-quick-vendor-name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <Label className="text-xs">Email</Label>
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          if (newAirlineInput.trim()) {
-                            setNewVendorAirlines(prev => [...prev, newAirlineInput.trim()]);
-                            setNewAirlineInput("");
-                          }
-                        }}
-                        data-testid="button-add-airline"
+                        onClick={() => setNewVendorEmails(prev => [...prev, ""])}
+                        data-testid="button-add-vendor-email"
                       >
-                        <Plus className="w-3 h-3 mr-1" />
-                        Add
+                        <Plus className="h-3 w-3 mr-1" /> Add Email
                       </Button>
                     </div>
-                    {newVendorAirlines.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {newVendorAirlines.map((airline, i) => (
-                          <Badge key={i} variant="secondary" className="text-xs">
-                            {airline}
-                            <button
+                    {newVendorEmails.map((email, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <Input
+                          type="email"
+                          placeholder="email@example.com"
+                          value={email}
+                          onChange={(e) => {
+                            const updated = [...newVendorEmails];
+                            updated[index] = e.target.value;
+                            setNewVendorEmails(updated);
+                          }}
+                          data-testid={`input-quick-vendor-email-${index}`}
+                        />
+                        {newVendorEmails.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setNewVendorEmails(prev => prev.filter((_, i) => i !== index))}
+                            data-testid={`button-remove-vendor-email-${index}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <Label className="text-xs">Phone</Label>
+                    <Input
+                      placeholder="+1 (555) 123-4567"
+                      value={newVendorPhone}
+                      onChange={(e) => setNewVendorPhone(e.target.value)}
+                      data-testid="input-quick-vendor-phone"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Address</Label>
+                    <Input
+                      placeholder="Business address"
+                      value={newVendorAddress}
+                      onChange={(e) => setNewVendorAddress(e.target.value)}
+                      data-testid="input-quick-vendor-address"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <Label className="text-xs">Airlines</Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setNewVendorAirlines(prev => [...prev, { name: "", code: "" }])}
+                        data-testid="button-add-vendor-airline"
+                      >
+                        <Plus className="w-3 h-3 mr-1" />
+                        Add Airline
+                      </Button>
+                    </div>
+                    {newVendorAirlines.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">No airlines registered. Click "Add Airline" to add one.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {newVendorAirlines.map((airline, index) => (
+                          <div key={index} className="flex items-center gap-2">
+                            <Input
+                              placeholder="Airline name (e.g., Emirates)"
+                              value={airline.name}
+                              onChange={(e) => {
+                                const updated = [...newVendorAirlines];
+                                updated[index] = { ...updated[index], name: e.target.value };
+                                setNewVendorAirlines(updated);
+                              }}
+                              data-testid={`input-quick-vendor-airline-name-${index}`}
+                            />
+                            <Input
+                              placeholder="Code (e.g., EK)"
+                              className="w-24"
+                              value={airline.code}
+                              onChange={(e) => {
+                                const updated = [...newVendorAirlines];
+                                updated[index] = { ...updated[index], code: e.target.value };
+                                setNewVendorAirlines(updated);
+                              }}
+                              data-testid={`input-quick-vendor-airline-code-${index}`}
+                            />
+                            <Button
                               type="button"
-                              className="ml-1 hover:text-destructive"
-                              onClick={() => setNewVendorAirlines(prev => prev.filter((_, idx) => idx !== i))}
-                              data-testid={`button-remove-airline-${i}`}
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setNewVendorAirlines(prev => prev.filter((_, i) => i !== index))}
+                              data-testid={`button-remove-vendor-airline-${index}`}
                             >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </Badge>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         ))}
                       </div>
-                    )}
-                    {newVendorAirlines.length === 0 && (
-                      <p className="text-xs text-muted-foreground mt-1">No airlines registered.</p>
                     )}
                   </div>
                   <div className="flex gap-2 justify-end">
@@ -1072,7 +1097,13 @@ export default function InvoicesPage() {
                       type="button"
                       size="sm"
                       disabled={!newVendorName || quickCreateVendorMutation.isPending}
-                      onClick={() => quickCreateVendorMutation.mutate({ name: newVendorName, phone: newVendorPhone, email: newVendorEmail, address: newVendorAddress, airlines: newVendorAirlines })}
+                      onClick={() => quickCreateVendorMutation.mutate({
+                        name: newVendorName,
+                        phone: newVendorPhone,
+                        email: newVendorEmails.filter(e => e.trim()).join(", "),
+                        address: newVendorAddress,
+                        airlines: newVendorAirlines.filter(a => a.name.trim()),
+                      })}
                       data-testid="button-save-quick-vendor"
                     >
                       {quickCreateVendorMutation.isPending && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
