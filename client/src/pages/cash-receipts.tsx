@@ -1264,6 +1264,18 @@ export default function CashReceiptsPage() {
         userId={user?.id}
         onVerified={(result) => {
           setPinVerifiedUser(result);
+          form.reset({
+            partyType: "customer",
+            partyId: "",
+            sourceType: "flight",
+            items: [{ sector: "", travelDate: "", airlinesFlightNo: "", pnr: "", tktNo: "", departureTime: "", arrivalTime: "", amount: 0, basicFare: 0 }],
+            paymentMethod: "cash",
+            description: "",
+            referenceNumber: "",
+          });
+          setCustomerSearch("");
+          setIsCustomerDropdownOpen(false);
+          setQuickCreateCustomer(false);
           setIsCreateOpen(true);
         }}
         title="Enter PIN to Create Receipt"
