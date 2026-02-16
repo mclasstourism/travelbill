@@ -64,8 +64,14 @@ const financeItems = [
   { title: "Vendor Credits", url: "/vendor-credits", icon: CreditCard },
 ];
 
-const settingsItems = [
+const reportItems = [
   { title: "Reports", url: "/reports", icon: BarChart3 },
+  { title: "Customer Report", url: "/reports/customers", icon: Users },
+  { title: "Agent Report", url: "/reports/agents", icon: Briefcase },
+  { title: "Vendor Report", url: "/reports/vendors", icon: Building2 },
+];
+
+const settingsItems = [
   { title: "Admin Settings", url: "/settings/admin", icon: Shield },
 ];
 
@@ -149,6 +155,27 @@ export function AppSidebar() {
                     className="hover:bg-green-700 hover:text-white transition-colors"
                   >
                     <Link href={item.url} onClick={handleNavClick} data-testid={`link-nav-${item.title.toLowerCase().replace(" ", "-")}`}>
+                      <item.icon className="w-4 h-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Reports</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {reportItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location === item.url}
+                  >
+                    <Link href={item.url} onClick={handleNavClick} data-testid={`link-nav-${item.title.toLowerCase().replace(/ /g, "-")}`}>
                       <item.icon className="w-4 h-4" />
                       <span>{item.title}</span>
                     </Link>

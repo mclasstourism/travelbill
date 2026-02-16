@@ -18,6 +18,9 @@ import DepositsPage from "@/pages/deposits";
 import VendorCreditsPage from "@/pages/vendor-credits";
 import AgentCreditsPage from "@/pages/agent-credits";
 import ReportsPage from "@/pages/reports";
+import CustomerTransactionReportPage from "@/pages/customer-transaction-report";
+import AgentTransactionReportPage from "@/pages/agent-transaction-report";
+import VendorTransactionReportPage from "@/pages/vendor-transaction-report";
 import AdminSettingsPage from "@/pages/admin-settings";
 import CashReceiptsPage from "@/pages/cash-receipts";
 import LoginPage from "@/pages/login";
@@ -37,6 +40,9 @@ function Router() {
       <Route path="/vendor-credits" component={VendorCreditsPage} />
       <Route path="/agent-credits" component={AgentCreditsPage} />
       <Route path="/reports" component={ReportsPage} />
+      <Route path="/reports/customers" component={CustomerTransactionReportPage} />
+      <Route path="/reports/agents" component={AgentTransactionReportPage} />
+      <Route path="/reports/vendors" component={VendorTransactionReportPage} />
       <Route path="/settings/admin" component={AdminSettingsPage} />
       <Route component={NotFound} />
     </Switch>
