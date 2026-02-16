@@ -368,11 +368,6 @@ export default function InvoicesPage() {
                 <td style="padding: 8px 10px; color: #64748b; font-weight: 500;">Refund Method:</td>
                 <td style="padding: 8px 10px; text-align: right; text-transform: capitalize;">${(invoice.refundMethod || '').replace('_', ' ')}</td>
               </tr>
-              ${invoice.refundedBy ? `
-              <tr>
-                <td style="padding: 8px 10px; color: #64748b; font-weight: 500;">Refunded By:</td>
-                <td style="padding: 8px 10px; text-align: right;">${invoice.refundedBy}</td>
-              </tr>` : ''}
               ${invoice.refundDate ? `
               <tr>
                 <td style="padding: 8px 10px; color: #64748b; font-weight: 500;">Refund Date:</td>
