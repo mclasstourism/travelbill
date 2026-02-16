@@ -351,6 +351,34 @@ export default function InvoicesPage() {
                 <td style="padding: 8px 10px; font-weight: 700; font-size: 15px;">Total:</td>
                 <td style="padding: 8px 10px; text-align: right; font-family: 'Courier New', monospace; font-size: 16px; font-weight: 800;">${invoice.total.toLocaleString("en-AE", { minimumFractionDigits: 2 })} <span style="font-size: 11px; color: #64748b;">AED</span></td>
               </tr>
+              ${invoice.status === "refunded" && invoice.refundAmount > 0 ? `
+              <tr>
+                <td colspan="2" style="padding: 0;"><div style="height: 2px; background: #ea580c; margin: 6px 10px;"></div></td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 10px; color: #ea580c; font-weight: 600;">Refund Amount:</td>
+                <td style="padding: 8px 10px; text-align: right; font-family: 'Courier New', monospace; color: #ea580c; font-weight: 700;">${invoice.refundAmount.toLocaleString("en-AE", { minimumFractionDigits: 2 })} <span style="font-size: 10px;">AED</span></td>
+              </tr>
+              ${(() => { const maxRefund = invoice.total - (invoice.depositUsed || 0) - (invoice.agentCreditUsed || 0); const penalty = maxRefund - invoice.refundAmount; return penalty > 0 ? `
+              <tr>
+                <td style="padding: 8px 10px; color: #b45309; font-weight: 500;">Penalty / Deduction:</td>
+                <td style="padding: 8px 10px; text-align: right; font-family: 'Courier New', monospace; color: #b45309;">${penalty.toLocaleString("en-AE", { minimumFractionDigits: 2 })} <span style="font-size: 10px;">AED</span></td>
+              </tr>` : ''; })()}
+              <tr>
+                <td style="padding: 8px 10px; color: #64748b; font-weight: 500;">Refund Method:</td>
+                <td style="padding: 8px 10px; text-align: right; text-transform: capitalize;">${(invoice.refundMethod || '').replace('_', ' ')}</td>
+              </tr>
+              ${invoice.refundedBy ? `
+              <tr>
+                <td style="padding: 8px 10px; color: #64748b; font-weight: 500;">Refunded By:</td>
+                <td style="padding: 8px 10px; text-align: right;">${invoice.refundedBy}</td>
+              </tr>` : ''}
+              ${invoice.refundDate ? `
+              <tr>
+                <td style="padding: 8px 10px; color: #64748b; font-weight: 500;">Refund Date:</td>
+                <td style="padding: 8px 10px; text-align: right;">${invoice.refundDate}</td>
+              </tr>` : ''}
+              ` : ''}
             </table>
             <p style="text-align: right; font-size: 11px; color: #1a5632; margin: 4px 0 0 0; font-style: italic;">${numberToWords(invoice.total)}</p>
           </div>
@@ -856,7 +884,12 @@ export default function InvoicesPage() {
                           {format(new Date(invoice.createdAt), "MMM d, yyyy")}
                         </TableCell>
                         <TableCell className="text-right font-mono font-semibold">
-                          {formatCurrency(invoice.subtotal - invoice.discountAmount)}
+                          <span>{formatCurrency(invoice.subtotal - invoice.discountAmount)}</span>
+                          {invoice.status === "refunded" && invoice.refundAmount > 0 && (
+                            <span className="block text-xs text-orange-600 dark:text-orange-400 font-normal">
+                              Refund: {formatCurrency(invoice.refundAmount)}
+                            </span>
+                          )}
                         </TableCell>
                         <TableCell data-testid={`text-created-by-invoice-${invoice.id}`}>
                           {invoice.createdByName ? (
