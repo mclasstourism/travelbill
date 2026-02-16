@@ -421,6 +421,7 @@ export class PgStorage implements IStorage {
       vendorBalanceDeducted: row.vendorBalanceDeducted || 0,
       notes: row.notes || "",
       issuedBy: row.issuedBy,
+      createdByName: row.createdByName || "",
       status: (row.status as any) || "issued",
       paidAmount: row.paidAmount || 0,
       createdAt: row.createdAt?.toISOString() || new Date().toISOString(),
@@ -450,6 +451,7 @@ export class PgStorage implements IStorage {
       vendorBalanceDeducted: invoice.vendorBalanceDeducted || 0,
       notes: invoice.notes || "",
       issuedBy: invoice.issuedBy,
+      createdByName: invoice.createdByName || "",
       status: "issued",
       paidAmount: 0,
     }).returning();
@@ -615,6 +617,7 @@ export class PgStorage implements IStorage {
       useVendorBalance: (row.useVendorBalance as any) || "none",
       vendorBalanceDeducted: row.vendorBalanceDeducted || 0,
       issuedBy: row.issuedBy,
+      createdByName: row.createdByName || "",
       status: (row.status as any) || "issued",
       createdAt: row.createdAt?.toISOString() || new Date().toISOString(),
     };
@@ -648,6 +651,7 @@ export class PgStorage implements IStorage {
       useVendorBalance: ticket.useVendorBalance || "none",
       vendorBalanceDeducted: ticket.vendorBalanceDeducted || 0,
       issuedBy: ticket.issuedBy,
+      createdByName: ticket.createdByName || "",
       status: "issued",
     }).returning();
     
@@ -1083,6 +1087,7 @@ export class PgStorage implements IStorage {
       description: receipt.description || "",
       referenceNumber: receipt.referenceNumber || "",
       issuedBy: receipt.issuedBy,
+      createdByName: receipt.createdByName || "",
       status: "issued",
     }).returning();
 
