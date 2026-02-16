@@ -512,9 +512,8 @@ export default function ReportsPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="overflow-visible">
             <CardContent className="pt-5 pb-4 px-5">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">Total Invoices</p>
-              <div className="text-xl font-bold" data-testid="text-invoice-count">{invoiceTotals.count}</div>
-              <p className="text-xs text-muted-foreground font-mono">{formatCurrency(invoiceTotals.total)}</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">Total Invoices ({invoiceTotals.count})</p>
+              <div className="text-xl font-bold font-mono" data-testid="text-invoice-count">{formatCurrency(invoiceTotals.total)}</div>
             </CardContent>
           </Card>
           <Card className="overflow-visible">
