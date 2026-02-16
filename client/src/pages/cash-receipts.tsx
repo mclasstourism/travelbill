@@ -1,16 +1,4 @@
 import { useState, useMemo } from "react";
-
-const nameColors = [
-  "#6366f1", "#8b5cf6", "#d946ef", "#ec4899", "#f43f5e",
-  "#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6",
-  "#06b6d4", "#3b82f6", "#2563eb", "#7c3aed", "#c026d3",
-];
-function getNameColor(name: string): string {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return nameColors[Math.abs(hash) % nameColors.length];
-}
-
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -61,6 +49,17 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval, parseISO } from "date-fns";
 import { z } from "zod";
 import type { Customer, Agent, Vendor, CashReceipt } from "@shared/schema";
+
+const nameColors = [
+  "#6366f1", "#8b5cf6", "#d946ef", "#ec4899", "#f43f5e",
+  "#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6",
+  "#06b6d4", "#3b82f6", "#2563eb", "#7c3aed", "#c026d3",
+];
+function getNameColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return nameColors[Math.abs(hash) % nameColors.length];
+}
 
 type DateRange = "all" | "today" | "this_month" | "this_year" | "custom";
 
