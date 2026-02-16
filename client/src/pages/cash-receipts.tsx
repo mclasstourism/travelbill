@@ -471,6 +471,12 @@ export default function CashReceiptsPage() {
                 <td style="padding: 4px 0; text-align: right; font-family: 'Courier New', monospace; font-size: 14px; font-weight: 700; color: #dc2626;">AED ${(receipt.dueAmount || 0).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
               </tr>
               ` : ''}
+              ${(receipt.receivedAmount || 0) > (receipt.totalAmount || 0) && (receipt.totalAmount || 0) > 0 ? `
+              <tr>
+                <td style="padding: 4px 0; font-size: 13px; color: #2563eb; font-weight: 600;">Change</td>
+                <td style="padding: 4px 0; text-align: right; font-family: 'Courier New', monospace; font-size: 14px; font-weight: 700; color: #2563eb;">AED ${((receipt.receivedAmount || 0) - (receipt.totalAmount || 0)).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+              </tr>
+              ` : ''}
               ` : `
               <tr>
                 <td style="padding: 8px 0; font-weight: 700; font-size: 16px; color: #1a5632;">Amount Received</td>
@@ -703,6 +709,9 @@ export default function CashReceiptsPage() {
                         {(receipt.dueAmount || 0) > 0 && (
                           <span className="block text-xs font-mono text-destructive">Due: {formatCurrency(receipt.dueAmount || 0)}</span>
                         )}
+                        {(receipt.receivedAmount || 0) > (receipt.totalAmount || 0) && (receipt.totalAmount || 0) > 0 && (
+                          <span className="block text-xs font-mono text-blue-600 dark:text-blue-400">Change: {formatCurrency((receipt.receivedAmount || 0) - (receipt.totalAmount || 0))}</span>
+                        )}
                       </TableCell>
                       <TableCell data-testid={`text-created-by-receipt-${receipt.id}`}>
                         {receipt.createdByName ? (
@@ -885,6 +894,12 @@ export default function CashReceiptsPage() {
                         <div className="flex justify-between py-1">
                           <span className="text-sm font-semibold text-destructive">Due Amount</span>
                           <span className="font-mono font-bold text-sm text-destructive" data-testid="text-receipt-due">{formatCurrency(selectedReceipt.dueAmount || 0)}</span>
+                        </div>
+                      )}
+                      {(selectedReceipt.receivedAmount || 0) > (selectedReceipt.totalAmount || 0) && (selectedReceipt.totalAmount || 0) > 0 && (
+                        <div className="flex justify-between py-1">
+                          <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">Change</span>
+                          <span className="font-mono font-bold text-sm text-blue-600 dark:text-blue-400" data-testid="text-receipt-change">{formatCurrency((selectedReceipt.receivedAmount || 0) - (selectedReceipt.totalAmount || 0))}</span>
                         </div>
                       )}
                     </>
@@ -1275,6 +1290,14 @@ export default function CashReceiptsPage() {
                     <span className="text-sm font-medium text-destructive">Due Amount</span>
                     <span className="text-sm font-bold font-mono text-destructive">
                       {formatCurrency(formTotalAmount - Number(form.watch("receivedAmount") || 0))}
+                    </span>
+                  </div>
+                )}
+                {formTotalAmount > 0 && Number(form.watch("receivedAmount") || 0) > formTotalAmount && (
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t flex-wrap">
+                    <span className="text-sm font-medium text-blue-600 dark:text-blue-400">Change</span>
+                    <span className="text-sm font-bold font-mono text-blue-600 dark:text-blue-400">
+                      {formatCurrency(Number(form.watch("receivedAmount") || 0) - formTotalAmount)}
                     </span>
                   </div>
                 )}
