@@ -136,6 +136,9 @@ export default function InvoicesPage() {
   const [quickCreateVendor, setQuickCreateVendor] = useState(false);
   const [newCustomerName, setNewCustomerName] = useState("");
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
+  const [newCustomerEmail, setNewCustomerEmail] = useState("");
+  const [newCustomerCompany, setNewCustomerCompany] = useState("");
+  const [newCustomerAddress, setNewCustomerAddress] = useState("");
   const [newVendorName, setNewVendorName] = useState("");
   const [newVendorPhone, setNewVendorPhone] = useState("");
   const { toast } = useToast();
@@ -474,17 +477,24 @@ export default function InvoicesPage() {
     },
   });
 
+  const resetQuickCustomerFields = () => {
+    setNewCustomerName("");
+    setNewCustomerPhone("");
+    setNewCustomerEmail("");
+    setNewCustomerCompany("");
+    setNewCustomerAddress("");
+  };
+
   const quickCreateCustomerMutation = useMutation({
-    mutationFn: async (data: { name: string; phone: string }) => {
-      const res = await apiRequest("POST", "/api/customers", { ...data, email: "", company: "", address: "" });
+    mutationFn: async (data: { name: string; phone: string; email: string; company: string; address: string }) => {
+      const res = await apiRequest("POST", "/api/customers", data);
       return res.json();
     },
     onSuccess: (newCustomer: Customer) => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       form.setValue("customerId", newCustomer.id);
       setQuickCreateCustomer(false);
-      setNewCustomerName("");
-      setNewCustomerPhone("");
+      resetQuickCustomerFields();
       toast({ title: "Customer created", description: `${newCustomer.name} has been added.` });
     },
     onError: (error: Error) => {
@@ -493,16 +503,15 @@ export default function InvoicesPage() {
   });
 
   const quickCreateAgentMutation = useMutation({
-    mutationFn: async (data: { name: string; phone: string }) => {
-      const res = await apiRequest("POST", "/api/agents", { ...data, email: "", company: "", address: "" });
+    mutationFn: async (data: { name: string; phone: string; email: string; company: string; address: string }) => {
+      const res = await apiRequest("POST", "/api/agents", data);
       return res.json();
     },
     onSuccess: (newAgent: Agent) => {
       queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
       form.setValue("customerId", newAgent.id);
       setQuickCreateCustomer(false);
-      setNewCustomerName("");
-      setNewCustomerPhone("");
+      resetQuickCustomerFields();
       toast({ title: "Agent created", description: `${newAgent.name} has been added.` });
     },
     onError: (error: Error) => {
@@ -890,8 +899,38 @@ export default function InvoicesPage() {
                       />
                     </div>
                   </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Email</Label>
+                      <Input
+                        type="email"
+                        placeholder="Enter email"
+                        value={newCustomerEmail}
+                        onChange={(e) => setNewCustomerEmail(e.target.value)}
+                        data-testid="input-quick-customer-email"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Company</Label>
+                      <Input
+                        placeholder="Enter company"
+                        value={newCustomerCompany}
+                        onChange={(e) => setNewCustomerCompany(e.target.value)}
+                        data-testid="input-quick-customer-company"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Address</Label>
+                    <Input
+                      placeholder="Enter address"
+                      value={newCustomerAddress}
+                      onChange={(e) => setNewCustomerAddress(e.target.value)}
+                      data-testid="input-quick-customer-address"
+                    />
+                  </div>
                   <div className="flex gap-2 justify-end">
-                    <Button type="button" variant="ghost" size="sm" onClick={() => { setQuickCreateCustomer(false); setNewCustomerName(""); setNewCustomerPhone(""); }} data-testid="button-cancel-quick-customer">
+                    <Button type="button" variant="ghost" size="sm" onClick={() => { setQuickCreateCustomer(false); resetQuickCustomerFields(); }} data-testid="button-cancel-quick-customer">
                       Cancel
                     </Button>
                     <Button
@@ -899,10 +938,11 @@ export default function InvoicesPage() {
                       size="sm"
                       disabled={!newCustomerName || !newCustomerPhone || quickCreateCustomerMutation.isPending || quickCreateAgentMutation.isPending}
                       onClick={() => {
+                        const data = { name: newCustomerName, phone: newCustomerPhone, email: newCustomerEmail, company: newCustomerCompany, address: newCustomerAddress };
                         if (watchCustomerType === "agent") {
-                          quickCreateAgentMutation.mutate({ name: newCustomerName, phone: newCustomerPhone });
+                          quickCreateAgentMutation.mutate(data);
                         } else {
-                          quickCreateCustomerMutation.mutate({ name: newCustomerName, phone: newCustomerPhone });
+                          quickCreateCustomerMutation.mutate(data);
                         }
                       }}
                       data-testid="button-save-quick-customer"
