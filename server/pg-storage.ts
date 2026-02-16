@@ -183,6 +183,15 @@ export class PgStorage implements IStorage {
     return null;
   }
 
+  async verifyPinForUser(userId: string, pin: string): Promise<User | null> {
+    const result = await db.select().from(schema.usersTable).where(eq(schema.usersTable.id, userId));
+    if (result.length === 0) return null;
+    const user = result[0];
+    if (!user.active || !user.pin) return null;
+    if (bcrypt.compareSync(pin, user.pin)) return this.mapUser(user);
+    return null;
+  }
+
   async deleteUser(id: string): Promise<void> {
     await db.delete(schema.usersTable).where(eq(schema.usersTable.id, id));
   }

@@ -1118,6 +1118,7 @@ export default function TicketsPage() {
         open={isPinDialogOpen}
         onOpenChange={setIsPinDialogOpen}
         onVerified={handlePinVerified}
+        userId={user?.id}
         title="Enter PIN to Issue Ticket"
         description="Enter your PIN code to issue a new ticket. Your name will be recorded on this entry."
       />

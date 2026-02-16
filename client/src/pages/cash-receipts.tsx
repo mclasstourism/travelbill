@@ -1163,6 +1163,7 @@ export default function CashReceiptsPage() {
       <PinDialog
         open={isPinDialogOpen}
         onOpenChange={setIsPinDialogOpen}
+        userId={user?.id}
         onVerified={(result) => {
           setPinVerifiedUser(result);
           setIsCreateOpen(true);

@@ -119,18 +119,28 @@ export async function registerRoutes(
   // Verify PIN
   app.post("/api/auth/verify-pin", async (req, res) => {
     try {
-      const { pin } = req.body;
+      const { pin, userId } = req.body;
       if (!pin) {
         res.status(400).json({ success: false, error: "PIN is required" });
         return;
       }
-      const user = await storage.verifyPin(pin);
-      if (!user) {
-        res.status(401).json({ success: false, error: "Invalid PIN" });
-        return;
+      if (userId) {
+        const user = await storage.verifyPinForUser(userId, pin);
+        if (!user) {
+          res.status(401).json({ success: false, error: "Invalid PIN" });
+          return;
+        }
+        const { password: _, pin: _p, ...safeUser } = user;
+        res.json({ success: true, user: safeUser });
+      } else {
+        const user = await storage.verifyPin(pin);
+        if (!user) {
+          res.status(401).json({ success: false, error: "Invalid PIN" });
+          return;
+        }
+        const { password: _, pin: _p, ...safeUser } = user;
+        res.json({ success: true, user: safeUser });
       }
-      const { password: _, pin: _p, ...safeUser } = user;
-      res.json({ success: true, user: safeUser });
     } catch (error) {
       res.status(500).json({ success: false, error: "PIN verification failed" });
     }

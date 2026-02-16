@@ -25,9 +25,10 @@ type PinDialogProps = {
   onVerified: (result: PinVerifyResult) => void;
   title?: string;
   description?: string;
+  userId?: string;
 };
 
-export function PinDialog({ open, onOpenChange, onVerified, title, description }: PinDialogProps) {
+export function PinDialog({ open, onOpenChange, onVerified, title, description, userId }: PinDialogProps) {
   const [pin, setPin] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState("");
@@ -43,7 +44,9 @@ export function PinDialog({ open, onOpenChange, onVerified, title, description }
     setError("");
 
     try {
-      const res = await apiRequest("POST", "/api/auth/verify-pin", { pin: pin.trim() });
+      const body: any = { pin: pin.trim() };
+      if (userId) body.userId = userId;
+      const res = await apiRequest("POST", "/api/auth/verify-pin", body);
       if (!res.ok) {
         setError("Invalid PIN. Please try again.");
         setIsVerifying(false);

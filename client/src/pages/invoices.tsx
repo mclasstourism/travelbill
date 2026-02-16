@@ -1938,6 +1938,7 @@ export default function InvoicesPage() {
         open={isPinDialogOpen}
         onOpenChange={setIsPinDialogOpen}
         onVerified={handlePinVerified}
+        userId={user?.id}
         title="Enter PIN to Create Invoice"
         description="Enter your PIN code to create a new invoice. Your name will be recorded on this entry."
       />
@@ -2115,6 +2116,7 @@ export default function InvoicesPage() {
       <PinDialog
         open={isRefundPinDialogOpen}
         onOpenChange={setIsRefundPinDialogOpen}
+        userId={user?.id}
         onVerified={(result) => {
           setRefundVerifiedUser({ userId: result.userId, username: result.username });
           setIsRefundPinDialogOpen(false);

@@ -35,6 +35,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<{ username: string; password: string; active: boolean; email: string; pin: string }>): Promise<User | undefined>;
   verifyPin(pin: string): Promise<User | null>;
+  verifyPinForUser(userId: string, pin: string): Promise<User | null>;
   deleteUser(id: string): Promise<void>;
   updateUserPassword(userId: string, newPassword: string): Promise<boolean>;
   verifyUserPassword(username: string, password: string): Promise<User | null>;
@@ -217,6 +218,13 @@ export class MemStorage implements IStorage {
     for (const user of this.users.values()) {
       if (user.pin && user.active && bcrypt.compareSync(pin, user.pin)) return user;
     }
+    return null;
+  }
+
+  async verifyPinForUser(userId: string, pin: string): Promise<User | null> {
+    const user = this.users.get(userId);
+    if (!user || !user.active || !user.pin) return null;
+    if (bcrypt.compareSync(pin, user.pin)) return user;
     return null;
   }
 
