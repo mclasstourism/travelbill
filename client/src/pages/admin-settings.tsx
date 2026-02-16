@@ -182,6 +182,14 @@ export default function AdminSettingsPage() {
       return;
     }
     if (newUserPin) {
+      if (newUserPin.length < 4 || newUserPin.length > 5) {
+        toast({
+          title: "Invalid PIN",
+          description: "PIN must be 4 or 5 digits.",
+          variant: "destructive",
+        });
+        return;
+      }
       const existingPinUser = users.find(u => u.pin === newUserPin);
       if (existingPinUser) {
         toast({
@@ -232,6 +240,14 @@ export default function AdminSettingsPage() {
     }
 
     if (editPin) {
+      if (editPin.length < 4 || editPin.length > 5) {
+        toast({
+          title: "Invalid PIN",
+          description: "PIN must be 4 or 5 digits.",
+          variant: "destructive",
+        });
+        return;
+      }
       const existingPinUser = users.find(u => u.pin === editPin && u.id !== editingUser.id);
       if (existingPinUser) {
         toast({
@@ -426,12 +442,14 @@ export default function AdminSettingsPage() {
               <Label htmlFor="new-user-pin">PIN Code</Label>
               <Input
                 id="new-user-pin"
-                placeholder="Enter unique PIN (e.g. 1234)"
+                placeholder="Enter 4 or 5 digit PIN"
                 value={newUserPin}
-                onChange={(e) => setNewUserPin(e.target.value)}
+                onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 5); setNewUserPin(v); }}
+                maxLength={5}
+                inputMode="numeric"
                 data-testid="input-new-user-pin"
               />
-              <p className="text-xs text-muted-foreground">Each user needs a unique PIN to create entries (invoices, tickets, receipts).</p>
+              <p className="text-xs text-muted-foreground">4 or 5 digit PIN required to create entries (invoices, tickets, receipts).</p>
             </div>
             {newUserRole === "admin" && (
               <div className="space-y-2">
@@ -497,12 +515,14 @@ export default function AdminSettingsPage() {
               <Label htmlFor="edit-pin">PIN Code</Label>
               <Input
                 id="edit-pin"
-                placeholder="Enter unique PIN"
+                placeholder="Enter 4 or 5 digit PIN"
                 value={editPin}
-                onChange={(e) => setEditPin(e.target.value)}
+                onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 5); setEditPin(v); }}
+                maxLength={5}
+                inputMode="numeric"
                 data-testid="input-edit-pin"
               />
-              <p className="text-xs text-muted-foreground">Unique PIN required for creating entries.</p>
+              <p className="text-xs text-muted-foreground">4 or 5 digit PIN required for creating entries.</p>
             </div>
             {editingUser?.role === "admin" && (
               <div className="space-y-2">

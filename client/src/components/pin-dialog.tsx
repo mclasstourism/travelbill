@@ -96,11 +96,13 @@ export function PinDialog({ open, onOpenChange, onVerified, title, description }
             <Input
               id="pin-input"
               type="password"
-              placeholder="Enter your PIN"
+              placeholder="Enter 4 or 5 digit PIN"
               value={pin}
-              onChange={(e) => { setPin(e.target.value); setError(""); }}
+              onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 5); setPin(v); setError(""); }}
               onKeyDown={handleKeyDown}
               autoFocus
+              maxLength={5}
+              inputMode="numeric"
               className="text-center text-lg font-mono tracking-widest"
               data-testid="input-pin-code"
             />
