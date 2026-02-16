@@ -369,62 +369,36 @@ export default function AgentCreditsPage() {
           </div>
         </div>
 
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Calendar className="w-5 h-5" />
-              Date Filter
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap items-end gap-4">
-              <div className="space-y-2">
-                <Label>Date Range</Label>
-                <Select value={dateRange} onValueChange={(v: DateRange) => setDateRange(v)}>
-                  <SelectTrigger className="w-40" data-testid="select-date-range">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Time</SelectItem>
-                    <SelectItem value="today">Today</SelectItem>
-                    <SelectItem value="this_month">This Month</SelectItem>
-                    <SelectItem value="this_year">This Year</SelectItem>
-                    <SelectItem value="custom">Custom Range</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {dateRange === "custom" && (
-                <>
-                  <div className="space-y-2">
-                    <Label>Start Date</Label>
-                    <Input
-                      type="date"
-                      value={customStartDate}
-                      onChange={(e) => setCustomStartDate(e.target.value)}
-                      data-testid="input-start-date"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>End Date</Label>
-                    <Input
-                      type="date"
-                      value={customEndDate}
-                      onChange={(e) => setCustomEndDate(e.target.value)}
-                      data-testid="input-end-date"
-                    />
-                  </div>
-                </>
-              )}
-
-              {dateFilter && (
-                <div className="text-sm text-muted-foreground">
-                  Showing: {format(dateFilter.start, "MMM d, yyyy")} - {format(dateFilter.end, "MMM d, yyyy")}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <Calendar className="w-4 h-4" />
+            <span>Date Filter</span>
+          </div>
+          <Select value={dateRange} onValueChange={(v: DateRange) => setDateRange(v)}>
+            <SelectTrigger className="w-36" data-testid="select-date-range">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Time</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="this_month">This Month</SelectItem>
+              <SelectItem value="this_year">This Year</SelectItem>
+              <SelectItem value="custom">Custom Range</SelectItem>
+            </SelectContent>
+          </Select>
+          {dateRange === "custom" && (
+            <>
+              <Input type="date" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} className="w-36" data-testid="input-start-date" />
+              <span className="text-sm text-muted-foreground">to</span>
+              <Input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} className="w-36" data-testid="input-end-date" />
+            </>
+          )}
+          {dateFilter && (
+            <span className="text-sm text-muted-foreground">
+              Showing: {format(dateFilter.start, "MMM d, yyyy")} - {format(dateFilter.end, "MMM d, yyyy")}
+            </span>
+          )}
+        </div>
 
         <div className="grid gap-4 md:grid-cols-3">
           <Card className="overflow-visible">
