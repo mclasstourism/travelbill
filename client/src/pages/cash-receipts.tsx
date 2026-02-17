@@ -453,7 +453,7 @@ export default function CashReceiptsPage() {
               <tr>
                 <td colspan="2" style="padding: 0;"><div style="height: 2px; background: linear-gradient(to right, #1a5632, #22c55e); margin: 0 0 8px 0; border-radius: 1px;"></div></td>
               </tr>
-              ${(receipt.totalAmount || 0) > 0 && (receipt.totalAmount || 0) !== receipt.amount ? `
+              ${(receipt.totalAmount || 0) > 0 ? `
               <tr>
                 <td style="padding: 4px 0; font-size: 13px; color: #64748b;">Total Amount</td>
                 <td style="padding: 4px 0; text-align: right; font-family: 'Courier New', monospace; font-size: 14px; font-weight: 600;">${"AED " + (receipt.totalAmount || receipt.amount).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
@@ -877,7 +877,7 @@ export default function CashReceiptsPage() {
               <div className="flex justify-end mb-4">
                 <div className="w-80">
                   <div className="h-[2px] bg-gradient-to-r from-[#1a5632] to-green-400 rounded mb-2" />
-                  {(selectedReceipt.totalAmount || 0) > 0 && (selectedReceipt.totalAmount || 0) !== selectedReceipt.amount ? (
+                  {(selectedReceipt.totalAmount || 0) > 0 ? (
                     <>
                       <div className="flex justify-between py-1">
                         <span className="text-sm text-muted-foreground">Total Amount</span>
