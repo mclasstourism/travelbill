@@ -454,9 +454,9 @@ export default function CashReceiptsPage() {
                 <td colspan="2" style="padding: 0;"><div style="height: 2px; background: linear-gradient(to right, #1a5632, #22c55e); margin: 0 0 8px 0; border-radius: 1px;"></div></td>
               </tr>
               ${(() => {
-                const total = receipt.totalAmount || receipt.amount || 0;
-                const received = receipt.receivedAmount || receipt.amount || 0;
-                const due = receipt.dueAmount || Math.max(0, total - received);
+                const total = receipt.totalAmount != null && receipt.totalAmount > 0 ? receipt.totalAmount : receipt.amount || 0;
+                const received = receipt.receivedAmount != null && receipt.receivedAmount > 0 ? receipt.receivedAmount : (receipt.totalAmount != null && receipt.totalAmount > 0 ? 0 : receipt.amount || 0);
+                const due = receipt.dueAmount != null && receipt.dueAmount > 0 ? receipt.dueAmount : Math.max(0, total - received);
                 const change = received > total ? received - total : 0;
                 return `
               <tr>
@@ -481,7 +481,7 @@ export default function CashReceiptsPage() {
               ` : ''}`;
               })()}
             </table>
-            <p style="text-align: right; font-size: 11px; color: #94a3b8; margin: 2px 0 0 0; font-style: italic;">${numberToWords(receipt.receivedAmount || receipt.amount)}</p>
+            <p style="text-align: right; font-size: 11px; color: #94a3b8; margin: 2px 0 0 0; font-style: italic;">${numberToWords(receipt.receivedAmount != null && receipt.totalAmount != null && receipt.totalAmount > 0 ? receipt.receivedAmount : receipt.amount)}</p>
           </div>
         </div>
 
@@ -878,9 +878,9 @@ export default function CashReceiptsPage() {
                 <div className="w-80">
                   <div className="h-[2px] bg-gradient-to-r from-[#1a5632] to-green-400 rounded mb-2" />
                   {(() => {
-                    const total = selectedReceipt.totalAmount || selectedReceipt.amount || 0;
-                    const received = selectedReceipt.receivedAmount || selectedReceipt.amount || 0;
-                    const due = selectedReceipt.dueAmount || Math.max(0, total - received);
+                    const total = selectedReceipt.totalAmount != null && selectedReceipt.totalAmount > 0 ? selectedReceipt.totalAmount : selectedReceipt.amount || 0;
+                    const received = selectedReceipt.receivedAmount != null && selectedReceipt.receivedAmount > 0 ? selectedReceipt.receivedAmount : (selectedReceipt.totalAmount != null && selectedReceipt.totalAmount > 0 ? 0 : selectedReceipt.amount || 0);
+                    const due = selectedReceipt.dueAmount != null && selectedReceipt.dueAmount > 0 ? selectedReceipt.dueAmount : Math.max(0, total - received);
                     const change = received > total ? received - total : 0;
                     return (
                       <>
@@ -907,7 +907,7 @@ export default function CashReceiptsPage() {
                       </>
                     );
                   })()}
-                  <p className="text-right text-[11px] text-muted-foreground italic">{numberToWords(selectedReceipt.receivedAmount || selectedReceipt.amount)}</p>
+                  <p className="text-right text-[11px] text-muted-foreground italic">{numberToWords(selectedReceipt.receivedAmount != null && selectedReceipt.totalAmount != null && selectedReceipt.totalAmount > 0 ? selectedReceipt.receivedAmount : selectedReceipt.amount)}</p>
                 </div>
               </div>
 
