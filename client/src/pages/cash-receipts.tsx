@@ -97,10 +97,7 @@ const createReceiptSchema = z.object({
 }).refine((data) => {
   const total = data.items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
   return total > 0;
-}, { message: "Total amount must be greater than zero", path: ["items"] }).refine((data) => {
-  const total = data.items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-  return data.receivedAmount <= total;
-}, { message: "Received amount cannot exceed total amount", path: ["receivedAmount"] });
+}, { message: "Total amount must be greater than zero", path: ["items"] });
 
 type CreateReceiptForm = z.infer<typeof createReceiptSchema>;
 
@@ -232,10 +229,10 @@ export default function CashReceiptsPage() {
       const firstItem = data.items[0] || {};
       const res = await apiRequest("POST", "/api/cash-receipts", {
         ...data,
-        amount: receivedAmount,
+        amount: Math.min(receivedAmount, totalAmount),
         totalAmount,
         receivedAmount,
-        dueAmount: totalAmount - receivedAmount,
+        dueAmount: Math.max(0, totalAmount - receivedAmount),
         sector: firstItem.sector || "",
         travelDate: firstItem.travelDate || "",
         airlinesFlightNo: firstItem.airlinesFlightNo || "",
