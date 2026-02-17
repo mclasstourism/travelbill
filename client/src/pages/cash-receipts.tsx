@@ -229,7 +229,7 @@ export default function CashReceiptsPage() {
       const firstItem = data.items[0] || {};
       const res = await apiRequest("POST", "/api/cash-receipts", {
         ...data,
-        amount: Math.min(receivedAmount, totalAmount),
+        amount: totalAmount,
         totalAmount,
         receivedAmount,
         dueAmount: Math.max(0, totalAmount - receivedAmount),
