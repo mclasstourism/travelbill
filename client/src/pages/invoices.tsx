@@ -721,6 +721,14 @@ export default function InvoicesPage() {
     return filtered;
   }, [invoices, searchQuery, dateRange, customStartDate, customEndDate, createdByFilter, statusFilter]);
 
+  const invoiceTotalAmount = useMemo(() => {
+    return filteredInvoices.reduce((sum, inv) => sum + (inv.subtotal - inv.discountAmount), 0);
+  }, [filteredInvoices]);
+
+  const invoiceRefundAmount = useMemo(() => {
+    return filteredInvoices.reduce((sum, inv) => sum + (inv.refundAmount || 0), 0);
+  }, [filteredInvoices]);
+
   const handleCreateClick = () => {
     setIsPinDialogOpen(true);
   };
@@ -812,6 +820,48 @@ export default function InvoicesPage() {
           <Plus className="w-4 h-4 mr-2" />
           Create Invoice
         </Button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="pt-5 pb-4 px-5">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-9 h-9 rounded-full bg-[hsl(var(--primary)/0.1)]">
+                <FileText className="w-4 h-4 text-[hsl(var(--primary))]" />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Total Invoices</p>
+                <p className="text-xl font-bold" data-testid="text-total-invoices">{filteredInvoices.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-5 pb-4 px-5">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-9 h-9 rounded-full bg-[hsl(var(--primary)/0.1)]">
+                <FileText className="w-4 h-4 text-[hsl(var(--primary))]" />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Total Amount</p>
+                <p className="text-xl font-bold font-mono text-[hsl(var(--primary))]" data-testid="text-invoice-total-amount">{formatCurrency(invoiceTotalAmount)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-5 pb-4 px-5">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-9 h-9 rounded-full bg-orange-500/10">
+                <RotateCcw className="w-4 h-4 text-orange-500" />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Refund Amount</p>
+                <p className="text-xl font-bold font-mono text-orange-500" data-testid="text-invoice-refund-amount">{formatCurrency(invoiceRefundAmount)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
