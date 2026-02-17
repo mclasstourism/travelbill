@@ -870,6 +870,54 @@ export async function registerRoutes(
     }
   });
 
+  // Admin-only delete cash receipt
+  app.delete("/api/cash-receipts/:id", async (req, res) => {
+    try {
+      const { userId } = req.body;
+      if (!userId) {
+        res.status(401).json({ error: "Authentication required" });
+        return;
+      }
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== "admin") {
+        res.status(403).json({ error: "Admin access required" });
+        return;
+      }
+      const deleted = await storage.deleteCashReceipt(req.params.id);
+      if (!deleted) {
+        res.status(404).json({ error: "Cash receipt not found" });
+        return;
+      }
+      res.json({ success: true, message: "Cash receipt deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete cash receipt" });
+    }
+  });
+
+  // Admin-only delete invoice
+  app.delete("/api/invoices/:id", async (req, res) => {
+    try {
+      const { userId } = req.body;
+      if (!userId) {
+        res.status(401).json({ error: "Authentication required" });
+        return;
+      }
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== "admin") {
+        res.status(403).json({ error: "Admin access required" });
+        return;
+      }
+      const deleted = await storage.deleteInvoice(req.params.id);
+      if (!deleted) {
+        res.status(404).json({ error: "Invoice not found" });
+        return;
+      }
+      res.json({ success: true, message: "Invoice deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete invoice" });
+    }
+  });
+
   // Admin cleanup endpoint - clears all billing data
   app.post("/api/admin/cleanup", async (req, res) => {
     try {

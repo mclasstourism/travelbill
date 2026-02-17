@@ -108,6 +108,8 @@ export interface IStorage {
   resetFinanceData(): Promise<void>;
   resetInvoices(): Promise<void>;
   resetTickets(): Promise<void>;
+  deleteCashReceipt(id: string): Promise<boolean>;
+  deleteInvoice(id: string): Promise<boolean>;
   deleteCustomer(id: string): Promise<boolean>;
   deleteAgent(id: string): Promise<boolean>;
   deleteVendor(id: string): Promise<boolean>;
@@ -808,6 +810,14 @@ export class MemStorage implements IStorage {
   async resetTickets(): Promise<void> {
     this.tickets.clear();
     this.ticketCounter = 1000;
+  }
+
+  async deleteCashReceipt(id: string): Promise<boolean> {
+    return this.cashReceipts.delete(id);
+  }
+
+  async deleteInvoice(id: string): Promise<boolean> {
+    return this.invoices.delete(id);
   }
 
   async deleteCustomer(id: string): Promise<boolean> {

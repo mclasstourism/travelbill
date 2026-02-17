@@ -1313,6 +1313,16 @@ export class PgStorage implements IStorage {
     this.ticketCounter = 1000;
   }
 
+  async deleteCashReceipt(id: string): Promise<boolean> {
+    const result = await db.delete(schema.cashReceiptsTable).where(eq(schema.cashReceiptsTable.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async deleteInvoice(id: string): Promise<boolean> {
+    const result = await db.delete(schema.invoicesTable).where(eq(schema.invoicesTable.id, id)).returning();
+    return result.length > 0;
+  }
+
   async deleteCustomer(id: string): Promise<boolean> {
     // Delete associated deposit transactions first
     await db.delete(schema.depositTransactionsTable).where(eq(schema.depositTransactionsTable.customerId, id));

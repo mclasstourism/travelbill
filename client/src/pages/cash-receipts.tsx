@@ -43,6 +43,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Plus, Receipt, Search, Loader2, Eye, Printer, Calendar, Download, User, Trash2 } from "lucide-react";
 import { useForm, useFieldArray } from "react-hook-form";
@@ -144,6 +154,7 @@ export default function CashReceiptsPage() {
   const [dateRange, setDateRange] = useState<DateRange>("all");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
+  const [deleteReceipt, setDeleteReceipt] = useState<CashReceipt | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -259,6 +270,23 @@ export default function CashReceiptsPage() {
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to create receipt.", variant: "destructive" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (receiptId: string) => {
+      const res = await apiRequest("DELETE", `/api/cash-receipts/${receiptId}`, {
+        userId: user?.id,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cash-receipts"] });
+      toast({ title: "Deleted", description: "Cash receipt has been deleted." });
+      setDeleteReceipt(null);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete receipt.", variant: "destructive" });
     },
   });
 
@@ -725,6 +753,11 @@ export default function CashReceiptsPage() {
                           <Button variant="ghost" size="icon" onClick={() => handleDownload(receipt)} data-testid={`button-download-receipt-${receipt.id}`}>
                             <Download className="w-4 h-4" />
                           </Button>
+                          {user?.role === "admin" && (
+                            <Button variant="ghost" size="icon" onClick={() => setDeleteReceipt(receipt)} data-testid={`button-delete-receipt-${receipt.id}`}>
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -1362,6 +1395,28 @@ export default function CashReceiptsPage() {
         title="Enter PIN to Create Receipt"
         description="Enter your PIN code to create a new receipt. Your name will be recorded on this entry."
       />
+
+      <AlertDialog open={!!deleteReceipt} onOpenChange={(open) => !open && setDeleteReceipt(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Cash Receipt</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete receipt <strong>{deleteReceipt?.receiptNumber}</strong>? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete-receipt">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground"
+              onClick={() => deleteReceipt && deleteMutation.mutate(deleteReceipt.id)}
+              disabled={deleteMutation.isPending}
+              data-testid="button-confirm-delete-receipt"
+            >
+              {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

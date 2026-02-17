@@ -172,6 +172,7 @@ export default function InvoicesPage() {
   const [newVendorEmails, setNewVendorEmails] = useState<string[]>([""]);
   const [newVendorAddress, setNewVendorAddress] = useState("");
   const [newVendorAirlines, setNewVendorAirlines] = useState<{ name: string; code: string }[]>([]);
+  const [deleteInvoice, setDeleteInvoice] = useState<Invoice | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -652,6 +653,23 @@ export default function InvoicesPage() {
     },
   });
 
+  const deleteInvoiceMutation = useMutation({
+    mutationFn: async (invoiceId: string) => {
+      const res = await apiRequest("DELETE", `/api/invoices/${invoiceId}`, {
+        userId: user?.id,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      toast({ title: "Deleted", description: "Invoice has been deleted." });
+      setDeleteInvoice(null);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete invoice.", variant: "destructive" });
+    },
+  });
+
   const createdByOptions = useMemo(() => {
     const names = new Set(invoices.map(i => i.createdByName).filter(Boolean));
     return Array.from(names).sort();
@@ -954,6 +972,16 @@ export default function InvoicesPage() {
                                 data-testid={`button-refund-invoice-${invoice.id}`}
                               >
                                 <RotateCcw className="w-4 h-4 text-blue-500" />
+                              </Button>
+                            )}
+                            {user?.role === "admin" && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => setDeleteInvoice(invoice)}
+                                data-testid={`button-delete-invoice-${invoice.id}`}
+                              >
+                                <Trash2 className="w-4 h-4 text-destructive" />
                               </Button>
                             )}
                           </div>
@@ -2185,6 +2213,28 @@ export default function InvoicesPage() {
         title="Enter PIN to Process Refund"
         description="Enter your PIN code to process this refund. Your name will be recorded on this entry."
       />
+
+      <AlertDialog open={!!deleteInvoice} onOpenChange={(open) => !open && setDeleteInvoice(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Invoice</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete invoice <strong>{deleteInvoice?.invoiceNumber}</strong>? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete-invoice">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground"
+              onClick={() => deleteInvoice && deleteInvoiceMutation.mutate(deleteInvoice.id)}
+              disabled={deleteInvoiceMutation.isPending}
+              data-testid="button-confirm-delete-invoice"
+            >
+              {deleteInvoiceMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
