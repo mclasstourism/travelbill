@@ -365,6 +365,10 @@ export default function CashReceiptsPage() {
     return filteredReceipts.reduce((sum, r) => sum + r.amount, 0);
   }, [filteredReceipts]);
 
+  const totalDueAmount = useMemo(() => {
+    return filteredReceipts.reduce((sum, r) => sum + (r.dueAmount || 0), 0);
+  }, [filteredReceipts]);
+
   const toBase64 = async (src: string): Promise<string> => {
     try {
       const response = await fetch(src);
@@ -589,7 +593,7 @@ export default function CashReceiptsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
           <CardContent className="pt-5 pb-4 px-5">
             <div className="flex items-center gap-3">
@@ -612,6 +616,19 @@ export default function CashReceiptsPage() {
               <div>
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Total Amount</p>
                 <p className="text-xl font-bold font-mono text-[hsl(var(--primary))]" data-testid="text-total-amount">{formatCurrency(totalAmount)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-5 pb-4 px-5">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-9 h-9 rounded-full bg-destructive/10">
+                <Receipt className="w-4 h-4 text-destructive" />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Due Amount</p>
+                <p className="text-xl font-bold font-mono text-destructive" data-testid="text-total-due-amount">{formatCurrency(totalDueAmount)}</p>
               </div>
             </div>
           </CardContent>
