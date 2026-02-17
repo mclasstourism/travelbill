@@ -453,33 +453,33 @@ export default function CashReceiptsPage() {
               <tr>
                 <td colspan="2" style="padding: 0;"><div style="height: 2px; background: linear-gradient(to right, #1a5632, #22c55e); margin: 0 0 8px 0; border-radius: 1px;"></div></td>
               </tr>
-              ${(receipt.totalAmount || 0) > 0 ? `
+              ${(() => {
+                const total = receipt.totalAmount || receipt.amount || 0;
+                const received = receipt.receivedAmount || receipt.amount || 0;
+                const due = receipt.dueAmount || Math.max(0, total - received);
+                const change = received > total ? received - total : 0;
+                return `
               <tr>
                 <td style="padding: 4px 0; font-size: 13px; color: #64748b;">Total Amount</td>
-                <td style="padding: 4px 0; text-align: right; font-family: 'Courier New', monospace; font-size: 14px; font-weight: 600;">${"AED " + (receipt.totalAmount || receipt.amount).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+                <td style="padding: 4px 0; text-align: right; font-family: 'Courier New', monospace; font-size: 14px; font-weight: 600;">AED ${total.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
               </tr>
               <tr>
                 <td style="padding: 4px 0; font-weight: 700; font-size: 16px; color: #1a5632;">Received</td>
-                <td style="padding: 4px 0; text-align: right; font-family: 'Courier New', monospace; font-size: 18px; font-weight: 800; color: #1a5632;">AED ${(receipt.receivedAmount || receipt.amount).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+                <td style="padding: 4px 0; text-align: right; font-family: 'Courier New', monospace; font-size: 18px; font-weight: 800; color: #1a5632;">AED ${received.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
               </tr>
-              ${(receipt.dueAmount || 0) > 0 ? `
+              ${due > 0 ? `
               <tr>
                 <td style="padding: 4px 0; font-size: 13px; color: #dc2626; font-weight: 600;">Due Amount</td>
-                <td style="padding: 4px 0; text-align: right; font-family: 'Courier New', monospace; font-size: 14px; font-weight: 700; color: #dc2626;">AED ${(receipt.dueAmount || 0).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+                <td style="padding: 4px 0; text-align: right; font-family: 'Courier New', monospace; font-size: 14px; font-weight: 700; color: #dc2626;">AED ${due.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
               </tr>
               ` : ''}
-              ${(receipt.receivedAmount || 0) > (receipt.totalAmount || 0) && (receipt.totalAmount || 0) > 0 ? `
+              ${change > 0 ? `
               <tr>
                 <td style="padding: 4px 0; font-size: 13px; color: #2563eb; font-weight: 600;">Change</td>
-                <td style="padding: 4px 0; text-align: right; font-family: 'Courier New', monospace; font-size: 14px; font-weight: 700; color: #2563eb;">AED ${((receipt.receivedAmount || 0) - (receipt.totalAmount || 0)).toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
+                <td style="padding: 4px 0; text-align: right; font-family: 'Courier New', monospace; font-size: 14px; font-weight: 700; color: #2563eb;">AED ${change.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
               </tr>
-              ` : ''}
-              ` : `
-              <tr>
-                <td style="padding: 8px 0; font-weight: 700; font-size: 16px; color: #1a5632;">Amount Received</td>
-                <td style="padding: 8px 0; text-align: right; font-family: 'Courier New', monospace; font-size: 18px; font-weight: 800; color: #1a5632;">AED ${receipt.amount.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</td>
-              </tr>
-              `}
+              ` : ''}`;
+              })()}
             </table>
             <p style="text-align: right; font-size: 11px; color: #94a3b8; margin: 2px 0 0 0; font-style: italic;">${numberToWords(receipt.receivedAmount || receipt.amount)}</p>
           </div>
@@ -877,35 +877,36 @@ export default function CashReceiptsPage() {
               <div className="flex justify-end mb-4">
                 <div className="w-80">
                   <div className="h-[2px] bg-gradient-to-r from-[#1a5632] to-green-400 rounded mb-2" />
-                  {(selectedReceipt.totalAmount || 0) > 0 ? (
-                    <>
-                      <div className="flex justify-between py-1">
-                        <span className="text-sm text-muted-foreground">Total Amount</span>
-                        <span className="font-mono font-semibold text-sm" data-testid="text-receipt-total">{formatCurrency(selectedReceipt.totalAmount || selectedReceipt.amount)}</span>
-                      </div>
-                      <div className="flex justify-between py-1">
-                        <span className="font-bold text-base text-[#1a5632]">Received</span>
-                        <span className="font-mono font-extrabold text-lg text-[#1a5632]" data-testid="text-receipt-amount">{formatCurrency(selectedReceipt.receivedAmount || selectedReceipt.amount)}</span>
-                      </div>
-                      {(selectedReceipt.dueAmount || 0) > 0 && (
+                  {(() => {
+                    const total = selectedReceipt.totalAmount || selectedReceipt.amount || 0;
+                    const received = selectedReceipt.receivedAmount || selectedReceipt.amount || 0;
+                    const due = selectedReceipt.dueAmount || Math.max(0, total - received);
+                    const change = received > total ? received - total : 0;
+                    return (
+                      <>
                         <div className="flex justify-between py-1">
-                          <span className="text-sm font-semibold text-destructive">Due Amount</span>
-                          <span className="font-mono font-bold text-sm text-destructive" data-testid="text-receipt-due">{formatCurrency(selectedReceipt.dueAmount || 0)}</span>
+                          <span className="text-sm text-muted-foreground">Total Amount</span>
+                          <span className="font-mono font-semibold text-sm" data-testid="text-receipt-total">{formatCurrency(total)}</span>
                         </div>
-                      )}
-                      {(selectedReceipt.receivedAmount || 0) > (selectedReceipt.totalAmount || 0) && (selectedReceipt.totalAmount || 0) > 0 && (
                         <div className="flex justify-between py-1">
-                          <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">Change</span>
-                          <span className="font-mono font-bold text-sm text-blue-600 dark:text-blue-400" data-testid="text-receipt-change">{formatCurrency((selectedReceipt.receivedAmount || 0) - (selectedReceipt.totalAmount || 0))}</span>
+                          <span className="font-bold text-base text-[#1a5632]">Received</span>
+                          <span className="font-mono font-extrabold text-lg text-[#1a5632]" data-testid="text-receipt-amount">{formatCurrency(received)}</span>
                         </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="flex justify-between py-2">
-                      <span className="font-bold text-base text-[#1a5632]">Amount Received</span>
-                      <span className="font-mono font-extrabold text-lg text-[#1a5632]" data-testid="text-receipt-amount">{formatCurrency(selectedReceipt.amount)}</span>
-                    </div>
-                  )}
+                        {due > 0 && (
+                          <div className="flex justify-between py-1">
+                            <span className="text-sm font-semibold text-destructive">Due Amount</span>
+                            <span className="font-mono font-bold text-sm text-destructive" data-testid="text-receipt-due">{formatCurrency(due)}</span>
+                          </div>
+                        )}
+                        {change > 0 && (
+                          <div className="flex justify-between py-1">
+                            <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">Change</span>
+                            <span className="font-mono font-bold text-sm text-blue-600 dark:text-blue-400" data-testid="text-receipt-change">{formatCurrency(change)}</span>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                   <p className="text-right text-[11px] text-muted-foreground italic">{numberToWords(selectedReceipt.receivedAmount || selectedReceipt.amount)}</p>
                 </div>
               </div>
